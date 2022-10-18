@@ -1,5 +1,5 @@
 from os import path, listdir, system
-from argparse import PARSER, ArgumentParser
+from argparse import ArgumentParser
 
 # Argument parser to decide where to look for inputs, outputs, GTF database, and logs
 parser = ArgumentParser()
@@ -15,6 +15,10 @@ if __name__ == "__main__":
     output = path.abspath(args.output)
     gtfdb = path.abspath(args.gtfdb)
     logs = path.abspath(args.logs)
+
+    # Error handling prior to submitting jobs
+    # TODO: Check that all paths exist via try-except
+    # TODO: Check that input directory contains only .bed files
     
     # Create lists of absolute paths for inputs and outputs
     bed_files = [path.join(input, f) for f in listdir(input)]
