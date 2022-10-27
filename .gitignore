@@ -3,3 +3,5 @@ annotated/uncompressed
 .RData
 .RHistory
 *.RProj
+reference_files/*
+output/*
