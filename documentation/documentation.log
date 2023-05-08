@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Homebrew) (preloaded format=pdflatex 2023.3.21)  8 MAY 2023 09:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Homebrew) (preloaded format=pdflatex 2023.3.21)  8 MAY 2023 10:14
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -252,27 +252,49 @@ File: pgfmodulematrix.code.tex 2023-01-15 v3.1.10 (3.1.10)
 \tikz@expandcount=\count282
  (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2023-01-15 v3.1.10 (3.1.10)
-))) (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+))) (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/listings/listings.sty
+\lst@mode=\count283
+\lst@gtempboxa=\box62
+\lst@token=\toks30
+\lst@length=\count284
+\lst@currlwidth=\dimen257
+\lst@column=\count285
+\lst@pos=\count286
+\lst@lostspace=\dimen258
+\lst@width=\dimen259
+\lst@newlines=\count287
+\lst@lineno=\count288
+\lst@maxwidth=\dimen260
+ (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2023/02/27 1.9 (Carsten Heinz)
+\c@lstnumber=\count289
+\lst@skipnumbers=\count290
+\lst@framebox=\box63
+) (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/listings/listings.cfg
+File: listings.cfg 2023/02/27 1.9 listings configuration
+))
+Package: listings 2023/02/27 1.9 (Carsten Heinz)
+ (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2023-01-16 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count283
-\l__pdf_internal_box=\box62
+\l__color_backend_stack_int=\count291
+\l__pdf_internal_box=\box64
 ) (./documentation.aux)
 \openout1 = `documentation.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 10.
+LaTeX Font Info:    ... okay on input line 10.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -310,70 +332,76 @@ LaTeX Font Info:    ... okay on input line 9.
 
 (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count284
-\scratchdimen=\dimen257
-\scratchbox=\box63
-\nofMPsegments=\count285
-\nofMParguments=\count286
-\everyMPshowfont=\toks30
-\MPscratchCnt=\count287
-\MPscratchDim=\dimen258
-\MPnumerator=\count288
-\makeMPintoPDFobject=\count289
-\everyMPtoPDFconversion=\toks31
+\scratchcounter=\count292
+\scratchdimen=\dimen261
+\scratchbox=\box65
+\nofMPsegments=\count293
+\nofMParguments=\count294
+\everyMPshowfont=\toks31
+\MPscratchCnt=\count295
+\MPscratchDim=\dimen262
+\MPnumerator=\count296
+\makeMPintoPDFobject=\count297
+\everyMPtoPDFconversion=\toks32
 ) (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
+\c@lstlisting=\count298
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 10.
+(Font)              <12> on input line 11.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 10.
+(Font)              <8> on input line 11.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 10.
- (./documentation.toc)
+(Font)              <6> on input line 11.
+ (./documentation.toc
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 3.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 3.
+)
 \tf@toc=\write4
 \openout4 = `documentation.toc'.
 
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 42.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 42.
-<../pipeline/dag.pdf, id=4, 564.1075pt x 983.675pt>
-File: ../pipeline/dag.pdf Graphic file (type pdf)
-<use ../pipeline/dag.pdf>
-Package pdftex.def Info: ../pipeline/dag.pdf  used on input line 46.
-(pdftex.def)             Requested size: 282.05305pt x 491.8363pt.
  [1
 
 {/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}]
-<../figures/heatmap_spidr_vs_encode_miRNAadj.pdf, id=16, 986.09218pt x 1034.6087pt>
+<../pipeline/dag.pdf, id=15, 564.1075pt x 983.675pt>
+File: ../pipeline/dag.pdf Graphic file (type pdf)
+<use ../pipeline/dag.pdf>
+Package pdftex.def Info: ../pipeline/dag.pdf  used on input line 48.
+(pdftex.def)             Requested size: 282.05305pt x 491.8363pt.
+ [2 <../pipeline/dag.pdf>]
+LaTeX Font Info:    Trying to load font information for TS1+cmtt on input line 62.
+ (/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/tex/latex/base/ts1cmtt.fd
+File: ts1cmtt.fd 2022/07/10 v2.5l Standard LaTeX font definitions
+)
+<../figures/heatmap_spidr_vs_encode_miRNAadj.pdf, id=27, 986.09218pt x 1034.6087pt>
 File: ../figures/heatmap_spidr_vs_encode_miRNAadj.pdf Graphic file (type pdf)
 <use ../figures/heatmap_spidr_vs_encode_miRNAadj.pdf>
-Package pdftex.def Info: ../figures/heatmap_spidr_vs_encode_miRNAadj.pdf  used on input line 62.
+Package pdftex.def Info: ../figures/heatmap_spidr_vs_encode_miRNAadj.pdf  used on input line 91.
 (pdftex.def)             Requested size: 394.42989pt x 413.83615pt.
- [2 <../pipeline/dag.pdf>]
 <../figures/l2-shuffle-impute-with-miRNAadj.pdf, id=28, 543.00682pt x 853.09903pt>
 File: ../figures/l2-shuffle-impute-with-miRNAadj.pdf Graphic file (type pdf)
 <use ../figures/l2-shuffle-impute-with-miRNAadj.pdf>
-Package pdftex.def Info: ../figures/l2-shuffle-impute-with-miRNAadj.pdf  used on input line 69.
+Package pdftex.def Info: ../figures/l2-shuffle-impute-with-miRNAadj.pdf  used on input line 98.
 (pdftex.def)             Requested size: 325.80661pt x 511.86336pt.
- [3 <../figures/heatmap_spidr_vs_encode_miRNAadj.pdf>] [4 <../figures/l2-shuffle-impute-with-miRNAadj.pdf>] (./documentation.aux) ) 
+ [3{/opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [4 <../figures/heatmap_spidr_vs_encode_miRNAadj.pdf>] [5 <../figures/l2-shuffle-impute-with-miRNAadj.pdf>] (./documentation.aux) ) 
 Here is how much of TeX's memory you used:
- 12457 strings out of 476025
- 263621 string characters out of 5780034
- 1859388 words of memory out of 5000000
- 32715 multiletter control sequences out of 15000+600000
- 516403 words of font info for 46 fonts, out of 8000000 for 9000
+ 13845 strings out of 476025
+ 284203 string characters out of 5780034
+ 1860388 words of memory out of 5000000
+ 34085 multiletter control sequences out of 15000+600000
+ 517342 words of font info for 49 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  102i,8n,104p,851b,668s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on documentation.pdf (4 pages, 239181 bytes).
+</opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></opt/homebrew/Cellar/texlive/20230313/share/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb>
+Output written on documentation.pdf (5 pages, 274374 bytes).
 PDF statistics:
- 194 PDF objects out of 1000 (max. 8388607)
- 53 compressed objects within 1 object stream
+ 218 PDF objects out of 1000 (max. 8388607)
+ 68 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  28 words of extra memory for PDF output out of 10000 (max. 10000000)
 

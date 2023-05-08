@@ -2,6 +2,7 @@
 \usepackage[margin=0.5in]{geometry}
 \usepackage{tikz}
 \usepackage{graphicx}
+\usepackage{listings}
 
 \title{SPIDR Analysis Documentation}
 \author{Darvesh Gorhe, Ahmed Abdou, Erica Wolin}
@@ -17,6 +18,7 @@
     \noindent The preprocessing and the postprocessing pipeline use Snakemake to orchestrate several steps in an efficient way using \texttt{sbatch} jobs. These \texttt{sbatch} jobs are ways to run individual sections of the pipeline on high-performance computing clusters.
 
     \section{Preprocessing Pipeline}
+    \subsection{Overview}
 
     \begin{figure}[ht!]
         \centering
@@ -48,6 +50,33 @@
     \end{figure}
 
     \noindent Each color corresponds to a different rule. To see the contents of each rule you can view the \texttt{Snakefile}. The arrows represent the flow of data and the dependencies between rules. A rule will not run until all of its dependencies have successfully completed.
+
+    \subsection{Running the Pipeline}
+
+    \begin{enumerate}
+        \item Clone the repository from GitHub onto the cluster. (\texttt{git clone https://github.com/mjlab-Columbia/spidr.git})
+        \item Change directories into the pipeline directory (\texttt{cd pipeline}).
+        \item Modify the \texttt{cluster.yaml} file to reflect your account ID, email, and other parameters. The email written in the \texttt{cluster.yaml} will be the one which error emails are sent to. The account ID should be the one that you use to submit jobs to the cluster (\texttt{mjlab} for anyone in the lab).
+        \item Modify the \texttt{config.yaml} to specify the locations of the indices you want to use for alignment (bowtie2 and STAR). Set any other parameters as you would like.
+        \item Install mamba outside of your home directory and change your 
+        \texttt{\$HOME/.bashrc} file to include the path to mamba. This will allow you to use mamba to install the necessary conda packages. This is necessary because Snakemake uses the mamba dependency resolver by default and your home directory is somewhat limited in space and permissions. For more detailed steps see the steps below, otherwise continue.
+            \begin{itemize}
+                \item Download mambaforge: \\
+                curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+    
+                \item Run the installation script from the same place you downloaded it: \\
+                bash Mambaforge-$(uname)-$(uname -m).sh
+                \item Follow the prompts on screen and when asked where to install mamba, specify a location outside of your home directory. I chose \texttt{/burg/mjlab/users/dsg2157/cli-tools}.
+                \item Edit your \texttt{\$HOME/.bashrc} file to include the following line: \\
+                \texttt{export PATH=/burg/mjlab/users/cli-tools/mamba/bin:\$PATH}
+            \end{itemize}
+        \item Install \texttt{snakemake} in your base environment via \texttt{mamba install -c conda-forge snakemake}. This will allow you to run the pipeline.
+        \item Create a folder called \texttt{fastq\_files} and place gzipped fastq files in there.
+        \item Run \texttt{python fastq2json.py -f fastq\_files} from the \texttt{pipeline} directory. This will create a \texttt{samples.json} file which will be used by the pipeline to determine which fastq files to run.
+        \item For testing purposes, change \texttt{num\_chunks} to 2 in order to test the pipeline more quickly. 
+        \item Finally run \texttt{bash run\_pipeline.sh} from the \texttt{pipeline} directory. This will submit the pipeline to the cluster. 
+        \item You can check the status of your jobs with \texttt{squeue -u <your\_username>}. You can also generate your own DAG of the pipeline by running \texttt{bash dag.sh}.
+    \end{enumerate}
 
     \section{Postprocessing Pipeline}
     I'm not sure how the post-processing pipeline works to be completely honest, so I'm not comfortable writing documentation for it.
