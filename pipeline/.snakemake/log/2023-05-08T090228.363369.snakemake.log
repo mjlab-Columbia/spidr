@@ -1,7 +1,0 @@
-Building DAG of jobs...
-MissingInputException in rule splitfq in file /Users/darveshgorhe/columbia/mjlab/spidr/pipeline/Snakefile, line 259:
-Missing input files for rule splitfq:
-    output: workup/splitfq/HEK_MTOR_QC_R1.part_000.fastq, workup/splitfq/HEK_MTOR_QC_R1.part_001.fastq, workup/splitfq/HEK_MTOR_QC_R2.part_000.fastq, workup/splitfq/HEK_MTOR_QC_R2.part_001.fastq
-    wildcards: sample=HEK_MTOR_QC
-    affected files:
-        fastq_files/HEK_MTOR_QC_R2.fastq.gz
