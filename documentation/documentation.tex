@@ -1,0 +1,72 @@
+\documentclass{article}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{tikz}
+\usepackage{graphicx}
+
+\title{SPIDR Analysis Documentation}
+\author{Darvesh Gorhe, Ahmed Abdou, Erica Wolin}
+
+\begin{document}
+    \maketitle
+    \tableofcontents
+
+    \section{Introduction}
+    This document will outline the analysis pipeline for the SPIDR project. The pipeline is divided into three main sections: preprocessing, post-pipeline, and downstream analysis. The preprocessing section will outline the steps taken to go from fastq files to bed files. The post-pipeline section will outline the steps taken to prepare the data from bed files to bedgraph files. The downstream analysis will outline the steps taken to analyze the data from bedgraph files to the final results.
+    \vspace{5mm}
+
+    \noindent The preprocessing and the postprocessing pipeline use Snakemake to orchestrate several steps in an efficient way using \texttt{sbatch} jobs. These \texttt{sbatch} jobs are ways to run individual sections of the pipeline on high-performance computing clusters.
+
+    \section{Preprocessing Pipeline}
+
+    \begin{figure}[ht!]
+        \centering
+        \begin{tikzpicture}
+            % Nodes
+            \node[draw] (run_pipeline) {run\_pipeline.sh};
+            \node[draw, below left of=run_pipeline, node distance=3cm] (cluster_yaml) {cluster.yaml};
+            \node[draw, below right of=run_pipeline, node distance=3cm] (config_yaml) {config.yaml};
+            \node[draw, below of=run_pipeline, node distance=3cm] (Snakefile) {Snakefile};
+            
+            % Arrows
+            \draw[->] (cluster_yaml) -- (run_pipeline);
+            \draw[->] (config_yaml) -- (run_pipeline);
+            \draw[->] (run_pipeline) -- (Snakefile);
+            \draw[->] (config_yaml) -- (Snakefile);
+        \end{tikzpicture}
+        \caption[short]{Overview of preprocessing configuration.}
+    \end{figure}
+
+    \noindent Above we see an overview of the primary files involved in configuration of the preprocessing pipeline. \texttt{run\_pipeline.sh} is the shell file that actually gets called to run the pipeline. \texttt{cluster.yaml} is the file that configures the \texttt{sbatch} jobs. It sets things like the account ID so jobs actually get queued, the memory per job, the number of cpus per job, the maximum time a job should run, etc. \texttt{config.yaml} is the file that configures the pipeline itself. This has parameters like the filepaths for indicies for the bowtie2 and STAR aligners. \texttt{Snakefile} is the file that actually runs the pipeline and contains all the rules. The rules are the individual steps that are run in the pipeline. 
+    \vspace{5mm}
+    
+    \noindent Rules are chained together automatically based on the name of input and output file specified within each rule. Snakemake will create a directed acyclic graph (DAG) upon launching the pipeline. A DAG is a data structure which tells Snakemake the dependencies between rules so Snakemake can determine how to optimally schedule rules on a system. Snakemake will then run the rules in the correct order and in parallel when possible. Below is an example of a DAG for the preprocessing pipeline with \texttt{num\_chunks}$=2$. As the number of chunks becomes larger, the middle of the graph becomes correspondingly wider.
+
+    \begin{figure}[ht!]
+        \centering
+        \includegraphics[scale=0.5]{../pipeline/dag.pdf}
+        \caption[short]{Example of directed acyclic graph (DAG) for preprocessing pipeline with \texttt{num\_chunks}$=2$}
+    \end{figure}
+
+    \noindent Each color corresponds to a different rule. To see the contents of each rule you can view the \texttt{Snakefile}. The arrows represent the flow of data and the dependencies between rules. A rule will not run until all of its dependencies have successfully completed.
+
+    \section{Postprocessing Pipeline}
+    I'm not sure how the post-processing pipeline works to be completely honest, so I'm not comfortable writing documentation for it.
+
+    \section{Downstream Analysis (Ahmed)}
+    Not sure where Ahmed's code and figures are located.
+
+    \section{Downstream Analysis (Darvesh)}
+    Below is a comparison of the ENCODE data to the outputs of SPIDR. Specifically, we compare the transcript proportion as given by the supplementary data of ENCODE along with the ENCODE raw data processed through the same pipeline as the SPIDR data.
+    \begin{figure}[!ht]
+        \centering
+        \includegraphics[scale=0.4]{../figures/heatmap_spidr_vs_encode_miRNAadj.pdf}
+        \caption[short]{Comparing ENCODE to SPIDR }
+    \end{figure}
+    
+    \noindent We also compared the distribution of imputed transcript proportions versus the true transcript proportions. Essentially, we wanted to ensure that our observed transcript proportions were significantly different from those that we would expect by chance. Indeed, this was the case.
+    \begin{figure}[!ht]
+        \centering
+        \includegraphics[scale=0.6]{../figures/l2-shuffle-impute-with-miRNAadj.pdf}
+        \caption[short]{Comparing ENCODE to SPIDR }
+    \end{figure}
+\end{document}
