@@ -1,0 +1,10 @@
+{
+    "HEK_MTOR_QC": {
+        "R1": [
+            "fastq_files/HEK_MTOR_QC_R1.fastq.gz"
+        ],
+        "R2": [
+            "fastq_files/HEK_MTOR_QC_R2.fastq.gz"
+        ]
+    }
+}

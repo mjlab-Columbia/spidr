@@ -1,0 +1,13 @@
+#Location of the config file for barcodeIdentification
+bID: "config_6_rounds.txt"
+#Names of samples, one per line 
+samples: 
+    K562A_Rep5
+#Bam directory
+bam_dir: "workup/alignments/"
+#Output directory  
+output_dir: "workup/bigwigs"
+#Temporary directory
+temp_dir: "/central/scratch/"
+#Bin Size of bigwigs
+bin_size: 1

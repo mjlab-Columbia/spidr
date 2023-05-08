@@ -1,0 +1,118 @@
+'''
+Aim: A Snakemake workflow to process SPIDR BAMs
+'''
+
+##############################################################################
+#Initialize settings
+##############################################################################
+
+try:
+    config_path = config["config_path"]
+except:
+    config_path = 'config.post.yaml'
+
+configfile: config_path
+
+try:
+    bid_config = config['bID']
+    print('Using BarcodeID config:', bid_config)
+except:
+    bid_config = 'config.txt'
+    print('Config "bID" not specified, looking for config at:', bid_config)
+
+try:
+    SAMPLE_STR = config['samples']
+    print('Using libraries:', SAMPLE_STR)
+except:
+    print('No sample names provided. No default')
+    sys.exit()
+
+try:
+    out_dir = config['output_dir']
+    print('All data will be written to:', out_dir)
+except:
+    out_dir = ''
+    print('Defaulting to working directory as output directory')
+
+try:
+    bam_dir = config['bam_dir']
+    print('Looking for bam files in:', bam_dir)
+except:
+    bam_dir = out_dir + 'workup/splitbams'
+    print('Defaulting to splitbams directory')
+
+try:
+    resolution = config['bin_size']
+    print('Making bigwigs of bin size: ', resolution)
+except:
+    resolution = 1000
+    print('Defaulting to bin size of 1000')
+
+try:
+    temp_dir = config['temp_dir']
+    print("Using temporary directory:", temp_dir)
+except:
+    temp_dir = '/central/scratch/'
+    print('Defaulting to central scratch as temporary directory')
+
+
+################################################################################
+#Get sample files
+###############################################################################
+
+#Prep samples from fastq directory using fastq2json_updated.py, now load json file
+TARGETS = []
+with open(bid_config, 'r') as f:
+    for line in f:
+        if 'BEAD' in line:
+            tag = line.split('\t')[1]
+            TARGETS.append(tag.replace('BEAD_', ''))
+print('Using targets: ', TARGETS)
+SAMPLE_LIST = SAMPLE_STR.split(' ')
+
+
+BAMS = expand(bam_dir + "{sample}_{target}.bam", sample=SAMPLE_LIST, target = TARGETS)
+MERGED = expand(bam_dir + "{target}.merged.bam", target=TARGETS)
+BIGWIGS = expand(out_dir + "/bigwigs/{target}.{bs}.bigwig", target=TARGETS, bs=resolution) 
+
+################################################################################
+################################################################################
+#RULE ALL
+################################################################################
+################################################################################
+
+rule all:
+    input: BAMS + MERGED + BIGWIGS
+
+rule merge_bams:
+    input:
+        expand(bam_dir + "{sample}_{{target}}.bam", sample=SAMPLE_LIST)
+    output:
+        bam_dir + "{target}.merged.bam"
+    conda:
+        "envs_post/deeptools.yaml"
+    threads:
+        8
+    shell:
+        '''
+        samtools merge -@ {threads} {output} {input}
+        samtools index {output}
+        
+        '''
+
+rule make_bigwigs:
+    input:
+        bam_dir + "{target}.merged.bam" 
+    output:
+        out_dir + "/bigwigs/{target}.{bs}.bigwig"
+    conda:
+        "envs_post/deeptools.yaml"
+    log:
+        out_dir + "/logs/{target}.{bs}.make_bigwigs.log"
+    threads:
+        8
+    shell:
+        '''
+        bamCoverage -p max/2 -b {input} -o {output} -bs {resolution} -of bigwig >& {log}
+        '''
+

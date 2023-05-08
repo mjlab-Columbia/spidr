@@ -1,0 +1,21 @@
+__default__:
+    time: "12:00:00"
+    mem: 20g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.target}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.target}.err"
+merge_bams:
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.target}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.target}.err"
+make_bigwigs:
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.target}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.target}.err"

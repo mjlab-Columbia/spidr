@@ -1,0 +1,145 @@
+__default__:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 20g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+splitfq:
+    account: "mjlab"
+    time: "48:00:00"
+    mem: 100g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+get_barcoded_rpm_r2:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+adaptor_trimming_pe:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+barcode_id:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+full_barcode:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+full_barcode_R2:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+cutadapt_rpm:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+bowtie2_align:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+star_align:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 100g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+merge_rna:
+    account: "mjlab"
+    time: "48:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+add_chr:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+fastq_to_bam:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+merge_beads:
+    account: "mjlab"
+    account: mjlab
+    time: "24:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+make_clusters:
+    account: "mjlab"
+    time: "24:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+merge_clusters:
+    account: "mjlab"
+    time: "48:00:00"
+    mem: 100g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+multiqc:
+    account: "mjlab"
+    time: "05:00:00"
+    mem: 20g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+cat_ligation_efficiency:
+    account: "mjlab"
+    time: "05:00:00"
+    mem: 20g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
