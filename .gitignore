@@ -11,3 +11,4 @@ pipeline/samples.json
 pipeline/fastq_files
 pipeline/.snakemake
 pipeline/.conda
+pipeline/rulegraph.pdf
