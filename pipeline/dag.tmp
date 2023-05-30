@@ -1,9 +1,0 @@
-Using BarcodeID config config_6_rounds.txt
-Using 7 tags
-Using hg38
-Using samples file: ./samples.json
-All data will be written to: 
-Using temporary directory: /burg/mjlab/projects/spidr_preprocessing_dg/scratch
-No file provided for cutadapt. Using standard cutadapt sequences
-Using bead oligo file -g file:oligo2_reverse.fasta
-Output logs path created: True
