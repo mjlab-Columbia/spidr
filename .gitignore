@@ -5,3 +5,9 @@ annotated/uncompressed
 *.RProj
 reference_files/*
 output/*
+TODO.md
+
+pipeline/samples.json
+pipeline/fastq_files
+pipeline/.snakemake
+pipeline/.conda
