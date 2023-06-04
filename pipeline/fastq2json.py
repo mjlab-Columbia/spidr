@@ -3,7 +3,7 @@
 import json
 import os
 import re
-from os.path import join
+from os.path import join, abspath
 import argparse
 from collections import defaultdict
 
@@ -29,7 +29,7 @@ for folder in args.fastq_dir:
 	for root, dirs, files in os.walk(folder):
 		for f in files:
 			if f.endswith("fastq.gz") or f.endswith("fq.gz") or f.endswith("fastq") or f.endswith("fq"):
-				full_path = join(root, f)
+				full_path = join(abspath(root), f)
 				#R1 will be forward reads, R2 will be reverse reads
 				m = re.search(r"(.+)_(R[12]).(fastq.gz|fq.gz|fastq|fq)", f)
 				if m:
