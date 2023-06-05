@@ -177,7 +177,8 @@ except:
 #make output directories (aren't created automatically on cluster)
 ################################################################################
 
-Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
+# Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
+os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
 out_created = os.path.exists(out_dir + "workup/logs/cluster")
 print('Output logs path created:', out_created)
 
