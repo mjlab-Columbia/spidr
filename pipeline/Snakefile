@@ -730,18 +730,30 @@ rule merge_clusters:
 ##############################################################################
 
 # Generate simple statistics for clusters
+# rule generate_cluster_statistics:
+#     input:
+#         out_dir + "workup/clusters/{sample}.clusters"
+#     output:
+#         out_dir + "workup/clusters/cluster_statistics.txt"
+#     params:
+#         dir = out_dir + "workup/clusters"
+#     conda:
+#         "envs/sprite.yaml"
+#     shell:
+#         '''
+#         python {cluster_counts} --directory {params.dir} --pattern .clusters > {output}
+#         '''
+
 rule generate_cluster_statistics:
     input:
-        out_dir + "workup/clusters/{sample}.clusters"
+        dir = out_dir + "workup/clusters"
     output:
         out_dir + "workup/clusters/cluster_statistics.txt"
-    params:
-        dir = out_dir + "workup/clusters"
     conda:
         "envs/sprite.yaml"
     shell:
         '''
-        python {cluster_counts} --directory {params.dir} --pattern .clusters > {output}
+        python {cluster_counts} --directory {input.dir} --pattern .clusters > {output}
         '''
 
 # Generate ecdfs of oligo distribution
