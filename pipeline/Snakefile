@@ -283,16 +283,6 @@ SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
-SPLITBAMS = expand(
-    out_dir + "workup/alignments/{sample}.RNA.merged.labeled.bam",
-    sample=ALL_SAMPLES)
-
-SPLITBAMS_COUNTS = [out_dir + "workup/splitbams/splitbam_statistics.txt"]
-
-if generate_splitbams == False:
-    SPLITBAMS = []
-    SPLITBAMS_COUNTS = []
-
 ################################################################################
 ################################################################################
 #RULE ALL
