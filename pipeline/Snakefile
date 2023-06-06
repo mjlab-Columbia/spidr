@@ -8,11 +8,9 @@ import numpy as np
 import datetime
 from pathlib import Path
 
-
 ##############################################################################
 #Initialize settings
 ##############################################################################
-
 
 #Copy config file into logs
 v = datetime.datetime.now()
@@ -30,7 +28,6 @@ try:
 except:
     email = None
     print("Will not send email on error")
-
 
 ##############################################################################
 #Location of scripts
@@ -411,7 +408,6 @@ rule barcode_id:
         --output1 {output.r1_barcoded} --output2 {output.r2_barcoded} \
         --config {bid_config} &> {log}"
 
-
 #Get ligation efficiency
 rule get_ligation_efficiency:
     input:
@@ -431,7 +427,6 @@ rule cat_ligation_efficiency:
         out_dir + "workup/ligation_efficiency.txt"
     shell:
         "tail -n +1 {input} > {output}"
-
 
 rule split_bpm_rpm:
     '''
@@ -780,6 +775,7 @@ rule get_size_distribution:
     input:
         expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
     output:
+        # FIXME: should these be changed to RPM equivalents?
         dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
         dpm2 = out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
         bpm = out_dir + "workup/clusters/BPM_read_distribution.pdf",
