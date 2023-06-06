@@ -751,6 +751,8 @@ rule generate_cluster_statistics:
         out_dir + "workup/clusters/cluster_statistics.txt"
     conda:
         "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/cluster_statistics.log"
     shell:
         '''
         python {cluster_counts} --directory {input.dir} --pattern .clusters > {output}
