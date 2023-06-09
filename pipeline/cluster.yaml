@@ -8,8 +8,8 @@ __default__:
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
 splitfq:
     account: "mjlab"
-    time: "48:00:00"
-    mem: 100g
+    time: "02:00:00"
+    mem: 64g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
