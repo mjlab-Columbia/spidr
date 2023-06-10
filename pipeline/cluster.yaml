@@ -14,6 +14,14 @@ splitfq:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+compress_fastq:
+    account: "mjlab"
+    time: "02:00:00"
+    mem: 64g
+    cpus: 8
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
 get_barcoded_rpm_r2:
     account: "mjlab"
     time: "12:00:00"
