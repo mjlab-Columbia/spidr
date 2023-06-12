@@ -8,9 +8,17 @@ __default__:
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
 splitfq:
     account: "mjlab"
-    time: "48:00:00"
-    mem: 100g
+    time: "02:00:00"
+    mem: 64g
     cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
+compress_fastq:
+    account: "mjlab"
+    time: "02:00:00"
+    mem: 64g
+    cpus: 8
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
@@ -137,6 +145,34 @@ multiqc:
     error: "workup/logs/cluster/{rule}.err"
 cat_ligation_efficiency:
     account: "mjlab"
+    time: "05:00:00"
+    mem: 20g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+generate_cluster_statistics:
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+generate_cluster_ecdfs:
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+get_size_distribution:
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+log_config:
     time: "05:00:00"
     mem: 20g
     cpus: 1

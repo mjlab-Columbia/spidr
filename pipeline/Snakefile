@@ -8,11 +8,9 @@ import numpy as np
 import datetime
 from pathlib import Path
 
-
 ##############################################################################
 #Initialize settings
 ##############################################################################
-
 
 #Copy config file into logs
 v = datetime.datetime.now()
@@ -31,7 +29,6 @@ except:
     email = None
     print("Will not send email on error")
 
-
 ##############################################################################
 #Location of scripts
 ##############################################################################
@@ -47,6 +44,10 @@ fq_to_bam = "scripts/python/fastq_to_bam.py"
 add_RG_to_bam = "scripts/python/add_tag_to_bam.py"
 split_fastq = "scripts/split_fastq.sh"
 add_chr_bt2 = "scripts/python/add_chr_bt2.py"
+
+cluster_counts = "scripts/python/generate_cluster_statistics.py"
+cluster_sizes = "scripts/python/get_bead_size_distribution.py"
+cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
 
 ##############################################################################
 #General settings
@@ -101,6 +102,38 @@ except:
     num_chunks = 2
 
 ##############################################################################
+# Load Post Clustering Setting
+##############################################################################
+
+try:
+    generate_splitbams = config["generate_splitbams"]
+except:
+    generate_splitbams = False
+
+try:
+    min_oligos = config["min_oligos"]
+except:
+    min_oligos = 2
+
+try:
+    proportion = config["proportion"]
+except:
+    proportion = 0.8
+
+try:
+    max_size = config["max_size"]
+except:
+    max_size = 10000
+
+if generate_splitbams:
+    print("Will generate bam files for individual targets using:", file=sys.stderr)
+    print("\t min_oligos: ", min_oligos, file=sys.stderr)
+    print("\t proportion: ", proportion, file=sys.stderr)
+    print("\t max_size: ", max_size, file=sys.stderr)
+else:
+    print("Will not generate bam files for individual targets.", file=sys.stderr)
+
+##############################################################################
 ##Trimming Sequences
 ##############################################################################
 
@@ -141,7 +174,8 @@ except:
 #make output directories (aren't created automatically on cluster)
 ################################################################################
 
-Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
+# Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
+os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
 out_created = os.path.exists(out_dir + "workup/logs/cluster")
 print('Output logs path created:', out_created)
 
@@ -235,6 +269,20 @@ MERGE_BEAD = expand(out_dir + "workup/alignments/{sample}.merged.BPM.bam", sampl
 CLUSTERS = expand(out_dir + "workup/clusters/{sample}.part_{splitid}.clusters", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
 CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=ALL_SAMPLES)
 
+##############################################################################
+# Post Clustering
+##############################################################################
+
+COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
+
+SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
+         out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
+         out_dir + "workup/clusters/BPM_cluster_distribution.pdf",
+         out_dir + "workup/clusters/BPM_read_distribution.pdf"]
+
+ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
+         out_dir + "workup/clusters/Max_representation_counts.pdf"]
+
 ################################################################################
 ################################################################################
 #RULE ALL
@@ -242,7 +290,7 @@ CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=A
 ################################################################################
 
 rule all:
-    input: CLUSTERS + CLUSTERS_MERGED
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA
 
 #Send and email if an error occurs during execution
 onerror:
@@ -349,7 +397,6 @@ rule barcode_id:
         --output1 {output.r1_barcoded} --output2 {output.r2_barcoded} \
         --config {bid_config} &> {log}"
 
-
 #Get ligation efficiency
 rule get_ligation_efficiency:
     input:
@@ -369,7 +416,6 @@ rule cat_ligation_efficiency:
         out_dir + "workup/ligation_efficiency.txt"
     shell:
         "tail -n +1 {input} > {output}"
-
 
 rule split_bpm_rpm:
     '''
@@ -678,9 +724,72 @@ rule merge_clusters:
         (python {merge_clusters} -i {output.mega} -o {output.final}) &> {log}
         '''        
 
+##############################################################################
+# Profile clusters
+##############################################################################
+
+# Generate simple statistics for clusters
+rule generate_cluster_statistics:
+    input:
+        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
+    output:
+        out_dir + "workup/clusters/cluster_statistics.txt"
+    params:
+        dir = out_dir + "workup/clusters"
+    conda:
+        "envs/sprite.yaml"
+    shell:
+        '''
+        python {cluster_counts} --directory {params.dir} --pattern .clusters > {output}
+        '''
+
+# Generate ecdfs of oligo distribution
+rule generate_cluster_ecdfs:
+    input:
+        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
+    output:
+        ecdf = out_dir + "workup/clusters/Max_representation_ecdf.pdf",
+        counts = out_dir + "workup/clusters/Max_representation_counts.pdf"
+    params:
+        dir = out_dir + "workup/clusters"
+    conda:
+        "envs/plotting.yaml"
+    shell:
+        '''
+        python {cluster_ecdfs} --directory {params.dir} --pattern .clusters --xlim 30
+        '''
+
+# Profile size distribution of clusters
+rule get_size_distribution:
+    input:
+        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
+    output:
+        # FIXME: should these be changed to RPM equivalents?
+        dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
+        dpm2 = out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
+        bpm = out_dir + "workup/clusters/BPM_read_distribution.pdf",
+        bpm2 = out_dir + "workup/clusters/BPM_cluster_distribution.pdf"
+    params:
+        dir = out_dir + "workup/clusters"
+    conda:
+        "envs/sprite.yaml"
+    shell:
+        '''
+        python {cluster_sizes} --directory {params.dir} --pattern .clusters --readtype BPM
+        python {cluster_sizes} --directory {params.dir} --pattern .clusters --readtype DPM
+        '''
+
 ################################################################################
-#MultiQC
+# Logging and MultiQC
 ################################################################################
+# Copy config.yaml into logs folder with run date
+rule log_config:
+    input:
+        config_path
+    output:
+        out_dir + "workup/logs/config_" + run_date + "yaml"
+    shell:
+        "cp {input} {output}"
 
 rule multiqc:
     input:
@@ -694,3 +803,44 @@ rule multiqc:
     shell:
         "multiqc {out_dir}workup -o {out_dir}workup/qc"
 
+##############################################################################
+# Splitbams
+##############################################################################
+
+# Generate bam files for individual targets based on assignments from clusterfile
+rule thresh_and_split:
+    input:
+        bam = out_dir + "workup/alignments/{sample}.RNA.merged.bam",
+        clusters = out_dir + "workup/clusters/{sample}.clusters"
+    output:
+        bam = out_dir + "workup/alignments/{sample}.RNA.merged.labeled.bam",
+        touch = touch(out_dir + "workup/splitbams/{sample}.done")
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.splitbams.log"
+    shell:
+        '''
+        (python {tag_and_split} \
+         -i {input.bam} \
+         -c {input.clusters} \
+         -o {output.bam} \
+         -d workup/splitbams \
+         --min_oligos {min_oligos} \
+         --proportion {proportion} \
+         --max_size {max_size} \
+         --num_tags {num_tags}) &> {log}
+        '''
+
+# Generate summary statistics of individiual bam files
+rule generate_splitbam_statistics:
+    input:
+        expand([out_dir + "workup/splitbams/{sample}.done"], sample=ALL_SAMPLES)
+    output:
+        out_dir + "workup/splitbams/splitbam_statistics.txt"
+    params:
+        dir = out_dir + "workup/splitbams"
+    conda:
+        "envs/sprite.yaml"
+    shell:
+        "for f in {params.dir}/*bam; do echo $f; samtools view -c $f; done > {output}"

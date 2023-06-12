@@ -1,6 +1,13 @@
-# Environment variables
-export ROOT=/burg/mjlab/projects/spidr_preprocessing_dg/test_paired_end_pipeline
-export SNAKEMAKE_OUTPUT_CACHE=$ROOT/cache
+#!/bin/sh
+#
+# Script for running SPIDR pipeline as a batch job
+#
+#
+#SBATCH --account=mjlab
+#SBATCH --job-name=spidr
+#SBATCH -c 4
+#SBATCH --time=0-12:00           # Time format: D-HH:MM
+#SBATCH --mem-per-cpu=16G
 
 snakemake \
 --snakefile Snakefile \
