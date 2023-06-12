@@ -20,7 +20,7 @@ assembly: "hg38"
 num_tags: "7"
 
 # Number of chunks to split fastq
-num_chunks: 2
+num_chunks: 10
 
 # File for cutadapt
 cutadapt_oligos: "oligo2_reverse.fasta"
