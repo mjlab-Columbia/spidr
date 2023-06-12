@@ -7,8 +7,9 @@ reference_files/*
 output/*
 TODO.md
 
+# User-specific files that shouldn't be committed
 pipeline/samples.json
 pipeline/fastq_files
 pipeline/.snakemake
 pipeline/.conda
-pipeline/rulegraph.pdf
+pipeline/*.pdf
