@@ -48,6 +48,7 @@ add_chr_bt2 = "scripts/python/add_chr_bt2.py"
 cluster_counts = "scripts/python/generate_cluster_statistics.py"
 cluster_sizes = "scripts/python/get_bead_size_distribution.py"
 cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
+split_incorrect_clusters = "scripts/python/split_incorrect_clusters.py"
 
 ##############################################################################
 #General settings
@@ -100,6 +101,11 @@ try:
     num_chunks = config['num_chunks']
 except:
     num_chunks = 2
+
+try:
+    rounds_format = config['rounds_format']
+except:
+    rounds_format = "format_6_rounds.txt"
 
 ##############################################################################
 # Load Post Clustering Setting
@@ -268,6 +274,7 @@ MERGE_BEAD = expand(out_dir + "workup/alignments/{sample}.merged.BPM.bam", sampl
 
 CLUSTERS = expand(out_dir + "workup/clusters/{sample}.part_{splitid}.clusters", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
 CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=ALL_SAMPLES)
+CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.clusters", sample=ALL_SAMPLES)
 
 ##############################################################################
 # Post Clustering
@@ -290,7 +297,7 @@ ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA
 
 #Send and email if an error occurs during execution
 onerror:
@@ -733,7 +740,7 @@ rule merge_clusters:
 # Generate simple statistics for clusters
 rule generate_cluster_statistics:
     input:
-        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES)
     output:
         out_dir + "workup/clusters/cluster_statistics.txt"
     params:
@@ -764,7 +771,7 @@ rule generate_cluster_ecdfs:
 # Profile size distribution of clusters
 rule get_size_distribution:
     input:
-        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES)
     output:
         # FIXME: should these be changed to RPM equivalents?
         dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
@@ -795,7 +802,7 @@ rule log_config:
 
 rule multiqc:
     input:
-        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES) 
+        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES) 
     output:
         out_dir + "workup/qc/multiqc_report.html"
     log:
@@ -804,6 +811,26 @@ rule multiqc:
         "envs/sprite.yaml"
     shell:
         "multiqc {out_dir}workup -o {out_dir}workup/qc"
+
+##############################################################################
+# Remove incorrect clusters
+##############################################################################
+rule split_incorrect_clusters:
+    input:
+        clusters = out_dir + "workup/clusters/{sample}.clusters"
+    output:
+        complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters",
+        incomplete_clusters = out_dir + "workup/clusters/{sample}.incomplete.clusters"
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.incorrectclusters.log"
+    shell:
+        '''
+        python {split_incorrect_clusters} \
+            --input {input.clusters} \ 
+            --format {rounds_format}
+        '''
 
 ##############################################################################
 # Splitbams
