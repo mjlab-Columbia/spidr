@@ -22,6 +22,9 @@ num_tags: "7"
 # Number of chunks to split fastq
 num_chunks: 10
 
+# Format for splitting clusters
+rounds_format: 'format_6_rounds.txt'
+
 # File for cutadapt
 cutadapt_oligos: "oligo2_reverse.fasta"
 
