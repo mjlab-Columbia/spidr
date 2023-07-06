@@ -12,9 +12,9 @@ def main():
     args = parse_args()
     formatdict = load_format(args.format)
     read_path = args.clusters
-
-    complete_out_path = read_path.replace('.clusters', '.complete.clusters')
-    incomplete_out_path =  read_path.replace('.clusters', '.incomplete.clusters')
+    complete_out_path = args.complete_output
+    incomplete_out_path =  args.incomplete_output
+    
     counter = 0
     complete = 0
     incomplete = 0
@@ -52,6 +52,16 @@ def parse_args():
                         type=str,
                         required=True,
                         help='Input clusters file')
+    parser.add_argument('--complete_output',
+                        dest='complete_output',
+                        type=str,
+                        required=True,
+                        help='Path of output cluster file with complete clusters')
+    parser.add_argument('--incomplete_output',
+                        dest='incomplete_output',
+                        type=str,
+                        required=True,
+                        help='Path of output cluster file with complete clusters')
     parser.add_argument('-f', '--format',
                         dest='format',
                         type=str,
