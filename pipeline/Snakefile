@@ -469,7 +469,8 @@ rule cutadapt_rpm:
         others = "--minimum-length 20"
     log:
         out_dir + "workup/logs/{sample}.{splitid}.RPM.cutadapt.log"
-    threads: 10
+    threads: 
+        10
     conda:
         "envs/sprite.yaml"
     shell:
@@ -500,7 +501,8 @@ rule cutadapt_oligo:
         adapters_r1 = oligos
     log:
         out_dir + "workup/logs/{sample}.{splitid}.BPM.cutadapt.log"
-    threads: 10
+    threads: 
+        10
     conda:
         "envs/sprite.yaml"
     shell:
@@ -551,7 +553,7 @@ rule bam_to_fq:
         r2 = out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
     log:
         out_dir + "workup/logs/{sample}.{splitid}.bam2fq.log"
-    threads:
+    threads: 
         10
     conda:
         "envs/sprite.yaml"
