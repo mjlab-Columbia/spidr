@@ -829,8 +829,8 @@ rule split_incorrect_clusters:
         '''
         python {split_incorrect_clusters} \
             --input {input.clusters} \ 
-            --complete_output {output.complete_output} \
-            --incomplete_output {output.incomplete_output} \
+            --complete_output {output.complete_clusters} \
+            --incomplete_output {output.incomplete_clusters} \
             --format {rounds_format}
         '''
 
