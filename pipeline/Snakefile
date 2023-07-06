@@ -48,7 +48,7 @@ add_chr_bt2 = "scripts/python/add_chr_bt2.py"
 cluster_counts = "scripts/python/generate_cluster_statistics.py"
 cluster_sizes = "scripts/python/get_bead_size_distribution.py"
 cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
-split_incorrect_clusters = "scripts/python/split_incorrect_clusters.py"
+split_incorrect_clusters = "scripts/split_incorrect_clusters.py"
 
 ##############################################################################
 #General settings
