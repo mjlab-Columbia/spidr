@@ -827,11 +827,11 @@ rule split_incorrect_clusters:
         out_dir + "workup/logs/{sample}.incorrectclusters.log"
     shell:
         '''
-        python {split_incorrect_clusters} \
-            --clusters {input.clusters} \ 
-            --complete_output {output.complete_clusters} \
-            --incomplete_output {output.incomplete_clusters} \
-            --format {rounds_format}
+        (python {split_incorrect_clusters} \
+	--clusters {input.clusters} \
+	--complete_output {output.complete_clusters} \
+	--incomplete_output {output.incomplete_clusters} \
+    	--format {rounds_format}) &> {log}
         '''
 
 ##############################################################################
