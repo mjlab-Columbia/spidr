@@ -6,6 +6,7 @@ annotated/uncompressed
 reference_files/*
 output/*
 TODO.md
+**/*.pyc
 
 # User-specific files that shouldn't be committed
 pipeline/samples.json
