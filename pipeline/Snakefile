@@ -49,6 +49,7 @@ cluster_counts = "scripts/python/generate_cluster_statistics.py"
 cluster_sizes = "scripts/python/get_bead_size_distribution.py"
 cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
 split_incorrect_clusters = "scripts/split_incorrect_clusters.py"
+tag_and_split = "scripts/threshold_tag_and_split.py"
 
 ##############################################################################
 #General settings
@@ -280,6 +281,8 @@ CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.c
 # Post Clustering
 ##############################################################################
 
+THRESH_AND_SPLIT = expand(out_dir + "workup/alignments/{sample}.RNA.merged.bam", sample=ALL_SAMPLES)
+
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
 SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
@@ -297,7 +300,7 @@ ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT
 
 #Send and email if an error occurs during execution
 onerror:
@@ -842,7 +845,7 @@ rule split_incorrect_clusters:
 rule thresh_and_split:
     input:
         bam = out_dir + "workup/alignments/{sample}.RNA.merged.bam",
-        clusters = out_dir + "workup/clusters/{sample}.clusters"
+        clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
     output:
         bam = out_dir + "workup/alignments/{sample}.RNA.merged.labeled.bam",
         touch = touch(out_dir + "workup/splitbams/{sample}.done")
