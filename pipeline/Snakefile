@@ -281,7 +281,7 @@ CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.c
 # Post Clustering
 ##############################################################################
 
-THRESH_AND_SPLIT = expand(out_dir + "workup/alignments/{sample}.RNA.merged.bam", sample=ALL_SAMPLES)
+THRESH_AND_SPLIT = expand(out_dir + "workup/alignments/{sample}.merged.RPM.bam", sample=ALL_SAMPLES)
 
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
