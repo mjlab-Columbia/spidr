@@ -844,10 +844,10 @@ rule split_incorrect_clusters:
 # Generate bam files for individual targets based on assignments from clusterfile
 rule thresh_and_split:
     input:
-        bam = out_dir + "workup/alignments/{sample}.RNA.merged.bam",
+        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
     output:
-        bam = out_dir + "workup/alignments/{sample}.RNA.merged.labeled.bam",
+        bam = out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam",
         touch = touch(out_dir + "workup/splitbams/{sample}.done")
     conda:
         "envs/sprite.yaml"
