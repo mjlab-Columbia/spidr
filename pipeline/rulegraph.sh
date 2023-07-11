@@ -1,6 +1,6 @@
 #!/bin/bash
 
-snakemake --rulegraph > rulegraph.tmp
+snakemake --rulegraph Snakefile > rulegraph.tmp
 tail -n +10 rulegraph.tmp > rulegraph.txt
 dot -Tpdf rulegraph.txt > rulegraph.pdf
 rm rulegraph.tmp rulegraph.txt
