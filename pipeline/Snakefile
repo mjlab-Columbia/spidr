@@ -813,7 +813,7 @@ rule multiqc:
     conda:
         "envs/sprite.yaml"
     shell:
-        "multiqc {out_dir}workup -o {out_dir}workup/qc"
+        "multiqc --force {out_dir}workup -o {out_dir}workup/qc"
 
 ##############################################################################
 # Remove incorrect clusters
