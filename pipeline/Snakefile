@@ -295,9 +295,9 @@ ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
 BED_FILES = [
-    out_dir + "workup/clusters/.actual.bedgraph", 
-    out_dir + "workup/clusters/.diff.bedgraph", 
-    out_dir + "workup/clusters/.pval.bed"
+    out_dir + "workup/downsample/.actual.bedgraph", 
+    out_dir + "workup/downsample/.diff.bedgraph", 
+    out_dir + "workup/downsample/.pval.bed"
 ]
 
 ################################################################################
