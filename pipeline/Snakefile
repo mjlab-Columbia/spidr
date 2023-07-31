@@ -50,7 +50,7 @@ cluster_sizes = "scripts/python/get_bead_size_distribution.py"
 cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
 split_incorrect_clusters = "scripts/split_incorrect_clusters.py"
 tag_and_split = "scripts/threshold_tag_and_split.py"
-downsample_clip_jar = "scripts/java/"
+random_downsample_clip = "scripts/java/RandomDownsample_CLIP.jar"
 
 ##############################################################################
 #General settings
@@ -294,11 +294,7 @@ SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
-BED_FILES = [
-    out_dir + "workup/downsample/.actual.bedgraph", 
-    out_dir + "workup/downsample/.diff.bedgraph", 
-    out_dir + "workup/downsample/.pval.bed"
-]
+BED_FILES_DIR = [out_dir + "workup/downsample"]
 
 ################################################################################
 ################################################################################
@@ -307,7 +303,7 @@ BED_FILES = [
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT + BED_FILES
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT + BED_FILES_DIR
 
 #Send and email if an error occurs during execution
 onerror:
@@ -891,9 +887,9 @@ rule generate_splitbam_statistics:
 # * TODO: Ideally this rule should use the RunAll.java file, but for now we're using RandomDownsample_CLIP.
 rule random_downsample_clip:
     input:
-        input_bam = out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam",
+        expand([out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam"], sample=ALL_SAMPLES)
     output:
-        output_dir = out_dir + "workup/downsample"
+        out_dir + "workup/downsample"
     conda:
         "envs/java.yaml"
     shell:
@@ -901,7 +897,8 @@ rule random_downsample_clip:
         java \
             -jar \
             --enable-preview \
-            {input.input_bam} \
-            {input.input_bam} \
-            {output.output_dir}
+            {random_downsample_clip} \
+            {input} \
+            {input} \
+            {output}
         """
