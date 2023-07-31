@@ -892,6 +892,8 @@ rule random_downsample_clip:
         out_dir + "workup/downsample"
     conda:
         "envs/java.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.randomdownsampleclip.log"
     shell:
         """
         java \
