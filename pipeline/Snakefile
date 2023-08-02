@@ -294,7 +294,14 @@ SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
-BED_FILES_DIR = [out_dir + "workup/downsample"]
+BED_FILES_DIR = expand(
+    [
+        out_dir + "workup/downsample/{sample}.actual.bedgraph",
+        out_dir + "workup/downsample/{sample}.diff.bedgraph",
+        out_dir + "workup/downsample/{sample}.pval.bed",
+    ],
+    sample=ALL_SAMPLES
+)
 
 ################################################################################
 ################################################################################
@@ -887,20 +894,24 @@ rule generate_splitbam_statistics:
 # * TODO: Ideally this rule should use the RunAll.java file, but for now we're using RandomDownsample_CLIP.
 rule random_downsample_clip:
     input:
-        expand([out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam"], sample=ALL_SAMPLES)
+        out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam"
     output:
-        out_dir + "workup/downsample"
+        out_dir + "workup/downsample/{sample}.actual.bedgraph",
+        out_dir + "workup/downsample/{sample}.diff.bedgraph",
+        out_dir + "workup/downsample/{sample}.pval.bed"
+    params:
+        prefix = out_dir + "workup/downsample/{sample}"
     conda:
         "envs/java.yaml"
     log:
-        out_dir + "workup/logs/randomdownsampleclip.log"
+        out_dir + "workup/logs/{sample}_randomdownsampleclip.log"
     shell:
         """
-        java \
+        (java \
             -jar \
             --enable-preview \
             {random_downsample_clip} \
             {input} \
             {input} \
-            {output}
+            {params.prefix}) &> {log}
         """
