@@ -2,7 +2,7 @@
 email: "dsg2157@columbia.edu"
 
 # Location of the config file for barcodeIdentification
-bID: "config_6_rounds.txt"
+bID: "config_6_rounds_mTOR.txt"
 
 # Location of the samples json file produced with the fastq2json.py script 
 samples: "./samples.json"
