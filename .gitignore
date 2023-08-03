@@ -15,3 +15,4 @@ pipeline/.snakemake
 pipeline/.conda
 pipeline/*.pdf
 pipeline/workup/*
+pipeline/slurm-*.out
