@@ -347,7 +347,6 @@ rule splitfq:
         bash {split_fastq} {input.r2} {num_chunks} {params.dir} {params.prefix_r2}
         '''
 
-
 rule compress_fastq:
     input:
         r1 = out_dir + "workup/splitfq/{sample}_R1.part_{splitid}.fastq",
@@ -823,7 +822,7 @@ rule multiqc:
     conda:
         "envs/sprite.yaml"
     shell:
-        "multiqc --force {out_dir}workup -o {out_dir}workup/qc"
+        "(multiqc --force {out_dir}workup -o {out_dir}workup/qc) &> {log}"
 
 ##############################################################################
 # Remove incorrect clusters
@@ -841,9 +840,9 @@ rule split_incorrect_clusters:
     shell:
         '''
         (python {split_incorrect_clusters} \
-	--clusters {input.clusters} \
-	--complete_output {output.complete_clusters} \
-	--incomplete_output {output.incomplete_clusters} \
+        --clusters {input.clusters} \
+        --complete_output {output.complete_clusters} \
+        --incomplete_output {output.incomplete_clusters} \
     	--format {rounds_format}) &> {log}
         '''
 
