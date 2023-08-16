@@ -16,7 +16,6 @@ def main():
     complete_out_path = args.complete_output
     incomplete_out_path =  args.incomplete_output
     
-    counter = 0
     complete = 0
     incomplete = 0
     print(complete_out_path)
@@ -27,7 +26,7 @@ def main():
         for line in clusters:
             line_count += 1
     
-    # TODO: Vectorize this code with pandas (and potentially modin)
+    # TODO: Vectorize this code with pandas
     with open(read_path, 'r') as clusters, \
     open(complete_out_path, 'wt') as complete_out, \
     open(incomplete_out_path, 'wt') as incomplete_out:
@@ -44,7 +43,7 @@ def main():
                     complete += 1
                     complete_out.write(line)
 
-    print('Total clusters: ', counter)
+    print('Total clusters: ', complete + incomplete)
     print('Clusters with incorrect barcodes: ', incomplete)
     print('Clusters with correct barcodes:', complete)
 
