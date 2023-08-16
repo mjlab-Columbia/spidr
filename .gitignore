@@ -16,3 +16,4 @@ pipeline/.conda
 pipeline/*.pdf
 pipeline/workup/*
 pipeline/slurm-*.out
+pipeline/*.clusters
