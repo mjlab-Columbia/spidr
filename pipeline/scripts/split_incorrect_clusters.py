@@ -1,9 +1,10 @@
+from pdb import set_trace
 import pandas as pd
 import numpy as np
 import re
 import argparse
 from collections import defaultdict, Counter
-import tqdm
+from tqdm import tqdm
 import gzip
 import os
 
@@ -20,18 +21,22 @@ def main():
     incomplete = 0
     print(complete_out_path)
     print(incomplete_out_path)
+
+    line_count = 0
+    with open(read_path, 'r') as clusters:
+        for line in clusters:
+            line_count += 1
     
+    # TODO: Vectorize this code with pandas (and potentially modin)
     with open(read_path, 'r') as clusters, \
     open(complete_out_path, 'wt') as complete_out, \
     open(incomplete_out_path, 'wt') as incomplete_out:
-        for line in clusters:
-                counter +=1
+        for line in tqdm(clusters, total=line_count):
                 cluster_barcode = line.strip('\n').split('\t', 1)[0]
                 barcodes = cluster_barcode.split('.')[:-1]
-                if counter % 100000 == 0:
-                    print(counter)
                 tags = np.array(barcodes)
-                indexed = [i for i, t in enumerate(tags) if i!=formatdict[t]]
+                indexed = [i for i, t in enumerate(tags) if not i in formatdict[t]]
+
                 if len(indexed) != 0:
                     incomplete +=1
                     incomplete_out.write(line)
@@ -69,10 +74,16 @@ def parse_args():
                         help='Allowed barcodes at each position')
     return parser.parse_args()
 
-
 def load_format(formatfile):
     df = pd.read_csv(formatfile, header=None, sep='\t')
-    return df.set_index(1)[0].to_dict(into=defaultdict(lambda: -1))
+    df = pd.DataFrame(df.set_index(1)[0])
+
+    result_dict = defaultdict(lambda: [-1])
+
+    for index, value in df.iterrows():
+        result_dict[index].append(value[0])
+
+    return result_dict
 
 
 if __name__ == '__main__':
