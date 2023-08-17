@@ -181,7 +181,7 @@ log_config:
     error: "workup/logs/cluster/{rule}.err"
 random_downsample_clip:
     time: "02:00:00"
-    mem: 20g
+    mem: 48g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
