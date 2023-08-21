@@ -1,21 +1,30 @@
+from pdb import set_trace
 import click
 from tqdm import tqdm
 
 def split_by_first_tag(complete_clusters, control_output, experimental_output, groups):
     line_count = 0
-    barcode_set = {}
+    barcode_set = set()
     
+    print("Collecting ROUND1 barcodes")
     with open(complete_clusters, 'r') as clusters:
         for line in clusters:
-            # Get a line count for a progress bar
+            # Get a line count for a progress bar + strip barcodes from cluster lines
             line_count += 1
-            
-            # Keep track of all possible first barcodes
             cluster_barcode = line.strip('\n').split('\t', 1)[0]
             barcodes = cluster_barcode.split('.')[:-1]
-            barcode_set.add(barcodes[0])
+
+            # Get only the ROUND1 barcodes which could be in different indices and multiple indices
+            round_1_barcodes = [barcode for barcode in barcodes if barcode.startswith("ROUND1_")]
+
+            # Strip alphanumeric suffixes at the end of control/experimental tags (e.g. ROUND1_CNTRL_A10 --> ROUND1_CNTRL)
+            cntrl_vs_exp = ['_'.join(b.split('_')[:-1]) for b in round_1_barcodes]
+
+            for tag in cntrl_vs_exp:
+                barcode_set.add(tag)
     
-    assert len(barcode_set) == groups, "--groups does not match the number of barcodes found\n" + print(barcode_set)
+    # TODO: Add helpful print statement to this assertion
+    assert len(barcode_set) == groups
     
     # Your code for splitting clusters based on the first tag goes here
     with open(complete_clusters, 'r') as clusters, \
@@ -24,7 +33,9 @@ def split_by_first_tag(complete_clusters, control_output, experimental_output, g
         for line in tqdm(line, total=line_count):
             cluster_barcode = line.strip('\n').split('\t', 1)[0]
             barcodes = cluster_barcode.split('.')[:-1]
-            first_barcode = barcodes[0]
+
+            # Index 1 corresponds to the ROUND1 tags
+            first_barcode = barcodes[1]
             
             if first_barcode.startswith('ROUND1_CNTRL'):
                 control_out.write(line)
