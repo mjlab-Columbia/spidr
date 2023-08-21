@@ -26,16 +26,16 @@ def split_by_first_tag(complete_clusters, control_output, experimental_output, g
     # TODO: Add helpful print statement to this assertion
     assert len(barcode_set) == groups
     
-    # Your code for splitting clusters based on the first tag goes here
+    # Splitting clusters based on the first tag
     with open(complete_clusters, 'r') as clusters, \
     open(control_output, 'wt') as control_out, \
     open(experimental_output, 'wt') as experimental_out:
-        for line in tqdm(line, total=line_count):
+        for line in tqdm(clusters, total=line_count):
             cluster_barcode = line.strip('\n').split('\t', 1)[0]
             barcodes = cluster_barcode.split('.')[:-1]
 
-            # Index 1 corresponds to the ROUND1 tags
-            first_barcode = barcodes[1]
+            # Last index corresponds to the ROUND1 tags
+            first_barcode = barcodes[-1]
             
             if first_barcode.startswith('ROUND1_CNTRL'):
                 control_out.write(line)
