@@ -51,6 +51,7 @@ cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
 split_incorrect_clusters = "scripts/split_incorrect_clusters.py"
 tag_and_split = "scripts/threshold_tag_and_split.py"
 random_downsample_clip = "scripts/java/RandomDownsample_CLIP.jar"
+split_on_first_tag = "scripts/python/split_on_first_tag.py"
 
 ##############################################################################
 #General settings
@@ -783,7 +784,8 @@ rule generate_cluster_ecdfs:
 # Profile size distribution of clusters
 rule get_size_distribution:
     input:
-        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES),
+        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES)
     output:
         # FIXME: should these be changed to RPM equivalents?
         dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
@@ -814,7 +816,8 @@ rule log_config:
 
 rule multiqc:
     input:
-        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES) 
+        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES), 
+        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES) 
     output:
         out_dir + "workup/qc/multiqc_report.html"
     log:
@@ -847,17 +850,38 @@ rule split_incorrect_clusters:
         '''
 
 ##############################################################################
+# Split based on first tag
+##############################################################################
+rule split_on_first_tag:
+    input:
+        complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+    output:
+        control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters",
+        experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.splitonfirsttag.log"
+    shell:
+        '''
+        (python {split_on_first_tag} \
+        --complete_clusters {complete_clusters} \
+        --control_output {control_clusters} \
+        --experimental_output {experimental_clusters}) &> {log}
+        '''
+
+##############################################################################
 # Splitbams
 ##############################################################################
 
 # Generate bam files for individual targets based on assignments from clusterfile
-rule thresh_and_split:
+rule thresh_and_split_control:
     input:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
-        clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+        control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters"
     output:
-        bam = out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam",
-        touch = touch(out_dir + "workup/splitbams/{sample}.done")
+        bam = out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam",
+        touch = touch(out_dir + "workup/splitbams/{sample}.control.done")
     conda:
         "envs/sprite.yaml"
     log:
@@ -865,14 +889,39 @@ rule thresh_and_split:
     shell:
         '''
         (python {tag_and_split} \
-         -i {input.bam} \
-         -c {input.clusters} \
-         -o {output.bam} \
-         -d workup/splitbams \
-         --min_oligos {min_oligos} \
-         --proportion {proportion} \
-         --max_size {max_size} \
-         --num_tags {num_tags}) &> {log}
+        -i {input.bam} \
+        -c {input.complete_clusters} \
+        -o {output.bam} \
+        -d workup/splitbams \
+        --min_oligos {min_oligos} \
+        --proportion {proportion} \
+        --max_size {max_size} \
+        --num_tags {num_tags}) &> {log}
+        '''
+
+# Generate bam files for individual targets based on assignments from clusterfile
+rule thresh_and_split_experimental:
+    input:
+        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
+        experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
+    output:
+        bam = out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam",
+        touch = touch(out_dir + "workup/splitbams/{sample}.experimental.done")
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.splitbams.log"
+    shell:
+        '''
+        (python {tag_and_split} \
+        -i {input.bam} \
+        -c {input.experimental_clusters} \
+        -o {output.bam} \
+        -d workup/splitbams \
+        --min_oligos {min_oligos} \
+        --proportion {proportion} \
+        --max_size {max_size} \
+        --num_tags {num_tags}) &> {log}
         '''
 
 # Generate summary statistics of individiual bam files
