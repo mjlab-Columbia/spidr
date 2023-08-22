@@ -51,6 +51,7 @@ cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
 split_incorrect_clusters = "scripts/split_incorrect_clusters.py"
 tag_and_split = "scripts/threshold_tag_and_split.py"
 random_downsample_clip = "scripts/java/RandomDownsample_CLIP.jar"
+split_on_first_tag = "scripts/python/split_on_first_tag.py"
 
 ##############################################################################
 #General settings
@@ -277,12 +278,15 @@ MERGE_BEAD = expand(out_dir + "workup/alignments/{sample}.merged.BPM.bam", sampl
 CLUSTERS = expand(out_dir + "workup/clusters/{sample}.part_{splitid}.clusters", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
 CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=ALL_SAMPLES)
 CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.clusters", sample=ALL_SAMPLES)
+CONTROL_CLUSTERS = expand(out_dir + "workup/clusters/{sample}.control.complete.clusters", sample=ALL_SAMPLES)
+EXPERIMENTAL_CLUSTERS = expand(out_dir + "workup/clusters/{sample}.experimental.complete.clusters", sample=ALL_SAMPLES)
 
 ##############################################################################
 # Post Clustering
 ##############################################################################
 
-THRESH_AND_SPLIT = expand(out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam", sample=ALL_SAMPLES)
+THRESH_AND_SPLIT_CONTROL = expand(out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam", sample=ALL_SAMPLES)
+THRESH_AND_SPLIT_EXPERIMENTAL = expand(out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam", sample=ALL_SAMPLES)
 
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
@@ -294,11 +298,20 @@ SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
-BED_FILES_DIR = expand(
+BED_FILES_CONTROL = expand(
     [
-        out_dir + "workup/downsample/{sample}.actual.bedgraph",
-        out_dir + "workup/downsample/{sample}.diff.bedgraph",
-        out_dir + "workup/downsample/{sample}.pval.bed",
+        out_dir + "workup/downsample/{sample}.control.actual.bedgraph",
+        out_dir + "workup/downsample/{sample}.control.diff.bedgraph",
+        out_dir + "workup/downsample/{sample}.control.pval.bed",
+    ],
+    sample=ALL_SAMPLES
+)
+
+BED_FILES_EXPERIMENTAL = expand(
+    [
+        out_dir + "workup/downsample/{sample}.experimental.actual.bedgraph",
+        out_dir + "workup/downsample/{sample}.experimental.diff.bedgraph",
+        out_dir + "workup/downsample/{sample}.experimental.pval.bed",
     ],
     sample=ALL_SAMPLES
 )
@@ -310,7 +323,7 @@ BED_FILES_DIR = expand(
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT + BED_FILES_DIR
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONTROL_CLUSTERS + EXPERIMENTAL_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONTROL + THRESH_AND_SPLIT_EXPERIMENTAL + BED_FILES_CONTROL + BED_FILES_EXPERIMENTAL
 
 #Send and email if an error occurs during execution
 onerror:
@@ -783,7 +796,8 @@ rule generate_cluster_ecdfs:
 # Profile size distribution of clusters
 rule get_size_distribution:
     input:
-        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES),
+        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES)
     output:
         # FIXME: should these be changed to RPM equivalents?
         dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
@@ -814,7 +828,8 @@ rule log_config:
 
 rule multiqc:
     input:
-        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES) 
+        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES), 
+        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES) 
     output:
         out_dir + "workup/qc/multiqc_report.html"
     log:
@@ -847,17 +862,38 @@ rule split_incorrect_clusters:
         '''
 
 ##############################################################################
+# Split based on first tag
+##############################################################################
+rule split_on_first_tag:
+    input:
+        complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+    output:
+        control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters",
+        experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.splitonfirsttag.log"
+    shell:
+        '''
+        (python {split_on_first_tag} \
+        --complete_clusters {complete_clusters} \
+        --control_output {control_clusters} \
+        --experimental_output {experimental_clusters}) &> {log}
+        '''
+
+##############################################################################
 # Splitbams
 ##############################################################################
 
 # Generate bam files for individual targets based on assignments from clusterfile
-rule thresh_and_split:
+rule thresh_and_split_control:
     input:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
-        clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+        control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters"
     output:
-        bam = out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam",
-        touch = touch(out_dir + "workup/splitbams/{sample}.done")
+        bam = out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam",
+        touch = touch(out_dir + "workup/splitbams/{sample}.control.done")
     conda:
         "envs/sprite.yaml"
     log:
@@ -865,14 +901,39 @@ rule thresh_and_split:
     shell:
         '''
         (python {tag_and_split} \
-         -i {input.bam} \
-         -c {input.clusters} \
-         -o {output.bam} \
-         -d workup/splitbams \
-         --min_oligos {min_oligos} \
-         --proportion {proportion} \
-         --max_size {max_size} \
-         --num_tags {num_tags}) &> {log}
+        -i {input.bam} \
+        -c {input.control_clusters} \
+        -o {output.bam} \
+        -d workup/splitbams \
+        --min_oligos {min_oligos} \
+        --proportion {proportion} \
+        --max_size {max_size} \
+        --num_tags {num_tags}) &> {log}
+        '''
+
+# Generate bam files for individual targets based on assignments from clusterfile
+rule thresh_and_split_experimental:
+    input:
+        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
+        experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
+    output:
+        bam = out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam",
+        touch = touch(out_dir + "workup/splitbams/{sample}.experimental.done")
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.splitbams.log"
+    shell:
+        '''
+        (python {tag_and_split} \
+        -i {input.bam} \
+        -c {input.experimental_clusters} \
+        -o {output.bam} \
+        -d workup/splitbams \
+        --min_oligos {min_oligos} \
+        --proportion {proportion} \
+        --max_size {max_size} \
+        --num_tags {num_tags}) &> {log}
         '''
 
 # Generate summary statistics of individiual bam files
@@ -891,19 +952,46 @@ rule generate_splitbam_statistics:
 # Perform downsampling on labeled bam files
 # ! FIXME: add control_bams in params subsection. Currently just using input bam as its own control sample.
 # * TODO: Ideally this rule should use the RunAll.java file, but for now we're using RandomDownsample_CLIP.
-rule random_downsample_clip:
+rule random_downsample_clip_control:
     input:
-        out_dir + "workup/alignments/{sample}.merged.labeled.RPM.bam"
+        out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam"
     output:
-        out_dir + "workup/downsample/{sample}.actual.bedgraph",
-        out_dir + "workup/downsample/{sample}.diff.bedgraph",
-        out_dir + "workup/downsample/{sample}.pval.bed"
+        out_dir + "workup/downsample/{sample}.control.actual.bedgraph",
+        out_dir + "workup/downsample/{sample}.control.diff.bedgraph",
+        out_dir + "workup/downsample/{sample}.control.pval.bed"
     params:
-        prefix = out_dir + "workup/downsample/{sample}"
+        prefix = out_dir + "workup/downsample/{sample}.control"
     conda:
         "envs/java.yaml"
     log:
-        out_dir + "workup/logs/{sample}_randomdownsampleclip.log"
+        out_dir + "workup/logs/{sample}_control_randomdownsampleclip.log"
+    shell:
+        """
+        (java \
+            -jar \
+            --enable-preview \
+            {random_downsample_clip} \
+            {input} \
+            {input} \
+            {params.prefix}) &> {log}
+        """
+
+# Perform downsampling on labeled bam files
+# ! FIXME: add control_bams in params subsection. Currently just using input bam as its own control sample.
+# * TODO: Ideally this rule should use the RunAll.java file, but for now we're using RandomDownsample_CLIP.
+rule random_downsample_clip_experimental:
+    input:
+        out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam"
+    output:
+        out_dir + "workup/downsample/{sample}.experimental.actual.bedgraph",
+        out_dir + "workup/downsample/{sample}.experimental.diff.bedgraph",
+        out_dir + "workup/downsample/{sample}.experimental.pval.bed"
+    params:
+        prefix = out_dir + "workup/downsample/{sample}.experimental"
+    conda:
+        "envs/java.yaml"
+    log:
+        out_dir + "workup/logs/{sample}_experimental_randomdownsampleclip.log"
     shell:
         """
         (java \
