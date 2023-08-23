@@ -353,6 +353,8 @@ rule splitfq:
         "envs/sprite.yaml"
     threads: 
         8
+    benchmark:
+        "benchmarks/{sample}.splitfq.tsv"
     shell:
         '''
         mkdir -p {params.dir}
@@ -371,6 +373,8 @@ rule compress_fastq:
         "envs/sprite.yaml"
     threads:
         8
+    benchmark:
+        "benchmarks/{sample}.{splitid}.compress_fastq.tsv"
     shell:
         '''
         pigz -p {threads} {input.r1}
@@ -394,6 +398,8 @@ rule adaptor_trimming_pe:
         out_dir + "workup/logs/{sample}.{splitid}.trim_galore.log"
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.adaptor_trimming_pe.tsv"
     shell:
         '''
         if [[ {threads} -gt 8 ]]
@@ -423,6 +429,8 @@ rule barcode_id:
         r2_barcoded = out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded.fastq.gz"
     log:
         out_dir + "workup/logs/{sample}.{splitid}.bID.log"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.barcode_id.tsv"
     shell:
         "java -jar {barcode_id_jar} \
         --input1 {input.r1} --input2 {input.r2} \
@@ -463,6 +471,8 @@ rule split_bpm_rpm:
         out_dir + "workup/logs/{sample}.{splitid}.BPM_RPM.log"
     conda:
        "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.split_bpm_rpm.tsv"
     shell:
         "python {split_bpm_rpm} --r1 {input} &> {log}"
 
@@ -480,6 +490,8 @@ rule split_bpm_rpm2:
         out_dir + "workup/logs/{sample}.{splitid}.BPM_RPM.log"
     conda:
        "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.split_bpm_rpm2.tsv"
     shell:
         "python {split_bpm_rpm} --r1 {input} &> {log}"
 
@@ -505,6 +517,8 @@ rule cutadapt_rpm:
         10
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.cutadapt_rpm.tsv"
     shell:
         '''
         (cutadapt \
@@ -537,6 +551,8 @@ rule cutadapt_oligo:
         10
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.cutadapt_oligo.tsv"
     shell:
         '''
         (cutadapt \
@@ -565,6 +581,8 @@ rule bowtie2_align:
         10
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.bowtie2_align.tsv"
     shell:
         '''
         (bowtie2 \
@@ -589,6 +607,8 @@ rule bam_to_fq:
         10
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.bam_to_fq.tsv"
     shell:
         '''
         samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -n {input} 
@@ -610,6 +630,8 @@ rule star_align:
         10
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.star_align.tsv"
     shell:
         '''
         (STAR \
@@ -634,6 +656,8 @@ rule compress_unaligned:
         "envs/sprite.yaml"
     threads:
         8
+    benchmark:
+        "benchmarks/{sample}.{splitid}.compress_unaligned.tsv"
     shell:
         '''
         pigz -p {threads} {input.r1} {input.r2}
@@ -653,6 +677,8 @@ rule add_chr:
         out_dir + "workup/logs/{sample}.{splitid}.add_chr.log",
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.add_chr.tsv"
     shell:
         '''
         python {add_chr} -i {input.star} -o {output.star} --assembly {assembly} &> {log}
@@ -671,6 +697,8 @@ rule merge_rna:
         8
     log:
         out_dir + "workup/logs/{sample}.merge_bams.log"
+    benchmark:
+        "benchmarks/{sample}.merge_rna.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input.bt2} {input.star}) &> {log}
@@ -693,6 +721,8 @@ rule fastq_to_bam:
         "envs/sprite.yaml"
     threads:
         8
+    benchmark:
+        "benchmarks/{sample}.{splitid}.fastq_to_bam.tsv"
     shell:
         '''
         python {fq_to_bam} --input {input} --output {output.bam} --config {bid_config} &> {log}
@@ -711,6 +741,8 @@ rule merge_beads:
         out_dir + "workup/logs/{sample}.merge_beads.log"
     threads:
         8
+    benchmark:
+        "benchmarks/{sample}.merge_beads.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input}) >& {log}
@@ -732,6 +764,8 @@ rule make_clusters:
         out_dir + "workup/logs/{sample}.{splitid}.make_clusters.log"
     conda:
         "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{sample}.{splitid}.make_clusters.tsv"
     shell:
         '''
         (python {get_clusters} \
@@ -752,6 +786,8 @@ rule merge_clusters:
        "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.merge_clusters.log"
+    benchmark:
+        "benchmarks/{sample}.merge_clusters.tsv"
     shell:
         '''
          sort -k 1 -T {temp_dir} -m {input} > {output.mega}
@@ -852,6 +888,8 @@ rule split_incorrect_clusters:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.incorrectclusters.log"
+    benchmark:
+        "benchmarks/{sample}.split_incorrect_clusters.tsv"
     shell:
         '''
         (python {split_incorrect_clusters} \
@@ -874,6 +912,8 @@ rule split_on_first_tag:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.splitonfirsttag.log"
+    benchmark:
+        "benchmarks/{sample}.split_on_first_tag.tsv"
     shell:
         '''
         (python {split_on_first_tag} \
@@ -898,6 +938,8 @@ rule thresh_and_split_control:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.splitbams.log"
+    benchmark:
+        "benchmarks/{sample}.thresh_and_split_control.tsv"
     shell:
         '''
         (python {tag_and_split} \
@@ -923,6 +965,8 @@ rule thresh_and_split_experimental:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.splitbams.log"
+    benchmark:
+        "benchmarks/{sample}.thresh_and_split_experimental.tsv"
     shell:
         '''
         (python {tag_and_split} \
@@ -965,6 +1009,8 @@ rule random_downsample_clip_control:
         "envs/java.yaml"
     log:
         out_dir + "workup/logs/{sample}_control_randomdownsampleclip.log"
+    benchmark:
+        "benchmarks/{sample}.random_downsample_clip_control.tsv"
     shell:
         """
         (java \
@@ -992,6 +1038,8 @@ rule random_downsample_clip_experimental:
         "envs/java.yaml"
     log:
         out_dir + "workup/logs/{sample}_experimental_randomdownsampleclip.log"
+    benchmark:
+        "benchmarks/{sample}.random_downsample_clip_experimental.tsv"
     shell:
         """
         (java \
