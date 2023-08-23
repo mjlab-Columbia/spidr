@@ -188,6 +188,9 @@ os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
 out_created = os.path.exists(out_dir + "workup/logs/cluster")
 print('Output logs path created:', out_created)
 
+# Create directory for benchmark tsv files to be stored
+os.makedirs("benchmarks", exist_ok=True)
+
 ################################################################################
 #Get sample files
 ###############################################################################
