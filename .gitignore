@@ -17,3 +17,4 @@ pipeline/*.pdf
 pipeline/workup/*
 pipeline/slurm-*.out
 pipeline/*.clusters
+pipeline/benchmarks
