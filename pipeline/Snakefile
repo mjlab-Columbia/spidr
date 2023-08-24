@@ -920,9 +920,9 @@ rule split_on_first_tag:
     shell:
         '''
         (python {split_on_first_tag} \
-        --complete_clusters {complete_clusters} \
-        --control_output {control_clusters} \
-        --experimental_output {experimental_clusters}) &> {log}
+        --complete_clusters {input.complete_clusters} \
+        --control_output {output.control_clusters} \
+        --experimental_output {output.experimental_clusters}) &> {log}
         '''
 
 ##############################################################################
