@@ -188,6 +188,9 @@ os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
 out_created = os.path.exists(out_dir + "workup/logs/cluster")
 print('Output logs path created:', out_created)
 
+# Create directory for benchmark tsv files to be stored
+os.makedirs("benchmarks", exist_ok=True)
+
 ################################################################################
 #Get sample files
 ###############################################################################
@@ -917,9 +920,9 @@ rule split_on_first_tag:
     shell:
         '''
         (python {split_on_first_tag} \
-        --complete_clusters {complete_clusters} \
-        --control_output {control_clusters} \
-        --experimental_output {experimental_clusters}) &> {log}
+        --complete_clusters {input.complete_clusters} \
+        --control_output {output.control_clusters} \
+        --experimental_output {output.experimental_clusters}) &> {log}
         '''
 
 ##############################################################################
