@@ -301,24 +301,6 @@ SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
-BED_FILES_CONTROL = expand(
-    [
-        out_dir + "workup/downsample/{sample}.control.actual.bedgraph",
-        out_dir + "workup/downsample/{sample}.control.diff.bedgraph",
-        out_dir + "workup/downsample/{sample}.control.pval.bed",
-    ],
-    sample=ALL_SAMPLES
-)
-
-BED_FILES_EXPERIMENTAL = expand(
-    [
-        out_dir + "workup/downsample/{sample}.experimental.actual.bedgraph",
-        out_dir + "workup/downsample/{sample}.experimental.diff.bedgraph",
-        out_dir + "workup/downsample/{sample}.experimental.pval.bed",
-    ],
-    sample=ALL_SAMPLES
-)
-
 ################################################################################
 ################################################################################
 #RULE ALL
@@ -326,7 +308,7 @@ BED_FILES_EXPERIMENTAL = expand(
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONTROL_CLUSTERS + EXPERIMENTAL_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONTROL + THRESH_AND_SPLIT_EXPERIMENTAL + BED_FILES_CONTROL + BED_FILES_EXPERIMENTAL
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONTROL_CLUSTERS + EXPERIMENTAL_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONTROL + THRESH_AND_SPLIT_EXPERIMENTAL 
 
 #Send and email if an error occurs during execution
 onerror:
@@ -935,7 +917,7 @@ rule thresh_and_split_control:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters"
     output:
-        bam = out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam",
+        bam = out_dir + "workup/splitbams/{sample}.control.RPM.bam",
         touch = touch(out_dir + "workup/splitbams/{sample}.control.done")
     conda:
         "envs/sprite.yaml"
@@ -962,7 +944,7 @@ rule thresh_and_split_experimental:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
     output:
-        bam = out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam",
+        bam = out_dir + "workup/splitbams/{sample}.experimental.RPM.bam",
         touch = touch(out_dir + "workup/splitbams/{sample}.experimental.done")
     conda:
         "envs/sprite.yaml"
@@ -996,60 +978,3 @@ rule generate_splitbam_statistics:
     shell:
         "for f in {params.dir}/*bam; do echo $f; samtools view -c $f; done > {output}"
 
-# Perform downsampling on labeled bam files
-# ! FIXME: add control_bams in params subsection. Currently just using input bam as its own control sample.
-# * TODO: Ideally this rule should use the RunAll.java file, but for now we're using RandomDownsample_CLIP.
-rule random_downsample_clip_control:
-    input:
-        out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam"
-    output:
-        out_dir + "workup/downsample/{sample}.control.actual.bedgraph",
-        out_dir + "workup/downsample/{sample}.control.diff.bedgraph",
-        out_dir + "workup/downsample/{sample}.control.pval.bed"
-    params:
-        prefix = out_dir + "workup/downsample/{sample}.control"
-    conda:
-        "envs/java.yaml"
-    log:
-        out_dir + "workup/logs/{sample}_control_randomdownsampleclip.log"
-    benchmark:
-        "benchmarks/{sample}.random_downsample_clip_control.tsv"
-    shell:
-        """
-        (java \
-            -jar \
-            --enable-preview \
-            {random_downsample_clip} \
-            {input} \
-            {input} \
-            {params.prefix}) &> {log}
-        """
-
-# Perform downsampling on labeled bam files
-# ! FIXME: add control_bams in params subsection. Currently just using input bam as its own control sample.
-# * TODO: Ideally this rule should use the RunAll.java file, but for now we're using RandomDownsample_CLIP.
-rule random_downsample_clip_experimental:
-    input:
-        out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam"
-    output:
-        out_dir + "workup/downsample/{sample}.experimental.actual.bedgraph",
-        out_dir + "workup/downsample/{sample}.experimental.diff.bedgraph",
-        out_dir + "workup/downsample/{sample}.experimental.pval.bed"
-    params:
-        prefix = out_dir + "workup/downsample/{sample}.experimental"
-    conda:
-        "envs/java.yaml"
-    log:
-        out_dir + "workup/logs/{sample}_experimental_randomdownsampleclip.log"
-    benchmark:
-        "benchmarks/{sample}.random_downsample_clip_experimental.tsv"
-    shell:
-        """
-        (java \
-            -jar \
-            --enable-preview \
-            {random_downsample_clip} \
-            {input} \
-            {input} \
-            {params.prefix}) &> {log}
-        """
