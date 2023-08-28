@@ -103,6 +103,10 @@ def label_bam_file(input_bam, output_bam, labels, num_tags):
     library = os.path.basename(input_bam).split('.')[0]
     header = construct_read_group_header(input_bam, labels)
     found = defaultdict(set)
+
+    # For debugging purposes
+    readlabels_set = set()
+
     with pysam.AlignmentFile(input_bam, "rb") as in_bam, \
     pysam.AlignmentFile(output_bam, "wb", header=header) as out_bam:
         for read in in_bam.fetch(until_eof = True):
@@ -120,6 +124,7 @@ def label_bam_file(input_bam, output_bam, labels, num_tags):
             else:
                 try:
                     readlabel = labels[full_barcode]
+                    readlabels_set.add(readlabel)
                     found[full_barcode].add(position)
                     read.set_tag('RG', readlabel, replace=True)
                     out_bam.write(read)
@@ -144,6 +149,9 @@ def construct_read_group_header(input_bam, labels):
 
 def split_bam_by_RG(output_bam, output_dir):
     Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Equivalent to samtools -f <format string> <output bam name>
+    # /%*_%!.%. = /<basename>_<@read group ID>.<file extension>
     format_string = output_dir + "/%*_%!.%."
     pysam.split("-f", format_string, output_bam)
 
