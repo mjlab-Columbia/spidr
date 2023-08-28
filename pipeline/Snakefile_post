@@ -75,6 +75,25 @@ BAMS = expand(bam_dir + "{sample}_{target}.bam", sample=SAMPLE_LIST, target = TA
 MERGED = expand(bam_dir + "{target}.merged.bam", target=TARGETS)
 BIGWIGS = expand(out_dir + "/bigwigs/{target}.{bs}.bigwig", target=TARGETS, bs=resolution) 
 
+# BED_FILES_CONTROL = expand(
+#     [
+#         out_dir + "workup/downsample/{sample}.{target}.control.actual.bedgraph",
+#         out_dir + "workup/downsample/{sample}.{target}.control.diff.bedgraph",
+#         out_dir + "workup/downsample/{sample}.{target}.control.pval.bed",
+#     ],
+#     sample=ALL_SAMPLES,
+#     target=TARGETS
+# )
+# 
+# BED_FILES_EXPERIMENTAL = expand(
+#     [
+#         out_dir + "workup/downsample/{sample}.{target}.experimental.actual.bedgraph",
+#         out_dir + "workup/downsample/{sample}.{target}.experimental.diff.bedgraph",
+#         out_dir + "workup/downsample/{sample}.{target}.experimental.pval.bed",
+#     ],
+#     sample=ALL_SAMPLES,
+#     target=TARGETS
+# )
 ################################################################################
 ################################################################################
 #RULE ALL
@@ -116,3 +135,62 @@ rule make_bigwigs:
         bamCoverage -p max/2 -b {input} -o {output} -bs {resolution} -of bigwig >& {log}
         '''
 
+#rule random_downsample_clip_control:
+#    input:
+#        "workup/splitbams/{sample}.control.RPM_{target}.bam"
+#    output: 
+#        control_actual = "workup/downsample/{sample}.{target}.control.actual.bedgraph",
+#        control_diff = "workup/downsample/{sample}.{target}.control.diff.bedgraph",
+#        control_pval = "workup/downsample/{sample}.{target}.control.pval.bed"
+#    params:
+#        control_bams = lambda wildcards: " ".join(
+#            expand(
+#                "workup/splitbams/{sample}.{control_or_exp}.RPM_{{target}}.bam",
+#                sample=wildcards.sample,
+#                control_or_exp=['control', 'experimental'],
+#                target=[t for t in TARGETS if t != wildcards.target])
+#            ),
+#        prefix = "workup/downsample/{sample}.{target}"
+#    conda:
+#        "envs/java.yaml"
+#    log: 
+#        "workup/logs/{sample}_{target}_control.randomdownsampleclip.log"
+#    shell:
+#        """  
+#        (java \
+#            -jar \
+#            --enable-preview \
+#            {input} \
+#            {params.control_bams} \
+#            {params.prefix}) &> {log}
+#        """ 
+#
+#rule random_downsample_clip_experimental:
+#    input:
+#        "workup/splitbams/{sample}.experimental.RPM_{target}.bam"
+#    output: 
+#        experimental_actual = "workup/downsample/{sample}.{target}.experimental.actual.bedgraph",
+#        experimental_diff = "workup/downsample/{sample}.{target}.experimental.diff.bedgraph",
+#        experimental_pval = "workup/downsample/{sample}.{target}.experimental.pval.bed"
+#    params:
+#        control_bams = lambda wildcards: " ".join(
+#            expand(
+#                "workup/splitbams/{sample}.{control_or_exp}.RPM_{{target}}.bam",
+#                sample=wildcards.sample,
+#                control_or_exp=['control', 'experimental'],
+#                target=[t for t in TARGETS if t != wildcards.target])
+#            ),
+#        prefix = "workup/downsample/{sample}.{target}"
+#    conda:
+#        "envs/java.yaml"
+#    log:
+#        "workup/logs/{sample}_{target}_control.randomdownsampleclip.log"
+#    shell:
+#        """
+#        (java \
+#            -jar \
+#            --enable-preview \
+#            {input} \
+#            {params.control_bams} \
+#            {params.prefix}) &> {log}
+#        """
