@@ -288,8 +288,8 @@ EXPERIMENTAL_CLUSTERS = expand(out_dir + "workup/clusters/{sample}.experimental.
 # Post Clustering
 ##############################################################################
 
-THRESH_AND_SPLIT_CONTROL = expand(out_dir + "workup/alignments/{sample}.control.merged.labeled.RPM.bam", sample=ALL_SAMPLES)
-THRESH_AND_SPLIT_EXPERIMENTAL = expand(out_dir + "workup/alignments/{sample}.experimental.merged.labeled.RPM.bam", sample=ALL_SAMPLES)
+THRESH_AND_SPLIT_CONTROL = expand(out_dir + "workup/splitbams/{sample}.control.RPM.bam", sample=ALL_SAMPLES)
+THRESH_AND_SPLIT_EXPERIMENTAL = expand(out_dir + "workup/splitbams/{sample}.experimental.RPM.bam", sample=ALL_SAMPLES)
 
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
