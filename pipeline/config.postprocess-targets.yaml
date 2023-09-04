@@ -1,0 +1,19 @@
+# Location of the config file for barcodeIdentification
+bID: "config_6_rounds.txt"
+
+# Names of samples, one per line 
+samples: 'HEK_MTOR_QC'
+
+# Bam directory
+bam_dir: "workup/splitbams/"
+
+out_dir: ""
+
+# Output directory  
+output_dir: "workup/bigwigs"
+
+# Temporary directory
+temp_dir: "/central/scratch/"
+
+# Bin Size of bigwigs
+bin_size: 1
