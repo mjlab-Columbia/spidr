@@ -7,10 +7,8 @@ samples: 'HEK_MTOR_QC'
 # Bam directory
 bam_dir: "workup/splitbams/"
 
-out_dir: ""
-
 # Output directory  
-output_dir: "workup/bigwigs"
+output_dir: ""
 
 # Temporary directory
 temp_dir: "/central/scratch/"
