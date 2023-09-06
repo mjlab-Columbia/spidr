@@ -11,7 +11,7 @@ bam_dir: "workup/splitbams/"
 output_dir: ""
 
 # Temporary directory
-temp_dir: "/central/scratch/"
+temp_dir: "/burg/mjlab/spidr_preprocessing_dg/spidr/pipeline/scratch"
 
 # Bin Size of bigwigs
 bin_size: 1
