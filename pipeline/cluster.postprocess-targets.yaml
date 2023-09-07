@@ -1,4 +1,5 @@
 __default__:
+    account: "mjlab"
     time: "12:00:00"
     mem: 20g
     cpus: 1
@@ -6,16 +7,18 @@ __default__:
     output: "workup/logs/cluster/{rule}.{wildcards.target}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.target}.err"
 merge_bams:
-    time: "12:00:00"
+    account: "mjlab"
+    time: "02:00:00"
     mem: 50g
-    cpus: 10
+    cpus: 8
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.target}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.target}.err"
 make_bigwigs:
-    time: "12:00:00"
-    mem: 50g
-    cpus: 10
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 64g
+    cpus: 16
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.target}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.target}.err"

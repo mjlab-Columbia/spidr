@@ -16,9 +16,6 @@ snakemake \
     --rulegraph \
     --snakefile "postprocess-targets.smk" \
     --configfile "config.postprocess-targets.yaml" \
-    > rulegraph-postprocess-targets.tmp
-tail -n +7 rulegraph-postprocess-targets.tmp > rulegraph-postprocess-targets.txt
-dot -Gsize=9,16\! -Gdpi=100 -Tpdf rulegraph-postprocess-targets.txt -o rulegraph-postprocess-targets.pdf
-rm rulegraph-postprocess-targets.tmp rulegraph-postprocess-targets.txt
+    | dot -Tpdf > rulegraph-postprocess-targets.pdf
 echo "File saved to rulegraph-postprocess-targets.pdf"
 
