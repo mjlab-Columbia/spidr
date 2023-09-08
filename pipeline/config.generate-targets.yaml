@@ -13,6 +13,9 @@ output_dir: ""
 # Temporary directory
 temp_dir: "/burg/mjlab/projects/spidr_preprocessing_dg/scratch"
 
+# Unique tags in the ROUND1 tags within config
+conditions: ['CNTRL', 'TORIN']
+
 # Currently "mm10" and "hg38" available
 assembly: "hg38"
 
