@@ -1,10 +1,15 @@
+import os
+import re
 from pdb import set_trace
 import click
 from tqdm import tqdm
 
-def split_by_first_tag(complete_clusters, control_output, experimental_output, groups):
+@click.command()
+@click.option('--complete_clusters', required=True, type=click.Path(exists=True), help='Path to complete clusters file(s)')
+@click.option('--output_dir', required=True, type=click.Path(), help='Directory to store the output cluster files')
+def main(complete_clusters, output_dir):
     line_count = 0
-    barcode_set = set()
+    conditions = set()
     
     print("Collecting ROUND1 barcodes")
     with open(complete_clusters, 'r') as clusters:
@@ -18,37 +23,40 @@ def split_by_first_tag(complete_clusters, control_output, experimental_output, g
             round_1_barcodes = [barcode for barcode in barcodes if barcode.startswith("ROUND1_")]
 
             # Strip alphanumeric suffixes at the end of control/experimental tags (e.g. ROUND1_CNTRL_A10 --> ROUND1_CNTRL)
-            cntrl_vs_exp = ['_'.join(b.split('_')[:-1]) for b in round_1_barcodes]
+            round1_tags = ['_'.join(b.split('_')[:-1]) for b in round_1_barcodes]
 
-            for tag in cntrl_vs_exp:
-                barcode_set.add(tag)
+            for tag in round1_tags:
+                conditions.add(tag.split('_')[1])
     
-    # TODO: Add helpful print statement to this assertion
-    assert len(barcode_set) == groups
-    
+    # For each condition, store a list of clusters with each condition (e.g. CNTRL, TORIN, etc)
+    output_dict = {condition: [] for condition in conditions}
+
     # Splitting clusters based on the first tag
-    with open(complete_clusters, 'r') as clusters, \
-    open(control_output, 'wt') as control_out, \
-    open(experimental_output, 'wt') as experimental_out:
+    with open(complete_clusters, 'r') as clusters:
         for line in tqdm(clusters, total=line_count):
             cluster_barcode = line.strip('\n').split('\t', 1)[0]
             barcodes = cluster_barcode.split('.')[:-1]
 
             # Last index corresponds to the ROUND1 tags
             first_barcode = barcodes[-1]
+
+            # Define a regular expression pattern to extract the middle part
+            pattern = r'_([^_]+)_'
+            search_results = re.search(pattern, first_barcode)
+            condition = search_results.group(1)
+            output_dict[condition].append(line)
+
+    print("Writing each cluster condition to disk")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for condition, lines in output_dict.items():
+        filename = os.path.basename(complete_clusters)
+        filename = filename.replace('.complete.clusters', f'.{condition}.clusters')
+        filepath = os.path.join(output_dir, filename)
+
+        with open(filepath, 'w') as f:
+            f.write(''.join(lines))
             
-            if first_barcode.startswith('ROUND1_CNTRL'):
-                control_out.write(line)
-            elif first_barcode.startswith('ROUND1_TORIN'):
-                experimental_out.write(line)
-
-@click.command()
-@click.option('--complete_clusters', required=True, type=click.Path(exists=True), help='Path to complete clusters file(s)')
-@click.option('--control_output', required=True, type=click.Path(), help='Path to control output file')
-@click.option('--experimental_output', required=True, type=click.Path(), help='Path to experimental output file')
-@click.option('--groups', required=False, type=int, default=2, help='Number of expected different first barcodes (default assumes 1 control and 1 experiments)')
-def main(complete_clusters, control_output, experimental_output, groups):
-    split_by_first_tag(complete_clusters, control_output, experimental_output, groups)
-
 if __name__ == '__main__':
     main()
