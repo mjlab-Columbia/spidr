@@ -297,10 +297,10 @@ THRESH_AND_SPLIT = expand(out_dir + "workup/splitbams/{sample}.{condition}.RPM.b
 
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
-SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
-         out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
-         out_dir + "workup/clusters/BPM_cluster_distribution.pdf",
-         out_dir + "workup/clusters/BPM_read_distribution.pdf"]
+SIZES = [out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
+         out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
+         out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf",
+         out_dir + "workup/condition-clusters/BPM_read_distribution.pdf"]
 
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
@@ -391,17 +391,10 @@ rule adaptor_trimming_pe:
         "benchmarks/{sample}.{splitid}.adaptor_trimming_pe.tsv"
     shell:
         '''
-        if [[ {threads} -gt 8 ]]
-        then
-            cores=2
-        else
-            cores=1
-        fi
-
         trim_galore \
         --paired \
         --gzip \
-        --cores $cores \
+        --cores {threads} \
         --quality 20 \
         --fastqc \
         -o {out_dir}workup/trimmed/ \
@@ -593,14 +586,14 @@ rule bam_to_fq:
     log:
         out_dir + "workup/logs/{sample}.{splitid}.bam2fq.log"
     threads: 
-        10
+        1
     conda:
         "envs/sprite.yaml"
     benchmark:
         "benchmarks/{sample}.{splitid}.bam_to_fq.tsv"
     shell:
         '''
-        samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -n {input} 
+        samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -@ {threads} -n {input} 
         '''
 
 rule star_align:
@@ -821,16 +814,16 @@ rule generate_cluster_ecdfs:
 # Profile size distribution of clusters
 rule get_size_distribution:
     input:
-        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES),
-        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions),
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions)
     output:
         # FIXME: should these be changed to RPM equivalents?
-        dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
-        dpm2 = out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
-        bpm = out_dir + "workup/clusters/BPM_read_distribution.pdf",
-        bpm2 = out_dir + "workup/clusters/BPM_cluster_distribution.pdf"
+        dpm = out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
+        dpm2 = out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
+        bpm = out_dir + "workup/condition-clusters/BPM_read_distribution.pdf",
+        bpm2 = out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf"
     params:
-        dir = out_dir + "workup/clusters"
+        dir = out_dir + "workup/condition-clusters"
     conda:
         "envs/sprite.yaml"
     shell:
@@ -853,8 +846,7 @@ rule log_config:
 
 rule multiqc:
     input:
-        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES), 
-        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES) 
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions) 
     output:
         out_dir + "workup/qc/multiqc_report.html"
     log:
