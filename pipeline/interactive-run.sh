@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e # Exit on first error
+
 # Default value is "both" which runs both pipeline sections sequentially
 pipeline_to_run="both"
 

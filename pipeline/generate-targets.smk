@@ -72,6 +72,12 @@ except:
     print('Config "num_tags" not specified, using:', num_tags)
 
 try:
+    conditions = config['conditions']
+except:
+    print("No conditions specified in config file. No defaults.")
+    sys.exit()
+
+try:
     assembly = config['assembly']
     assert assembly in ['mm10', 'hg38'], 'Only "mm10" or "hg38" currently supported'
     print('Using', assembly)
@@ -281,22 +287,20 @@ MERGE_BEAD = expand(out_dir + "workup/alignments/{sample}.merged.BPM.bam", sampl
 CLUSTERS = expand(out_dir + "workup/clusters/{sample}.part_{splitid}.clusters", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
 CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=ALL_SAMPLES)
 CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.clusters", sample=ALL_SAMPLES)
-CONTROL_CLUSTERS = expand(out_dir + "workup/clusters/{sample}.control.complete.clusters", sample=ALL_SAMPLES)
-EXPERIMENTAL_CLUSTERS = expand(out_dir + "workup/clusters/{sample}.experimental.complete.clusters", sample=ALL_SAMPLES)
+CONDITION_CLUSTERS = expand(out_dir + "workup/condition-clusters/{sample}.{condition}.clusters", sample=ALL_SAMPLES, condition=conditions)
 
 ##############################################################################
 # Post Clustering
 ##############################################################################
 
-THRESH_AND_SPLIT_CONTROL = expand(out_dir + "workup/splitbams/{sample}.control.RPM.bam", sample=ALL_SAMPLES)
-THRESH_AND_SPLIT_EXPERIMENTAL = expand(out_dir + "workup/splitbams/{sample}.experimental.RPM.bam", sample=ALL_SAMPLES)
+THRESH_AND_SPLIT = expand(out_dir + "workup/splitbams/{sample}.{condition}.RPM.bam", sample=ALL_SAMPLES, condition=conditions)
 
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
-SIZES = [out_dir + "workup/clusters/DPM_read_distribution.pdf",
-         out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
-         out_dir + "workup/clusters/BPM_cluster_distribution.pdf",
-         out_dir + "workup/clusters/BPM_read_distribution.pdf"]
+SIZES = [out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
+         out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
+         out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf",
+         out_dir + "workup/condition-clusters/BPM_read_distribution.pdf"]
 
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
@@ -308,7 +312,7 @@ ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONTROL_CLUSTERS + EXPERIMENTAL_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONTROL + THRESH_AND_SPLIT_EXPERIMENTAL 
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONDITION_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT
 
 #Send and email if an error occurs during execution
 onerror:
@@ -387,17 +391,10 @@ rule adaptor_trimming_pe:
         "benchmarks/{sample}.{splitid}.adaptor_trimming_pe.tsv"
     shell:
         '''
-        if [[ {threads} -gt 8 ]]
-        then
-            cores=2
-        else
-            cores=1
-        fi
-
         trim_galore \
         --paired \
         --gzip \
-        --cores $cores \
+        --cores {threads} \
         --quality 20 \
         --fastqc \
         -o {out_dir}workup/trimmed/ \
@@ -589,14 +586,14 @@ rule bam_to_fq:
     log:
         out_dir + "workup/logs/{sample}.{splitid}.bam2fq.log"
     threads: 
-        10
+        1
     conda:
         "envs/sprite.yaml"
     benchmark:
         "benchmarks/{sample}.{splitid}.bam_to_fq.tsv"
     shell:
         '''
-        samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -n {input} 
+        samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -@ {threads} -n {input} 
         '''
 
 rule star_align:
@@ -817,16 +814,16 @@ rule generate_cluster_ecdfs:
 # Profile size distribution of clusters
 rule get_size_distribution:
     input:
-        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES),
-        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions),
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions)
     output:
         # FIXME: should these be changed to RPM equivalents?
-        dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
-        dpm2 = out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
-        bpm = out_dir + "workup/clusters/BPM_read_distribution.pdf",
-        bpm2 = out_dir + "workup/clusters/BPM_cluster_distribution.pdf"
+        dpm = out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
+        dpm2 = out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
+        bpm = out_dir + "workup/condition-clusters/BPM_read_distribution.pdf",
+        bpm2 = out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf"
     params:
-        dir = out_dir + "workup/clusters"
+        dir = out_dir + "workup/condition-clusters"
     conda:
         "envs/sprite.yaml"
     shell:
@@ -849,8 +846,7 @@ rule log_config:
 
 rule multiqc:
     input:
-        expand([out_dir + "workup/clusters/{sample}.control.complete.clusters"], sample=ALL_SAMPLES), 
-        expand([out_dir + "workup/clusters/{sample}.experimental.complete.clusters"], sample=ALL_SAMPLES) 
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions) 
     output:
         out_dir + "workup/qc/multiqc_report.html"
     log:
@@ -891,20 +887,18 @@ rule split_on_first_tag:
     input:
         complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
     output:
-        control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters",
-        experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
+        condition_clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters",
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.splitonfirsttag.log"
+        out_dir + "workup/logs/{sample}.{condition}.splitonfirsttag.log"
     benchmark:
-        "benchmarks/{sample}.split_on_first_tag.tsv"
+        "benchmarks/{sample}.{condition}.split_on_first_tag.tsv"
     shell:
         '''
         (python {split_on_first_tag} \
         --complete_clusters {input.complete_clusters} \
-        --control_output {output.control_clusters} \
-        --experimental_output {output.experimental_clusters}) &> {log}
+        --output_dir workup/condition-clusters) &> {log}
         '''
 
 ##############################################################################
@@ -912,51 +906,24 @@ rule split_on_first_tag:
 ##############################################################################
 
 # Generate bam files for individual targets based on assignments from clusterfile
-rule thresh_and_split_control:
+rule thresh_and_split:
     input:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
-        control_clusters = out_dir + "workup/clusters/{sample}.control.complete.clusters"
+        clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"
     output:
-        bam = out_dir + "workup/splitbams/{sample}.control.RPM.bam",
-        touch = touch(out_dir + "workup/splitbams/{sample}.control.done")
+        bam = out_dir + "workup/splitbams/{sample}.{condition}.RPM.bam",
+        touch = touch(out_dir + "workup/splitbams/{sample}.{condition}.done")
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.splitbams.log"
+        out_dir + "workup/logs/{sample}.{condition}.splitbams.log"
     benchmark:
-        "benchmarks/{sample}.thresh_and_split_control.tsv"
+        "benchmarks/{sample}.{condition}.thresh_and_split_control.tsv"
     shell:
         '''
         (python {tag_and_split} \
         -i {input.bam} \
-        -c {input.control_clusters} \
-        -o {output.bam} \
-        -d workup/splitbams \
-        --min_oligos {min_oligos} \
-        --proportion {proportion} \
-        --max_size {max_size} \
-        --num_tags {num_tags}) &> {log}
-        '''
-
-# Generate bam files for individual targets based on assignments from clusterfile
-rule thresh_and_split_experimental:
-    input:
-        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
-        experimental_clusters = out_dir + "workup/clusters/{sample}.experimental.complete.clusters"
-    output:
-        bam = out_dir + "workup/splitbams/{sample}.experimental.RPM.bam",
-        touch = touch(out_dir + "workup/splitbams/{sample}.experimental.done")
-    conda:
-        "envs/sprite.yaml"
-    log:
-        out_dir + "workup/logs/{sample}.splitbams.log"
-    benchmark:
-        "benchmarks/{sample}.thresh_and_split_experimental.tsv"
-    shell:
-        '''
-        (python {tag_and_split} \
-        -i {input.bam} \
-        -c {input.experimental_clusters} \
+        -c {input.clusters} \
         -o {output.bam} \
         -d workup/splitbams \
         --min_oligos {min_oligos} \

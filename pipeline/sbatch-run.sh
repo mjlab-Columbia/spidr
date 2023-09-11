@@ -9,6 +9,8 @@
 #SBATCH --time=0-12:00           # Time format: D-HH:MM
 #SBATCH --mem-per-cpu=5G
 
+set -e # Exit on first error
+
 # Default value is "both" which runs both pipeline sections sequentially
 pipeline_to_run="both"
 

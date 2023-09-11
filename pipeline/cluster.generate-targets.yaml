@@ -1,6 +1,6 @@
 __default__:
     account: "mjlab"
-    time: "12:00:00"
+    time: "01:00:00"
     mem: 20g
     cpus: 1
     nodes: 1
@@ -38,6 +38,14 @@ adaptor_trimming_pe:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+get_ligation_efficiency:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 8g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
 barcode_id:
     account: "mjlab"
     time: "12:00:00"
@@ -46,7 +54,7 @@ barcode_id:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
-full_barcode:
+split_bpm_rpm:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -54,7 +62,7 @@ full_barcode:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
-full_barcode_R2:
+split_bpm_rpm2:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -70,11 +78,27 @@ cutadapt_rpm:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+cutadapt_oligo:
+    account: "mjlab"
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
 bowtie2_align:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
     cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
+bam_to_fq:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 20g
+    cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.{wildcards.splitid}.err"
@@ -137,8 +161,8 @@ merge_clusters:
     error: "workup/logs/cluster/{rule}.{wildcards.sample}.err"
 multiqc:
     account: "mjlab"
-    time: "05:00:00"
-    mem: 20g
+    time: "01:00:00"
+    mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
@@ -179,16 +203,16 @@ log_config:
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
-random_downsample_clip_control:
-    time: "02:00:00"
-    mem: 64g
+split_on_first_tag:
+    time: "00:15:00"
+    mem: 8g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
-random_downsample_clip_experimental:
-    time: "02:00:00"
-    mem: 64g
+thresh_and_split:
+    time: "01:00:00"
+    mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
