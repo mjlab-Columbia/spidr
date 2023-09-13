@@ -205,7 +205,7 @@ log_config:
     error: "workup/logs/cluster/{rule}.err"
 split_on_first_tag:
     time: "00:15:00"
-    mem: 8g
+    mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
