@@ -25,7 +25,8 @@ if [ "$pipeline_to_run" = "generate"  ] || [ "$pipeline_to_run" = "both"  ]; the
 fi
 
 if [ "$pipeline_to_run" = "postprocess"  ] || [ "$pipeline_to_run" = "both"  ]; then
-    if [ -f "workup/splitbams" ]; then
+
+    if [ -d "workup/splitbams" ]; then
         echo "Generating rulegraph for bam targets --> bedgraph, bigwig, and merged bam file"
         snakemake \
             --rulegraph \
