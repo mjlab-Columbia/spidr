@@ -287,13 +287,26 @@ MERGE_BEAD = expand(out_dir + "workup/alignments/{sample}.merged.BPM.bam", sampl
 CLUSTERS = expand(out_dir + "workup/clusters/{sample}.part_{splitid}.clusters", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
 CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=ALL_SAMPLES)
 CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.clusters", sample=ALL_SAMPLES)
-CONDITION_CLUSTERS = expand(out_dir + "workup/condition-clusters/{sample}.{condition}.clusters", sample=ALL_SAMPLES, condition=conditions)
+CONDITION_CLUSTERS = expand(
+    out_dir + "workup/condition-clusters/{sample}.{condition}.clusters", 
+    sample=ALL_SAMPLES, 
+    condition=conditions
+)
 
 ##############################################################################
 # Post Clustering
 ##############################################################################
 
-THRESH_AND_SPLIT = expand(out_dir + "workup/splitbams/{sample}.{condition}.RPM.bam", sample=ALL_SAMPLES, condition=conditions)
+THRESH_AND_SPLIT_NO_CONDITION = expand(
+        [out_dir + "workup/splitbams-all-conditions/{sample}.bam"], 
+        sample=ALL_SAMPLES
+)
+
+THRESH_AND_SPLIT_CONDITION = expand(
+        [out_dir + "workup/splitbams-by-condition/{sample}.{condition}.bam"], 
+        sample=ALL_SAMPLES, 
+        condition=conditions
+)
 
 COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
 
@@ -304,7 +317,7 @@ SIZES = [out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
 
 ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
          out_dir + "workup/clusters/Max_representation_counts.pdf"]
-
+ 
 ################################################################################
 ################################################################################
 #RULE ALL
@@ -312,7 +325,7 @@ ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONDITION_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT
+    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONDITION_CLUSTERS + MULTI_QC + COUNTS + SIZES + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONDITION + THRESH_AND_SPLIT_NO_CONDITION
 
 #Send and email if an error occurs during execution
 onerror:
@@ -815,21 +828,29 @@ rule generate_cluster_ecdfs:
 rule get_size_distribution:
     input:
         expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions),
-        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions)
+        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES),
     output:
         # FIXME: should these be changed to RPM equivalents?
         dpm = out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
         dpm2 = out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
         bpm = out_dir + "workup/condition-clusters/BPM_read_distribution.pdf",
-        bpm2 = out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf"
+        bpm2 = out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf",
+        no_condition_dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
+        no_condition_dpm2 = out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
+        no_condition_bpm = out_dir + "workup/clusters/BPM_read_distribution.pdf",
+        no_condition_bpm2 = out_dir + "workup/clusters/BPM_cluster_distribution.pdf"
     params:
-        dir = out_dir + "workup/condition-clusters"
+        condition_dir = "workup/condition-clusters",
+        no_condition_dir = "workup/clusters"
     conda:
         "envs/sprite.yaml"
     shell:
         '''
-        python {cluster_sizes} --directory {params.dir} --pattern .clusters --readtype BPM
-        python {cluster_sizes} --directory {params.dir} --pattern .clusters --readtype DPM
+        python {cluster_sizes} --directory {params.no_condition_dir} --pattern .clusters --readtype BPM
+        python {cluster_sizes} --directory {params.no_condition_dir} --pattern .clusters --readtype DPM
+
+        python {cluster_sizes} --directory {params.condition_dir} --pattern .clusters --readtype BPM
+        python {cluster_sizes} --directory {params.condition_dir} --pattern .clusters --readtype DPM
         '''
 
 ################################################################################
@@ -846,7 +867,8 @@ rule log_config:
 
 rule multiqc:
     input:
-        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions) 
+        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions),
+        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES, condition=conditions)
     output:
         out_dir + "workup/qc/multiqc_report.html"
     log:
@@ -887,18 +909,20 @@ rule split_on_first_tag:
     input:
         complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
     output:
-        condition_clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters",
+        out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"
     conda:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.{condition}.splitonfirsttag.log"
     benchmark:
         "benchmarks/{sample}.{condition}.split_on_first_tag.tsv"
+    wildcard_constraints:
+        condition="^(?!complete).+$"
     shell:
         '''
         (python {split_on_first_tag} \
-        --complete_clusters {input.complete_clusters} \
-        --output_dir workup/condition-clusters) &> {log}
+            --complete_clusters {input.complete_clusters} \
+            --output_dir workup/condition-clusters) &> {log}
         '''
 
 ##############################################################################
@@ -906,42 +930,77 @@ rule split_on_first_tag:
 ##############################################################################
 
 # Generate bam files for individual targets based on assignments from clusterfile
-rule thresh_and_split:
+rule thresh_and_split_condition:
     input:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"
     output:
-        bam = out_dir + "workup/splitbams/{sample}.{condition}.RPM.bam",
-        touch = touch(out_dir + "workup/splitbams/{sample}.{condition}.done")
+        touch = touch(out_dir + "workup/splitbams-all-conditions/{sample}.{condition}.done")
     conda:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.{condition}.splitbams.log"
     benchmark:
-        "benchmarks/{sample}.{condition}.thresh_and_split_control.tsv"
+        out_dir + "benchmarks/{sample}.{condition}.thresh_and_split_control.tsv"
+    params:
+        directory = "workup/splitbams-by-conditions"
     shell:
         '''
         (python {tag_and_split} \
-        -i {input.bam} \
-        -c {input.clusters} \
-        -o {output.bam} \
-        -d workup/splitbams \
-        --min_oligos {min_oligos} \
-        --proportion {proportion} \
-        --max_size {max_size} \
-        --num_tags {num_tags}) &> {log}
+            -i {input.bam} \
+            -c {input.clusters} \
+            -o {output.bam} \
+            -d {params.directory} \
+            --min_oligos {min_oligos} \
+            --proportion {proportion} \
+            --max_size {max_size} \
+            --num_tags {num_tags}) &> {log}
+        '''
+
+# Generate bam files for individual targets based on assignments from clusterfile
+rule thresh_and_split_no_condition:
+    input:
+        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
+        clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+    output:
+        touch = touch(out_dir + "workup/splitbams-all-conditions/{sample}.done")
+    conda:
+        "envs/sprite.yaml"
+    log:
+        out_dir + "workup/logs/{sample}.merged.splitbams.log"
+    benchmark:
+        out_dir + "benchmarks/{sample}.merged.thresh_and_split_control.tsv"
+    params:
+        directory = "workup/splitbams-by-conditions"
+    shell:
+        '''
+        (python {tag_and_split} \
+            -i {input.bam} \
+            -c {input.clusters} \
+            -o {output.bam} \
+            -d {params.directory} \
+            --min_oligos {min_oligos} \
+            --proportion {proportion} \
+            --max_size {max_size} \
+            --num_tags {num_tags}) &> {log}
         '''
 
 # Generate summary statistics of individiual bam files
 rule generate_splitbam_statistics:
     input:
-        expand([out_dir + "workup/splitbams/{sample}.done"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/splitbams-all-conditions/{sample}.done"], sample=ALL_SAMPLES),
+        expand([out_dir + "workup/splitbams-by-condition/{sample}.done"], sample=ALL_SAMPLES)
     output:
-        out_dir + "workup/splitbams/splitbam_statistics.txt"
+        all_conditions = out_dir + "workup/splitbams-all-conditions/splitbam_statistics.txt",
+        by_conditions = out_dir + "workup/splitbams-by-condition/splitbam_statistics.txt"
     params:
-        dir = out_dir + "workup/splitbams"
+        all_conditions = out_dir + "workup/splitbams-all-conditions",
+        by_condition = out_dir + "workup/splitbams-by-condition"
     conda:
         "envs/sprite.yaml"
     shell:
-        "for f in {params.dir}/*bam; do echo $f; samtools view -c $f; done > {output}"
+        """
+        for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}
+        for f in {params.by_condition}/*bam; do echo $f; samtools view -c $f; done > {output.by_condition}
+        """
 

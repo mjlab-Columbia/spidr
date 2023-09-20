@@ -3,7 +3,7 @@ samples: 'HEK_MTOR_QC'
 
 # Conditions specified in ROUND1 tags (e.g. TORIN in ROUND1_TORIN_A10)
 # FIXME: change this to reflect actual tag rather than control & experimental
-conditions: ['control', 'experimental']
+conditions: ['CNTRL', 'TORIN']
 
 # Output directory  
 output_dir: ""
