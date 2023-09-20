@@ -935,21 +935,22 @@ rule thresh_and_split_condition:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"
     output:
-        bam = out_dir + "workup/splitbams-by-condition/{sample}.{condition}.bam",
-        touch = touch(out_dir + "workup/splitbams-by-condition/{sample}.{condition}.done")
+        touch = touch(out_dir + "workup/splitbams-all-conditions/{sample}.{condition}.done")
     conda:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{sample}.{condition}.splitbams.log"
     benchmark:
         out_dir + "benchmarks/{sample}.{condition}.thresh_and_split_control.tsv"
+    params:
+        directory = "workup/splitbams-by-conditions"
     shell:
         '''
         (python {tag_and_split} \
             -i {input.bam} \
             -c {input.clusters} \
             -o {output.bam} \
-            -d workup/splitbams \
+            -d {params.directory} \
             --min_oligos {min_oligos} \
             --proportion {proportion} \
             --max_size {max_size} \
@@ -962,7 +963,6 @@ rule thresh_and_split_no_condition:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
     output:
-        bam = out_dir + "workup/splitbams-all-conditions/{sample}.bam",
         touch = touch(out_dir + "workup/splitbams-all-conditions/{sample}.done")
     conda:
         "envs/sprite.yaml"
@@ -970,13 +970,15 @@ rule thresh_and_split_no_condition:
         out_dir + "workup/logs/{sample}.merged.splitbams.log"
     benchmark:
         out_dir + "benchmarks/{sample}.merged.thresh_and_split_control.tsv"
+    params:
+        directory = "workup/splitbams-by-conditions"
     shell:
         '''
         (python {tag_and_split} \
             -i {input.bam} \
             -c {input.clusters} \
             -o {output.bam} \
-            -d workup/splitbams \
+            -d {params.directory} \
             --min_oligos {min_oligos} \
             --proportion {proportion} \
             --max_size {max_size} \
@@ -986,13 +988,19 @@ rule thresh_and_split_no_condition:
 # Generate summary statistics of individiual bam files
 rule generate_splitbam_statistics:
     input:
-        expand([out_dir + "workup/splitbams/{sample}.done"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/splitbams-all-conditions/{sample}.done"], sample=ALL_SAMPLES),
+        expand([out_dir + "workup/splitbams-by-condition/{sample}.done"], sample=ALL_SAMPLES)
     output:
-        out_dir + "workup/splitbams/splitbam_statistics.txt"
+        all_conditions = out_dir + "workup/splitbams-all-conditions/splitbam_statistics.txt",
+        by_conditions = out_dir + "workup/splitbams-by-condition/splitbam_statistics.txt"
     params:
-        dir = out_dir + "workup/splitbams"
+        all_conditions = out_dir + "workup/splitbams-all-conditions",
+        by_condition = out_dir + "workup/splitbams-by-condition"
     conda:
         "envs/sprite.yaml"
     shell:
-        "for f in {params.dir}/*bam; do echo $f; samtools view -c $f; done > {output}"
+        """
+        for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}
+        for f in {params.by_condition}/*bam; do echo $f; samtools view -c $f; done > {output.by_condition}
+        """
 
