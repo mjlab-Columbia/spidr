@@ -19,3 +19,4 @@ pipeline/slurm-*.out
 pipeline/*.clusters
 pipeline/benchmarks
 pipeline/run-log*.txt
+pipeline/*.png
