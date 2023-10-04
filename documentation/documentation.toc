@@ -1,7 +1,10 @@
 \contentsline {section}{\numberline {1}Introduction}{1}{}%
-\contentsline {section}{\numberline {2}Preprocessing Pipeline}{1}{}%
+\contentsline {section}{\numberline {2}Preprocessing}{1}{}%
 \contentsline {subsection}{\numberline {2.1}Overview}{1}{}%
-\contentsline {subsection}{\numberline {2.2}Running the Pipeline}{2}{}%
+\contentsline {subsubsection}{\numberline {2.1.1}Relationship Between Files}{2}{}%
+\contentsline {subsection}{\numberline {2.2}\texttt {generate-targets.smk}}{2}{}%
+\contentsline {subsection}{\numberline {2.3}Running the Pipeline}{2}{}%
 \contentsline {section}{\numberline {3}Postprocessing Pipeline}{3}{}%
 \contentsline {section}{\numberline {4}Downstream Analysis (Ahmed)}{3}{}%
-\contentsline {section}{\numberline {5}Downstream Analysis (Darvesh)}{3}{}%
+\contentsline {section}{\numberline {5}Downstream Analysis (Darvesh)}{4}{}%
+\contentsline {section}{\numberline {6}Glossary}{4}{}%
