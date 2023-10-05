@@ -20,3 +20,11 @@ pipeline/*.clusters
 pipeline/benchmarks
 pipeline/run-log*.txt
 pipeline/*.png
+
+# Ignore non-essential documentation files at all levels
+**/*.aux
+**/*.fdb_latexmk
+**/*.fls
+**/*.log
+**/*.synctex.gz
+**/*.toc
