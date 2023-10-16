@@ -936,7 +936,8 @@ rule thresh_and_split_condition:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"
     output:
-        touch(out_dir + "workup/splitbams-by-condition/{sample}.{condition}.done")
+        bam = out_dir + "workup/splitbams-by-condition/{sample}.{condition}.bam",
+        touch = touch(out_dir + "workup/splitbams-by-condition/{sample}.{condition}.done")
     conda:
         "envs/sprite.yaml"
     log:
@@ -964,6 +965,7 @@ rule thresh_and_split_no_condition:
         bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
         clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
     output:
+        bam = out_dir + "workup/splitbams-all-conditions/{sample}.ALL_CONDITIONS.bam",
         touch = touch(out_dir + "workup/splitbams-all-conditions/{sample}.done")
     conda:
         "envs/sprite.yaml"
