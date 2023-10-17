@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{xcolor}
+
+\definecolor{bashkeyword}{RGB}{0,0,255}
+\definecolor{bashstring}{RGB}{42,0,255}
+\definecolor{bashcomment}{RGB}{0,128,0}
+
+\lstdefinestyle{bashstyle}{
+    language=bash,
+    basicstyle=\ttfamily,
+    keywordstyle=\color{bashkeyword},
+    stringstyle=\color{bashstring},
+    commentstyle=\color{bashcomment},
+    numbers=left,
+    numberstyle=\small\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    backgroundcolor=\color{white},
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    rulecolor=\color{black},
+    tabsize=2,
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    escapeinside={(*@}{@*)},
+    xleftmargin=4pt,
+    framexleftmargin=5pt,
+    framexrightmargin=5pt,
+}
+
+\begin{document}
+    \title{Conceptual Documentation}
+\end{document}
