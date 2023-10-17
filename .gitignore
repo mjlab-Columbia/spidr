@@ -28,3 +28,4 @@ pipeline/*.png
 **/*.log
 **/*.synctex.gz
 **/*.toc
+**/*.out
