@@ -86,11 +86,11 @@ except:
     assembly = 'mm10'
 
 try:
-    samples = config['samples']
-    print('Using samples file:', samples)
+    experiments = config['experiments']
+    print('Using experiments file:', experiments)
 except:
-    samples = './samples.json'
-    print('Defaulting to working directory for samples json file')
+    experiments = './experiments.json'
+    print('Defaulting to working directory for experiments json file')
 
 try:
     out_dir = config['output_dir']
@@ -198,12 +198,12 @@ print('Output logs path created:', out_created)
 os.makedirs("benchmarks", exist_ok=True)
 
 ################################################################################
-#Get sample files
+#Get experiment files
 ###############################################################################
 
-#Prep samples from fastq directory using fastq2json_updated.py, now load json file
-FILES = json.load(open(samples))
-ALL_SAMPLES = sorted(FILES.keys())
+#Prep experiments from fastq directory using fastq2json_updated.py, now load json file
+FILES = json.load(open(experiments))
+ALL_EXPERIMENTS = sorted(FILES.keys())
 
 ALL_FASTQ = []
 for SAMPLE, file in FILES.items():
@@ -218,14 +218,14 @@ NUM_CHUNKS = [f"{i:03}" for i in np.arange(0, num_chunks)]
 #Trimming
 ################################################################################
 
-SPLIT_FQ = expand(out_dir + "workup/splitfq/{sample}_{read}.part_{splitid}.fastq.gz", sample=ALL_SAMPLES, read = ["R1", "R2"], splitid=NUM_CHUNKS)
+SPLIT_FQ = expand(out_dir + "workup/splitfq/{experiment}_{read}.part_{splitid}.fastq.gz", experiment=ALL_EXPERIMENTS, read = ["R1", "R2"], splitid=NUM_CHUNKS)
 
-TRIM = expand([out_dir + "workup/trimmed/{sample}_R1.part_{splitid}_val_1.fq.gz", out_dir + "workup/trimmed/{sample}_R2.part_{splitid}_val_2.fq.gz"], sample = ALL_SAMPLES, splitid=NUM_CHUNKS)
-TRIM_LOG = expand(out_dir + "workup/trimmed/{sample}_{read}.part_{splitid}.fastq.gz_trimming_report.txt", sample = ALL_SAMPLES, read = ["R1", "R2"], splitid = NUM_CHUNKS)
-TRIM_RD = expand([out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-                  out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
-                  out_dir + "workup/trimmed/{sample}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"],
-                  sample = ALL_SAMPLES, splitid=NUM_CHUNKS)
+TRIM = expand([out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz", out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz"], experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
+TRIM_LOG = expand(out_dir + "workup/trimmed/{experiment}_{read}.part_{splitid}.fastq.gz_trimming_report.txt", experiment=ALL_EXPERIMENTS, read = ["R1", "R2"], splitid = NUM_CHUNKS)
+TRIM_RD = expand([out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
+                  out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
+                  out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"],
+                  experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
 ################################################################################
 #Logging
@@ -237,57 +237,57 @@ LE_LOG_ALL = [out_dir + "workup/ligation_efficiency.txt"]
 #Barcoding
 ################################################################################
 
-BARCODEID = expand(out_dir + "workup/fastqs/{sample}_{read}.part_{splitid}.barcoded.fastq.gz", sample = ALL_SAMPLES, read = ["R1", "R2"], splitid=NUM_CHUNKS)
+BARCODEID = expand(out_dir + "workup/fastqs/{experiment}_{read}.part_{splitid}.barcoded.fastq.gz", experiment=ALL_EXPERIMENTS, read = ["R1", "R2"], splitid=NUM_CHUNKS)
 
-SPLIT_RPM_BPM = expand([out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
-                    out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_rpm.fastq.gz"], sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+SPLIT_RPM_BPM = expand([out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
+                    out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz"], experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
-SPLIT_RPM_BPM2 = expand([out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
-                    out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded_rpm.fastq.gz"], sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+SPLIT_RPM_BPM2 = expand([out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
+                    out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz"], experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
 ################################################################################
 #RNA workup
 ################################################################################
 
-BT2_RNA_ALIGN = expand([out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.bam",
-                        out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.unmapped.bam",
-                        out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"],
-                        sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+BT2_RNA_ALIGN = expand([out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam",
+                        out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam",
+                        out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"],
+                        experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
-BAM_TO_FQ = expand([out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
-                    out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"],
-                    sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+BAM_TO_FQ = expand([out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
+                    out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"],
+                    experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
-STAR_ALIGN = expand(out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sorted.bam", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+STAR_ALIGN = expand(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
-UNALIGNED = expand([out_dir + "workup/unmapped/{sample}_R1.part_{splitid}.unaligned.fastq.gz",
-                    out_dir + "workup/unmapped/{sample}_R2.part_{splitid}.unaligned.fastq.gz"],
-                    sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+UNALIGNED = expand([out_dir + "workup/unmapped/{experiment}_R1.part_{splitid}.unaligned.fastq.gz",
+                    out_dir + "workup/unmapped/{experiment}_R2.part_{splitid}.unaligned.fastq.gz"],
+                    experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
-MERGE_RNA = expand(out_dir + "workup/alignments/{sample}.merged.RPM.bam", sample = ALL_SAMPLES)
+MERGE_RNA = expand(out_dir + "workup/alignments/{experiment}.merged.RPM.bam", experiment=ALL_EXPERIMENTS)
 
-CHR_RPM = expand([out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sorted.chr.bam",
-                  out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"], 
-                  sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+CHR_RPM = expand([out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
+                  out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"], 
+                  experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
 ################################################################################
 #Bead workup
 ################################################################################
 
-FQ_TO_BAM = expand(out_dir + "workup/alignments/{sample}.part_{splitid}.BPM.bam", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+FQ_TO_BAM = expand(out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
 
-MERGE_BEAD = expand(out_dir + "workup/alignments/{sample}.merged.BPM.bam", sample=ALL_SAMPLES)
+MERGE_BEAD = expand(out_dir + "workup/alignments/{experiment}.merged.BPM.bam", experiment=ALL_EXPERIMENTS)
 
 ################################################################################
 #Clustering
 ################################################################################
 
-CLUSTERS = expand(out_dir + "workup/clusters/{sample}.part_{splitid}.clusters", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
-CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{sample}.clusters", sample=ALL_SAMPLES)
-CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{sample}.complete.clusters", sample=ALL_SAMPLES)
+CLUSTERS = expand(out_dir + "workup/clusters/{experiment}.part_{splitid}.clusters", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
+CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{experiment}.clusters", experiment=ALL_EXPERIMENTS)
+CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{experiment}.complete.clusters", experiment=ALL_EXPERIMENTS)
 CONDITION_CLUSTERS = expand(
-    out_dir + "workup/condition-clusters/{sample}.{condition}.clusters", 
-    sample=ALL_SAMPLES, 
+    out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters", 
+    experiment=ALL_EXPERIMENTS, 
     condition=conditions
 )
 
@@ -296,13 +296,13 @@ CONDITION_CLUSTERS = expand(
 ##############################################################################
 
 THRESH_AND_SPLIT_NO_CONDITION = expand(
-        [out_dir + "workup/splitbams-all-conditions/{sample}.done"], 
-        sample=ALL_SAMPLES
+        [out_dir + "workup/splitbams-all-conditions/{experiment}.done"], 
+        experiment=ALL_EXPERIMENTS
 )
 
 THRESH_AND_SPLIT_CONDITION = expand(
-        [out_dir + "workup/splitbams-by-condition/{sample}.{condition}.done"], 
-        sample=ALL_SAMPLES, 
+        [out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done"], 
+        experiment=ALL_EXPERIMENTS, 
         condition=conditions
 )
 
@@ -332,7 +332,7 @@ onerror:
     shell('mail -s "an error occurred" ' + email + ' < {log}')
 
 wildcard_constraints:
-    sample = "[^\.]+"
+    experiment = "[^\.]+"
 
 
 ##################################################################################
@@ -341,22 +341,22 @@ wildcard_constraints:
 
 rule splitfq:
     input:
-        r1 = lambda wildcards: FILES[wildcards.sample]['R1'],
-        r2 = lambda wildcards: FILES[wildcards.sample]['R2']
+        r1 = lambda wildcards: FILES[wildcards.experiment]['R1'],
+        r2 = lambda wildcards: FILES[wildcards.experiment]['R2']
     output:
-        temp(expand([(out_dir + "workup/splitfq/{{sample}}_R1.part_{splitid}.fastq"), (out_dir + "workup/splitfq/{{sample}}_R2.part_{splitid}.fastq")],  splitid=NUM_CHUNKS))
+        temp(expand([(out_dir + "workup/splitfq/{{experiment}}_R1.part_{splitid}.fastq"), (out_dir + "workup/splitfq/{{experiment}}_R2.part_{splitid}.fastq")],  splitid=NUM_CHUNKS))
     params:
         dir = out_dir + "workup/splitfq",
-        prefix_r1 = "{sample}_R1.part_0",
-        prefix_r2 = "{sample}_R2.part_0"
+        prefix_r1 = "{experiment}_R1.part_0",
+        prefix_r2 = "{experiment}_R2.part_0"
     log:
-        out_dir + "workup/logs/{sample}.splitfq.log"
+        out_dir + "workup/logs/{experiment}.splitfq.log"
     conda:
         "envs/sprite.yaml"
     threads: 
         8
     benchmark:
-        "benchmarks/{sample}.splitfq.tsv"
+        "benchmarks/{experiment}.splitfq.tsv"
     shell:
         '''
         mkdir -p {params.dir}
@@ -366,17 +366,17 @@ rule splitfq:
 
 rule compress_fastq:
     input:
-        r1 = out_dir + "workup/splitfq/{sample}_R1.part_{splitid}.fastq",
-        r2 = out_dir + "workup/splitfq/{sample}_R2.part_{splitid}.fastq"
+        r1 = out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq",
+        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq"
     output:
-        r1 = out_dir + "workup/splitfq/{sample}_R1.part_{splitid}.fastq.gz",
-        r2 = out_dir + "workup/splitfq/{sample}_R2.part_{splitid}.fastq.gz"
+        r1 = out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz",
+        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"
     conda:
         "envs/sprite.yaml"
     threads:
         8
     benchmark:
-        "benchmarks/{sample}.{splitid}.compress_fastq.tsv"
+        "benchmarks/{experiment}.{splitid}.compress_fastq.tsv"
     shell:
         '''
         pigz -p {threads} {input.r1}
@@ -387,21 +387,21 @@ rule compress_fastq:
 #multiple cores requires pigz to be installed on the system
 rule adaptor_trimming_pe:
     input:
-        [out_dir + "workup/splitfq/{sample}_R1.part_{splitid}.fastq.gz", 
-         out_dir + "workup/splitfq/{sample}_R2.part_{splitid}.fastq.gz"]
+        [out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz", 
+         out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"]
     output:
-         out_dir + "workup/trimmed/{sample}_R1.part_{splitid}_val_1.fq.gz",
-         out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.fastq.gz_trimming_report.txt",
-         out_dir + "workup/trimmed/{sample}_R2.part_{splitid}_val_2.fq.gz",
-         out_dir + "workup/trimmed/{sample}_R2.part_{splitid}.fastq.gz_trimming_report.txt"
+         out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz",
+         out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.fastq.gz_trimming_report.txt",
+         out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz",
+         out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.fastq.gz_trimming_report.txt"
     threads:
         10
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.trim_galore.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.trim_galore.log"
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.adaptor_trimming_pe.tsv"
+        "benchmarks/{experiment}.{splitid}.adaptor_trimming_pe.tsv"
     shell:
         '''
         trim_galore \
@@ -417,15 +417,15 @@ rule adaptor_trimming_pe:
 #Identify barcodes using BarcodeIdentification_v1.2.0.jar
 rule barcode_id:
     input:
-        r1 = out_dir + "workup/trimmed/{sample}_R1.part_{splitid}_val_1.fq.gz",
-        r2 = out_dir + "workup/trimmed/{sample}_R2.part_{splitid}_val_2.fq.gz"
+        r1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz",
+        r2 = out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz"
     output:
-        r1_barcoded = out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded.fastq.gz",
-        r2_barcoded = out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded.fastq.gz"
+        r1_barcoded = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz",
+        r2_barcoded = out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded.fastq.gz"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.bID.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.bID.log"
     benchmark:
-        "benchmarks/{sample}.{splitid}.barcode_id.tsv"
+        "benchmarks/{experiment}.{splitid}.barcode_id.tsv"
     shell:
         "java -jar {barcode_id_jar} \
         --input1 {input.r1} --input2 {input.r2} \
@@ -435,9 +435,9 @@ rule barcode_id:
 #Get ligation efficiency
 rule get_ligation_efficiency:
     input:
-        r1 = out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded.fastq.gz" 
+        r1 = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz" 
     output:
-        temp(out_dir + "workup/{sample}.part_{splitid}.ligation_efficiency.txt")
+        temp(out_dir + "workup/{experiment}.part_{splitid}.ligation_efficiency.txt")
     conda:
         "envs/sprite.yaml"
     shell:
@@ -446,7 +446,7 @@ rule get_ligation_efficiency:
 
 rule cat_ligation_efficiency:
     input:
-        expand(out_dir + "workup/{sample}.part_{splitid}.ligation_efficiency.txt", sample=ALL_SAMPLES, splitid=NUM_CHUNKS)
+        expand(out_dir + "workup/{experiment}.part_{splitid}.ligation_efficiency.txt", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
     output:
         out_dir + "workup/ligation_efficiency.txt"
     shell:
@@ -457,17 +457,17 @@ rule split_bpm_rpm:
     split bpm and rpm will also remove incomplete barcodes
     '''
     input:
-        out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded.fastq.gz"
+        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz"
     output:
-        out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
-        out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
-        out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_short.fastq.gz"
+        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
+        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
+        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_short.fastq.gz"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.BPM_RPM.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.BPM_RPM.log"
     conda:
        "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.split_bpm_rpm.tsv"
+        "benchmarks/{experiment}.{splitid}.split_bpm_rpm.tsv"
     shell:
         "python {split_bpm_rpm} --r1 {input} &> {log}"
 
@@ -476,17 +476,17 @@ rule split_bpm_rpm2:
     split bpm and rpm will also remove incomplete barcodes
     '''
     input:
-        out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded.fastq.gz"
+        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded.fastq.gz"
     output:
-        out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded_rpm.fastq.gz",
-        out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
-        out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded_short.fastq.gz"
+        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz",
+        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
+        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_short.fastq.gz"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.BPM_RPM.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.BPM_RPM.log"
     conda:
        "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.split_bpm_rpm2.tsv"
+        "benchmarks/{experiment}.{splitid}.split_bpm_rpm2.tsv"
     shell:
         "python {split_bpm_rpm} --r1 {input} &> {log}"
 
@@ -496,24 +496,24 @@ rule split_bpm_rpm2:
 
 rule cutadapt_rpm:
     input:
-        read1 = out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
-        read2 = out_dir + "workup/fastqs/{sample}_R2.part_{splitid}.barcoded_rpm.fastq.gz"
+        read1 = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
+        read2 = out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz"
     output:
-        r1=out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-        r2=out_dir + "workup/trimmed/{sample}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-        qc=out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt"
+        r1=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
+        r2=out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
+        qc=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt"
     params:
         adapters_r1 = "-a ATCAGCACTTAGCGTCAG",
         adapters_r2 = "-G CTGACGCTAAGTGCTGAT",
         others = "--minimum-length 20"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.RPM.cutadapt.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.RPM.cutadapt.log"
     threads: 
         10
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.cutadapt_rpm.tsv"
+        "benchmarks/{experiment}.{splitid}.cutadapt_rpm.tsv"
     shell:
         '''
         (cutadapt \
@@ -534,20 +534,20 @@ rule cutadapt_oligo:
     Trim 9mer oligo sequence from bead barcode
     '''
     input:
-        out_dir + "workup/fastqs/{sample}_R1.part_{splitid}.barcoded_bpm.fastq.gz"
+        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz"
     output:
-        fastq=out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
-        qc=out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_bpm.RDtrim.qc.txt"
+        fastq=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
+        qc=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.qc.txt"
     params:
         adapters_r1 = oligos
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.BPM.cutadapt.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.BPM.cutadapt.log"
     threads: 
         10
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.cutadapt_oligo.tsv"
+        "benchmarks/{experiment}.{splitid}.cutadapt_oligo.tsv"
     shell:
         '''
         (cutadapt \
@@ -563,21 +563,21 @@ rule cutadapt_oligo:
 
 rule bowtie2_align:
     input:
-        fq1 = out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-        fq2 = out_dir + "workup/trimmed/{sample}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
+        fq1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
+        fq2 = out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
     output:
-        bam = temp(out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.bam"),
-        mapped = out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.bam",
-        unmapped = out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.unmapped.bam",
-        index = out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"
+        bam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.bam"),
+        mapped = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam",
+        unmapped = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam",
+        index = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.bt2.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.bt2.log"
     threads: 
         10
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.bowtie2_align.tsv"
+        "benchmarks/{experiment}.{splitid}.bowtie2_align.tsv"
     shell:
         '''
         (bowtie2 \
@@ -592,18 +592,18 @@ rule bowtie2_align:
         '''
 
 rule bam_to_fq:
-    input: out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.unmapped.bam"
+    input: out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam"
     output: 
-        r1 = out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
-        r2 = out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
+        r1 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
+        r2 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.bam2fq.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.bam2fq.log"
     threads: 
         1
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.bam_to_fq.tsv"
+        "benchmarks/{experiment}.{splitid}.bam_to_fq.tsv"
     shell:
         '''
         samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -@ {threads} -n {input} 
@@ -611,22 +611,22 @@ rule bam_to_fq:
 
 rule star_align:
     input:
-        r1 = out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
-        r2 = out_dir + "workup/fastqs/{sample}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
+        r1 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
+        r2 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
     output:
-        sam = temp(out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sam"),
-        sorted = out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sorted.bam",
-        filtered = temp(out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.bam")
+        sam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sam"),
+        sorted = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
+        filtered = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.bam")
     params:
-        STAR_OPTIONS = "--readFilesCommand zcat --alignEndsType EndToEnd --outFilterScoreMin 10 --outFilterMultimapNmax 1 --outFilterMismatchNmax 10 --alignIntronMax 100000 --alignMatesGapMax 1300 --alignIntronMin 80 --alignSJDBoverhangMin 5 --alignSJoverhangMin 8 --chimSegmentMin 20 --alignSJstitchMismatchNmax 5 -1 5 5 --outSAMunmapped Within --outReadsUnmapped Fastx", prefix = out_dir + "workup/alignments/{sample}.part_{splitid}."
+        STAR_OPTIONS = "--readFilesCommand zcat --alignEndsType EndToEnd --outFilterScoreMin 10 --outFilterMultimapNmax 1 --outFilterMismatchNmax 10 --alignIntronMax 100000 --alignMatesGapMax 1300 --alignIntronMin 80 --alignSJDBoverhangMin 5 --alignSJoverhangMin 8 --chimSegmentMin 20 --alignSJstitchMismatchNmax 5 -1 5 5 --outSAMunmapped Within --outReadsUnmapped Fastx", prefix = out_dir + "workup/alignments/{experiment}.part_{splitid}."
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.star.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.star.log"
     threads:
         10
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.star_align.tsv"
+        "benchmarks/{experiment}.{splitid}.star_align.tsv"
     shell:
         '''
         (STAR \
@@ -642,17 +642,17 @@ rule star_align:
 
 rule compress_unaligned:
     input:
-        r1 = out_dir + "workup/alignments/{sample}.part_{splitid}.Unmapped.out.mate1",
-        r2 = out_dir + "workup/alignments/{sample}.part_{splitid}.Unmapped.out.mate2"
+        r1 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate1",
+        r2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate2"
     output:
-        fq1 = out_dir + "workup/unmapped/{sample}_R1.part_{splitid}.unaligned.fastq.gz",
-        fq2 = out_dir + "workup/unmapped/{sample}_R2.part_{splitid}.unaligned.fastq.gz"
+        fq1 = out_dir + "workup/unmapped/{experiment}_R1.part_{splitid}.unaligned.fastq.gz",
+        fq2 = out_dir + "workup/unmapped/{experiment}_R2.part_{splitid}.unaligned.fastq.gz"
     conda:
         "envs/sprite.yaml"
     threads:
         8
     benchmark:
-        "benchmarks/{sample}.{splitid}.compress_unaligned.tsv"
+        "benchmarks/{experiment}.{splitid}.compress_unaligned.tsv"
     shell:
         '''
         pigz -p {threads} {input.r1} {input.r2}
@@ -663,17 +663,17 @@ rule compress_unaligned:
 
 rule add_chr:
     input:
-        star = out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sorted.bam",
-        bt2 = out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.bam"
+        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
+        bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"
     output:
-        star = out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sorted.chr.bam",
-        bt2 = out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
+        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
+        bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.add_chr.log",
+        out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.add_chr.tsv"
+        "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
         python {add_chr} -i {input.star} -o {output.star} --assembly {assembly} &> {log}
@@ -682,18 +682,18 @@ rule add_chr:
 
 rule merge_rna:
     input:
-        bt2 = expand(out_dir + "workup/alignments/{{sample}}.part_{splitid}.bowtie2.sorted.mapped.chr.bam", splitid=NUM_CHUNKS),
-        star = expand(out_dir + "workup/alignments/{{sample}}.part_{splitid}.Aligned.out.sorted.chr.bam", splitid=NUM_CHUNKS)
+        bt2 = expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.bowtie2.sorted.mapped.chr.bam", splitid=NUM_CHUNKS),
+        star = expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.Aligned.out.sorted.chr.bam", splitid=NUM_CHUNKS)
     output:
-        out_dir + "workup/alignments/{sample}.merged.RPM.bam"
+        out_dir + "workup/alignments/{experiment}.merged.RPM.bam"
     conda:
         "envs/sprite.yaml"
     threads:
         8
     log:
-        out_dir + "workup/logs/{sample}.merge_bams.log"
+        out_dir + "workup/logs/{experiment}.merge_bams.log"
     benchmark:
-        "benchmarks/{sample}.merge_rna.tsv"
+        "benchmarks/{experiment}.merge_rna.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input.bt2} {input.star}) &> {log}
@@ -706,18 +706,18 @@ rule merge_rna:
 
 rule fastq_to_bam:
     input:
-        out_dir + "workup/trimmed/{sample}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"
+        out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"
     output:
-        sorted = out_dir + "workup/alignments/{sample}.part_{splitid}.BPM.bam",
-        bam = temp(out_dir + "workup/alignments/{sample}.part_{splitid}.BPM.unsorted.bam")
+        sorted = out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam",
+        bam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.unsorted.bam")
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.make_bam.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.make_bam.log"
     conda:
         "envs/sprite.yaml"
     threads:
         8
     benchmark:
-        "benchmarks/{sample}.{splitid}.fastq_to_bam.tsv"
+        "benchmarks/{experiment}.{splitid}.fastq_to_bam.tsv"
     shell:
         '''
         python {fq_to_bam} --input {input} --output {output.bam} --config {bid_config} &> {log}
@@ -727,17 +727,17 @@ rule fastq_to_bam:
 
 rule merge_beads:
     input:
-        expand(out_dir + "workup/alignments/{{sample}}.part_{splitid}.BPM.bam", splitid = NUM_CHUNKS)
+        expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.BPM.bam", splitid = NUM_CHUNKS)
     output:
-        out_dir + "workup/alignments/{sample}.merged.BPM.bam"
+        out_dir + "workup/alignments/{experiment}.merged.BPM.bam"
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.merge_beads.log"
+        out_dir + "workup/logs/{experiment}.merge_beads.log"
     threads:
         8
     benchmark:
-        "benchmarks/{sample}.merge_beads.tsv"
+        "benchmarks/{experiment}.merge_beads.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input}) >& {log}
@@ -749,18 +749,18 @@ rule merge_beads:
 
 rule make_clusters:
     input:
-        rpm=out_dir + "workup/alignments/{sample}.part_{splitid}.Aligned.out.sorted.chr.bam",
-        bpm=out_dir + "workup/alignments/{sample}.part_{splitid}.BPM.bam",
-        bt2=out_dir + "workup/alignments/{sample}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
+        rpm=out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
+        bpm=out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam",
+        bt2=out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
     output:
-        unsorted = temp(out_dir + "workup/clusters/{sample}.part_{splitid}.unsorted.clusters"),
-        sorted = out_dir + "workup/clusters/{sample}.part_{splitid}.clusters"
+        unsorted = temp(out_dir + "workup/clusters/{experiment}.part_{splitid}.unsorted.clusters"),
+        sorted = out_dir + "workup/clusters/{experiment}.part_{splitid}.clusters"
     log:
-        out_dir + "workup/logs/{sample}.{splitid}.make_clusters.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.make_clusters.log"
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{sample}.{splitid}.make_clusters.tsv"
+        "benchmarks/{experiment}.{splitid}.make_clusters.tsv"
     shell:
         '''
         (python {get_clusters} \
@@ -773,16 +773,16 @@ rule make_clusters:
 
 rule merge_clusters:
     input:
-        expand(out_dir + "workup/clusters/{{sample}}.part_{splitid}.clusters", splitid=NUM_CHUNKS)
+        expand(out_dir + "workup/clusters/{{experiment}}.part_{splitid}.clusters", splitid=NUM_CHUNKS)
     output:
-        mega = temp(out_dir + "workup/clusters/{sample}.duplicated.clusters"),
-        final = out_dir + "workup/clusters/{sample}.clusters"
+        mega = temp(out_dir + "workup/clusters/{experiment}.duplicated.clusters"),
+        final = out_dir + "workup/clusters/{experiment}.clusters"
     conda:
        "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.merge_clusters.log"
+        out_dir + "workup/logs/{experiment}.merge_clusters.log"
     benchmark:
-        "benchmarks/{sample}.merge_clusters.tsv"
+        "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         '''
          sort -k 1 -T {temp_dir} -m {input} > {output.mega}
@@ -796,7 +796,7 @@ rule merge_clusters:
 # Generate simple statistics for clusters
 rule generate_cluster_statistics:
     input:
-        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS)
     output:
         out_dir + "workup/clusters/cluster_statistics.txt"
     params:
@@ -811,7 +811,7 @@ rule generate_cluster_statistics:
 # Generate ecdfs of oligo distribution
 #rule generate_cluster_ecdfs:
 #    input:
-#        expand([out_dir + "workup/clusters/{sample}.clusters"], sample=ALL_SAMPLES)
+#        expand([out_dir + "workup/clusters/{experiment}.clusters"], experiment=ALL_EXPERIMENTS)
 #    output:
 #        ecdf = out_dir + "workup/clusters/Max_representation_ecdf.pdf",
 #        counts = out_dir + "workup/clusters/Max_representation_counts.pdf"
@@ -827,8 +827,8 @@ rule generate_cluster_statistics:
 ## Profile size distribution of clusters
 #rule get_size_distribution:
 #    input:
-#        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions),
-#        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES),
+#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=conditions),
+#        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS),
 #    output:
 #        # FIXME: should these be changed to RPM equivalents?
 #        dpm = out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
@@ -867,8 +867,8 @@ rule log_config:
 
 #rule multiqc:
 #    input:
-#        expand([out_dir + "workup/clusters/{sample}.complete.clusters"], sample=ALL_SAMPLES, condition=conditions),
-#        expand([out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"], sample=ALL_SAMPLES, condition=conditions)
+#        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS, condition=conditions),
+#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=conditions)
 #    output:
 #        out_dir + "workup/qc/multiqc_report.html"
 #    log:
@@ -883,16 +883,16 @@ rule log_config:
 ##############################################################################
 rule split_incorrect_clusters:
     input:
-        clusters = out_dir + "workup/clusters/{sample}.clusters"
+        clusters = out_dir + "workup/clusters/{experiment}.clusters"
     output:
-        complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters",
-        incomplete_clusters = out_dir + "workup/clusters/{sample}.incomplete.clusters"
+        complete_clusters = out_dir + "workup/clusters/{experiment}.complete.clusters",
+        incomplete_clusters = out_dir + "workup/clusters/{experiment}.incomplete.clusters"
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.incorrectclusters.log"
+        out_dir + "workup/logs/{experiment}.incorrectclusters.log"
     benchmark:
-        "benchmarks/{sample}.split_incorrect_clusters.tsv"
+        "benchmarks/{experiment}.split_incorrect_clusters.tsv"
     shell:
         '''
         (python {split_incorrect_clusters} \
@@ -907,18 +907,18 @@ rule split_incorrect_clusters:
 ##############################################################################
 rule split_on_first_tag:
     input:
-        complete_clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+        complete_clusters = out_dir + "workup/clusters/{experiment}.complete.clusters"
     output:
         expand(
-            out_dir + "workup/condition-clusters/{{sample}}.{condition}.clusters",
+            out_dir + "workup/condition-clusters/{{experiment}}.{condition}.clusters",
             condition=conditions
         )
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.splitonfirsttag.log"
+        out_dir + "workup/logs/{experiment}.splitonfirsttag.log"
     benchmark:
-        "benchmarks/{sample}.split_on_first_tag.tsv"
+        "benchmarks/{experiment}.split_on_first_tag.tsv"
     shell:
         '''
         (python {split_on_first_tag} \
@@ -933,19 +933,19 @@ rule split_on_first_tag:
 # Generate bam files for individual targets based on assignments from clusterfile
 rule thresh_and_split_condition:
     input:
-        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
-        clusters = out_dir + "workup/condition-clusters/{sample}.{condition}.clusters"
+        bam = out_dir + "workup/alignments/{experiment}.merged.RPM.bam",
+        clusters = out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"
     output:
-        bam = out_dir + "workup/splitbams-by-condition/{sample}.{condition}.bam",
-        touch = touch(out_dir + "workup/splitbams-by-condition/{sample}.{condition}.done")
+        bam = out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.bam",
+        touch = touch(out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done")
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.{condition}.splitbams.log"
+        out_dir + "workup/logs/{experiment}.{condition}.splitbams.log"
     benchmark:
-        out_dir + "benchmarks/{sample}.{condition}.thresh_and_split_control.tsv"
+        out_dir + "benchmarks/{experiment}.{condition}.thresh_and_split_control.tsv"
     params:
-        directory = "workup/splitbams-by-conditions"
+        directory = "workup/splitbams-by-condition"
     shell:
         '''
         (python {tag_and_split} \
@@ -962,19 +962,19 @@ rule thresh_and_split_condition:
 # Generate bam files for individual targets based on assignments from clusterfile
 rule thresh_and_split_no_condition:
     input:
-        bam = out_dir + "workup/alignments/{sample}.merged.RPM.bam",
-        clusters = out_dir + "workup/clusters/{sample}.complete.clusters"
+        bam = out_dir + "workup/alignments/{experiment}.merged.RPM.bam",
+        clusters = out_dir + "workup/clusters/{experiment}.complete.clusters"
     output:
-        bam = out_dir + "workup/splitbams-all-conditions/{sample}.ALL_CONDITIONS.bam",
-        touch = touch(out_dir + "workup/splitbams-all-conditions/{sample}.done")
+        bam = out_dir + "workup/splitbams-all-conditions/{experiment}.ALL_CONDITIONS.bam",
+        touch = touch(out_dir + "workup/splitbams-all-conditions/{experiment}.done")
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{sample}.merged.splitbams.log"
+        out_dir + "workup/logs/{experiment}.merged.splitbams.log"
     benchmark:
-        out_dir + "benchmarks/{sample}.merged.thresh_and_split_control.tsv"
+        out_dir + "benchmarks/{experiment}.merged.thresh_and_split_control.tsv"
     params:
-        directory = "workup/splitbams-by-conditions"
+        directory = "workup/splitbams-all-conditions"
     shell:
         '''
         (python {tag_and_split} \
@@ -991,11 +991,11 @@ rule thresh_and_split_no_condition:
 # Generate summary statistics of individiual bam files
 rule generate_splitbam_statistics:
     input:
-        expand([out_dir + "workup/splitbams-all-conditions/{sample}.done"], sample=ALL_SAMPLES),
-        expand([out_dir + "workup/splitbams-by-condition/{sample}.done"], sample=ALL_SAMPLES)
+        expand([out_dir + "workup/splitbams-all-conditions/{experiment}.done"], experiment=ALL_EXPERIMENTS),
+        expand([out_dir + "workup/splitbams-by-condition/{experiment}.done"], experiment=ALL_EXPERIMENTS)
     output:
         all_conditions = out_dir + "workup/splitbams-all-conditions/splitbam_statistics.txt",
-        by_conditions = out_dir + "workup/splitbams-by-condition/splitbam_statistics.txt"
+        by_condition = out_dir + "workup/splitbams-by-condition/splitbam_statistics.txt"
     params:
         all_conditions = out_dir + "workup/splitbams-all-conditions",
         by_condition = out_dir + "workup/splitbams-by-condition"
