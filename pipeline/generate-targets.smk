@@ -2,6 +2,7 @@
 Aim: A Snakemake workflow to process SPIDR paired end data (in-progress)
 '''
 
+import json
 import os 
 import sys
 import numpy as np
