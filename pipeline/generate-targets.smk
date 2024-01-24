@@ -949,6 +949,9 @@ rule thresh_and_split_condition:
         directory = "workup/splitbams-by-condition"
     shell:
         '''
+        mkdir -p splitbams_tmpdir
+        export TMPDIR=splitbams_tmpdir/
+
         (python {tag_and_split} \
             -i {input.bam} \
             -c {input.clusters} \
@@ -978,6 +981,9 @@ rule thresh_and_split_no_condition:
         directory = "workup/splitbams-all-conditions"
     shell:
         '''
+        mkdir -p splitbams_tmpdir
+        export TMPDIR=splitbams_tmpdir/
+
         (python {tag_and_split} \
             -i {input.bam} \
             -c {input.clusters} \
