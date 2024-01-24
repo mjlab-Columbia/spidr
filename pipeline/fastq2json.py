@@ -43,9 +43,9 @@ for sample in FILES.keys():
     for read in FILES[sample]:
         print ("{sample} {read} has {n} fastq".format(sample = sample, read = read, n = len(FILES[sample][read])))
 print ("------------------------------------------")
-print("check the samples.json file for fastqs belong to each sample")
+print("check the experiments.json file for fastqs belong to each sample")
 print()
 
 js = json.dumps(FILES, indent = 4, sort_keys=True)
-open('samples.json', 'w').writelines(js)
+open('experiments.json', 'w').writelines(js)
 
