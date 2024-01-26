@@ -108,7 +108,7 @@ rule split_fastq_read1:
         r1 = lambda wildcards: FILES[wildcards.experiment]['R1']
     output:
         expand(
-            os.path.join(out_dir, "workup/splitfq/{{experiment}}_R1.part_{splitid}.fastq"),
+            os.path.join(out_dir, "workup", "splitfq", "{{experiment}}_R1.part_{splitid}.fastq"),
             splitid=NUM_CHUNKS
         )
     params:
@@ -117,7 +117,7 @@ rule split_fastq_read1:
         prefix_r2 = "{experiment}_R2.part_0",
         num_chunks = config['num_chunks']
     log:
-        out_dir + "workup/logs/{experiment}.split_fastq_read1.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.split_fastq_read1.log")
     conda:
         "envs/sprite.yaml"
     threads: 
@@ -136,7 +136,7 @@ rule split_fastq_read2:
         r2 = lambda wildcards: FILES[wildcards.experiment]['R2']
     output:
         expand(
-            os.path.join(out_dir, "workup/splitfq/{{experiment}}_R2.part_{splitid}.fastq"),
+            os.path.join(out_dir, "workup", "splitfq", "{{experiment}}_R2.part_{splitid}.fastq"),
             splitid=NUM_CHUNKS
         )
     params:
@@ -145,7 +145,7 @@ rule split_fastq_read2:
         prefix_r2 = "{experiment}_R2.part_0",
         num_chunks = config['num_chunks']
     log:
-        out_dir + "workup/logs/{experiment}.split_fastq_read2.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.split_fastq_read2.log")
     conda:
         "envs/sprite.yaml"
     threads: 
@@ -161,9 +161,9 @@ rule split_fastq_read2:
 
 rule compress_fastq_read1:
     input:
-        r1 = out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq",
+        r1 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R1.part_{splitid}.fastq"),
     output:
-        r1 = out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz",
+        r1 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R1.part_{splitid}.fastq.gz"),
     conda:
         "envs/sprite.yaml"
     threads:
@@ -178,9 +178,9 @@ rule compress_fastq_read1:
 
 rule compress_fastq_read2:
     input:
-        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq"
+        r2 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R2.part_{splitid}.fastq")
     output:
-        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"
+        r2 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R2.part_{splitid}.fastq.gz")
     conda:
         "envs/sprite.yaml"
     threads:
@@ -195,17 +195,17 @@ rule compress_fastq_read2:
 
 rule trim_sequencing_adapters:
     input:
-        [out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz", 
-         out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"]
+        [os.path.join(out_dir, "workup", "splitfq", "{experiment}_R1.part_{splitid}.fastq.gz"), 
+         os.path.join(out_dir, "workup", "splitfq", "{experiment}_R2.part_{splitid}.fastq.gz")]
     output:
-         out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz",
-         out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.fastq.gz_trimming_report.txt",
-         out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz",
-         out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.fastq.gz_trimming_report.txt"
+        os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}_val_1.fq.gz"),
+        os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.fastq.gz_trimming_report.txt"),
+        os.path.join(out_dir, "workup", "trimmed", "{experiment}_R2.part_{splitid}_val_2.fq.gz"),
+        os.path.join(out_dir, "workup", "trimmed", "{experiment}_R2.part_{splitid}.fastq.gz_trimming_report.txt")
     threads:
         10
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.trim_sequencing_adapters.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.trim_sequencing_adapters.log")
     conda:
         "envs/sprite.yaml"
     benchmark:
@@ -225,32 +225,34 @@ rule trim_sequencing_adapters:
 
 rule identify_barcodes:
     input:
-        r1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz",
-        r2 = out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz"
+        r1 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}_val_1.fq.gz"),
+        r2 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R2.part_{splitid}_val_2.fq.gz")
     output:
-        r1_barcoded = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz",
-        r2_barcoded = out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded.fastq.gz"
+        r1_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz"),
+        r2_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded.fastq.gz")
     params:
         big_config = config['bID']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.identify_barcodes.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
     benchmark:
         "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
     shell:
         """
         (java \
             -jar scripts/java/BarcodeIdentification_v1.2.0.jar \
-            --input1 {input.r1} --input2 {input.r2} \
-            --output1 {output.r1_barcoded} --output2 {output.r2_barcoded} \
+            --input1 {input.r1} \
+            --input2 {input.r2} \
+            --output1 {output.r1_barcoded} \
+            --output2 {output.r2_barcoded} \
             --config {params.bid_config}) &> {log}
         """
 
 
 rule get_ligation_efficiency:
     input:
-        r1 = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz" 
+        r1 = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz")
     output:
-        temp(out_dir + "workup/{experiment}.part_{splitid}.ligation_efficiency.txt")
+        temp(os.path.join(out_dir, "workup", "{experiment}.part_{splitid}.ligation_efficiency.txt"))
     conda:
         "envs/sprite.yaml"
     shell:
@@ -259,7 +261,11 @@ rule get_ligation_efficiency:
 
 rule cat_ligation_efficiency:
     input:
-        expand(out_dir + "workup/{experiment}.part_{splitid}.ligation_efficiency.txt", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
+        expand(
+            os.path.join(out_dir, "workup", "{experiment}.part_{splitid}.ligation_efficiency.txt"), 
+            experiment=ALL_EXPERIMENTS, 
+            splitid=NUM_CHUNKS
+        )
     output:
         out_dir + "workup/ligation_efficiency.txt"
     shell:
@@ -271,13 +277,13 @@ rule split_reads_read1:
     split bpm and rpm will also remove incomplete barcodes
     '''
     input:
-        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz"
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz")
     output:
-        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
-        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
-        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_short.fastq.gz"
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz"),
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz"),
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded_short.fastq.gz")
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.split_reads_read1.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.split_reads_read1.log")
     conda:
        "envs/sprite.yaml"
     benchmark:
@@ -291,13 +297,13 @@ rule split_reads_read2:
     split bpm and rpm will also remove incomplete barcodes
     '''
     input:
-        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded.fastq.gz"
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded.fastq.gz")
     output:
-        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz",
-        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
-        out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_short.fastq.gz"
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz"),
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded_bpm.fastq.gz"),
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded_short.fastq.gz")
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.split_reads_read2.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.split_reads_read2.log")
     conda:
        "envs/sprite.yaml"
     benchmark:
@@ -308,18 +314,18 @@ rule split_reads_read2:
 
 rule trim_rpm_reads:
     input:
-        read1 = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
-        read2 = out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz"
+        read1 = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz"),
+        read2 = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz")
     output:
-        r1=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-        r2=out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-        qc=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt"
+        r1 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
+        r2 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
+        qc = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt")
     params:
         adapters_r1 = "-a ATCAGCACTTAGCGTCAG",
         adapters_r2 = "-G CTGACGCTAAGTGCTGAT",
         others = "--minimum-length 20"
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.RPM.cutadapt.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.RPM.cutadapt.log")
     threads: 
         10
     conda:
@@ -347,14 +353,14 @@ rule trim_bead_oligo_reads:
     Trim 9mer oligo sequence from bead barcode
     '''
     input:
-        out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz"
+        os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz")
     output:
-        fastq=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
-        qc=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.qc.txt"
+        fastq = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"),
+        qc = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.qc.txt")
     params:
         adapters_r1 = config['cutadapt_oligos']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.BPM.cutadapt.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.BPM.cutadapt.log")
     threads: 
         10
     conda:
@@ -373,17 +379,17 @@ rule trim_bead_oligo_reads:
 
 rule align_bowtie2:
     input:
-        fq1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-        fq2 = out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
+        fq1 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
+        fq2 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz")
     output:
-        bam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.bam"),
-        mapped = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam",
-        unmapped = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam",
-        index = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"
+        bam = temp(os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.bam")),
+        mapped = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"),
+        unmapped = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam"),
+        index = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam.bai")
     params:
         BOWTIE2_INDEX = config['bowtie2_index'][config['assembly']]
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.bt2.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.bt2.log")
     threads: 
         10
     conda:
@@ -405,12 +411,13 @@ rule align_bowtie2:
 
 
 rule convert_bam_to_fastq:
-    input: out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam"
+    input: 
+        os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam")
     output: 
-        r1 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
-        r2 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
+        r1 = os.path.join(out_dir, "workup", "fastqs", "{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz"),
+        r2 = os.path.join(out_dir, "workup", "fastqs", "{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz")
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.bam2fq.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.bam2fq.log")
     threads: 
         1
     conda:
@@ -425,17 +432,17 @@ rule convert_bam_to_fastq:
 
 rule align_star:
     input:
-        r1 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
-        r2 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
+        r1 = os.path.join(out_dir, "workup", "fastqs", "{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz"),
+        r2 = os.path.join(out_dir, "workup", "fastqs", "{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz")
     output:
-        sam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sam"),
-        sorted = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
-        filtered = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.bam")
+        sam = temp(os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.Aligned.out.sam")),
+        sorted = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.Aligned.out.sorted.bam"),
+        filtered = temp(os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.Aligned.out.bam"))
     params:
         STAR_OPTIONS = "--readFilesCommand zcat --alignEndsType EndToEnd --outFilterScoreMin 10 --outFilterMultimapNmax 1 --outFilterMismatchNmax 10 --alignIntronMax 100000 --alignMatesGapMax 1300 --alignIntronMin 80 --alignSJDBoverhangMin 5 --alignSJoverhangMin 8 --chimSegmentMin 20 --alignSJstitchMismatchNmax 5 -1 5 5 --outSAMunmapped Within --outReadsUnmapped Fastx", prefix = out_dir + "workup/alignments/{experiment}.part_{splitid}.",
         STAR_INDEX = config['star_index'][config['assembly']]
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.star.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.star.log")
     threads:
         10
     conda:
@@ -458,13 +465,13 @@ rule align_star:
 
 rule add_chromosome_info_bowtie2:
     input:
-        bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"
+        bt2 = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam")
     output:
-        bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
+        bt2 = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam")
     params:
         assembly = config['assembly']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.add_chr.log"),
     conda:
         "envs/sprite.yaml"
     benchmark:
@@ -477,13 +484,13 @@ rule add_chromosome_info_bowtie2:
 
 rule add_chromosome_info_star:
     input:
-        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
+        star = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.Aligned.out.sorted.bam"),
     output:
-        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
+        star = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam"),
     params:
         assembly = config['assembly']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.add_chr.log"),
     conda:
         "envs/sprite.yaml"
     benchmark:
@@ -496,16 +503,22 @@ rule add_chromosome_info_star:
 
 rule merge_rna_bams:
     input:
-        bt2 = expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.bowtie2.sorted.mapped.chr.bam", splitid=NUM_CHUNKS),
-        star = expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.Aligned.out.sorted.chr.bam", splitid=NUM_CHUNKS)
+        bt2 = expand(
+            os.path.join(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"),
+            splitid=NUM_CHUNKS
+        ),
+        star = expand(
+            os.path.join(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.Aligned.out.sorted.chr.bam"), 
+            splitid=NUM_CHUNKS
+        )
     output:
-        out_dir + "workup/alignments/{experiment}.merged.RPM.bam"
+        os.path.join(out_dir, "workup", "alignments", "{experiment}.merged.RPM.bam")
     conda:
         "envs/sprite.yaml"
     threads:
         8
     log:
-        out_dir + "workup/logs/{experiment}.merge_bams.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.merge_bams.log")
     benchmark:
         "benchmarks/{experiment}.merge_rna_bams.tsv"
     shell:
@@ -517,14 +530,14 @@ rule merge_rna_bams:
 
 rule convert_fastq_to_bam:
     input:
-        out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"
+        os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz")
     output:
-        sorted = out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam",
-        bam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.unsorted.bam")
+        sorted = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.BPM.bam"),
+        bam = temp(os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.BPM.unsorted.bam"))
     params:
         bid_config = config['bID']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.make_bam.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.make_bam.log")
     conda:
         "envs/sprite.yaml"
     threads:
@@ -540,13 +553,16 @@ rule convert_fastq_to_bam:
 
 rule merge_bead_bams:
     input:
-        expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.BPM.bam", splitid = NUM_CHUNKS)
+        expand(
+            os.path.join(out_dir, "workup", "alignments", "{{experiment}}.part_{splitid}.BPM.bam"), 
+            splitid = NUM_CHUNKS
+        )
     output:
-        out_dir + "workup/alignments/{experiment}.merged.BPM.bam"
+        os.path.join(out_dir, "workup", "alignments", "{experiment}.merged.BPM.bam")
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{experiment}.merge_bead_bams.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.merge_bead_bams.log")
     threads:
         8
     benchmark:
@@ -559,17 +575,17 @@ rule merge_bead_bams:
 
 rule make_clusters:
     input:
-        rpm=out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
-        bpm=out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam",
-        bt2=out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
+        rpm = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam"),
+        bpm = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.BPM.bam"),
+        bt2 = os.path.join(out_dir, "workup", "alignments", "{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam")
     output:
-        unsorted = temp(out_dir + "workup/clusters/{experiment}.part_{splitid}.unsorted.clusters"),
-        sorted = out_dir + "workup/clusters/{experiment}.part_{splitid}.clusters"
+        unsorted = temp(os.path.join(out_dir, "workup", "clusters", "{experiment}.part_{splitid}.unsorted.clusters")),
+        sorted = os.path.join(out_dir, "workup", "clusters", "{experiment}.part_{splitid}.clusters")
     params:
         temp_dir = config['temp_dir'],
         num_tags = config['num_tags']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.make_clusters.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.make_clusters.log")
     conda:
         "envs/sprite.yaml"
     benchmark:
@@ -587,16 +603,19 @@ rule make_clusters:
 
 rule merge_clusters:
     input:
-        expand(out_dir + "workup/clusters/{{experiment}}.part_{splitid}.clusters", splitid=NUM_CHUNKS)
+        expand(
+            os.path.join(out_dir, "workup", "clusters", "{{experiment}}.part_{splitid}.clusters"), 
+            splitid=NUM_CHUNKS
+        )
     output:
-        mega = temp(out_dir + "workup/clusters/{experiment}.duplicated.clusters"),
-        final = out_dir + "workup/clusters/{experiment}.clusters"
+        mega = temp(os.path.join(out_dir, "workup", "clusters", "{experiment}.duplicated.clusters")),
+        final = os.path.join(out_dir, "workup", "clusters", "{experiment}.clusters")
     params:
         temp_dir = config['temp_dir']
     conda:
        "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{experiment}.merge_clusters.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.merge_clusters.log")
     benchmark:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
@@ -608,9 +627,12 @@ rule merge_clusters:
 
 rule generate_cluster_statistics:
     input:
-        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS)
+        expand(
+            os.path.join(out_dir, "workup", "clusters", "{experiment}.complete.clusters"), 
+            experiment = ALL_EXPERIMENTS
+        )
     output:
-        out_dir + "workup/clusters/cluster_statistics.txt"
+        os.path.join(out_dir, "workup", "clusters", "cluster_statistics.txt")
     params:
         dir = out_dir + "workup/clusters"
     conda:
@@ -669,16 +691,16 @@ rule generate_cluster_statistics:
 
 rule split_incorrect_clusters:
     input:
-        clusters = out_dir + "workup/clusters/{experiment}.clusters"
+        clusters = os.path.join(out_dir, "workup", "clusters", "{experiment}.clusters")
     output:
-        complete_clusters = out_dir + "workup/clusters/{experiment}.complete.clusters",
-        incomplete_clusters = out_dir + "workup/clusters/{experiment}.incomplete.clusters"
+        complete_clusters = os.path.join(out_dir, "workup", "clusters", "{experiment}.complete.clusters"),
+        incomplete_clusters = os.path.join(out_dir, "workup", "clusters", "{experiment}.incomplete.clusters")
     params:
         rounds_format = config["rounds_format"]
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{experiment}.incorrectclusters.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.incorrectclusters.log")
     benchmark:
         "benchmarks/{experiment}.split_incorrect_clusters.tsv"
     shell:
@@ -693,16 +715,16 @@ rule split_incorrect_clusters:
 
 rule split_on_first_tag:
     input:
-        complete_clusters = out_dir + "workup/clusters/{experiment}.complete.clusters"
+        complete_clusters = os.path.join(out_dir, "workup", "clusters", "{experiment}.complete.clusters")
     output:
         expand(
-            out_dir + "workup/condition-clusters/{{experiment}}.{condition}.clusters",
-            condition=config['conditions']
+            os.path.join(out_dir, "workup", "condition-clusters", "{{experiment}}.{condition}.clusters"),
+            condition = config['conditions']
         )
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{experiment}.splitonfirsttag.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.splitonfirsttag.log")
     benchmark:
         "benchmarks/{experiment}.split_on_first_tag.tsv"
     shell:
@@ -716,11 +738,11 @@ rule split_on_first_tag:
 # Generate bam files for individual targets based on assignments from clusterfile
 rule thresh_and_split_condition:
     input:
-        bam = out_dir + "workup/alignments/{experiment}.merged.RPM.bam",
-        clusters = out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"
+        bam = os.path.join(out_dir, "workup", "alignments", "{experiment}.merged.RPM.bam"),
+        clusters = os.path.join(out_dir, "workup", "condition-clusters", "{experiment}.{condition}.clusters")
     output:
-        bam = out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.bam",
-        touch = touch(out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done")
+        bam = os.path.join(out_dir, "workup", "splitbams-by-condition", "{experiment}.{condition}.bam"),
+        touch = touch(os.path.join(out_dir, "workup", "splitbams-by-condition", "{experiment}.{condition}.done"))
     params:
         directory = "workup/splitbams-by-condition",
         max_size = config["max_size"],
@@ -730,7 +752,7 @@ rule thresh_and_split_condition:
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{experiment}.{condition}.splitbams.log"
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{condition}.splitbams.log")
     benchmark:
         out_dir + "benchmarks/{experiment}.{condition}.thresh_and_split_control.tsv"
     shell:
@@ -752,11 +774,11 @@ rule thresh_and_split_condition:
 
 rule thresh_and_split_no_condition:
     input:
-        bam = out_dir + "workup/alignments/{experiment}.merged.RPM.bam",
-        clusters = out_dir + "workup/clusters/{experiment}.complete.clusters"
+        bam = os.path.join(out_dir, "workup", "alignments", "{experiment}.merged.RPM.bam"),
+        clusters = os.path.join(out_dir, "workup", "clusters", "{experiment}.complete.clusters")
     output:
-        bam = out_dir + "workup/splitbams-all-conditions/{experiment}.ALL_CONDITIONS.bam",
-        touch = touch(out_dir + "workup/splitbams-all-conditions/{experiment}.done")
+        bam = os.path.join(out_dir, "workup", "splitbams-all-conditions", "{experiment}.ALL_CONDITIONS.bam"),
+        touch = touch(os.path.join(out_dir, "workup", "splitbams-all-conditions", "{experiment}.done"))
     params:
         directory = "workup/splitbams-all-conditions",
         max_size = config["max_size"],
@@ -788,14 +810,14 @@ rule thresh_and_split_no_condition:
 
 rule generate_splitbam_statistics:
     input:
-        expand([out_dir + "workup/splitbams-all-conditions/{experiment}.done"], experiment=ALL_EXPERIMENTS),
-        expand([out_dir + "workup/splitbams-by-condition/{experiment}.done"], experiment=ALL_EXPERIMENTS)
+        expand([os.path.join(out_dir, "workup", "splitbams-all-conditions", "{experiment}.done")], experiment=ALL_EXPERIMENTS),
+        expand([os.path.join(out_dir, "workup", "splitbams-by-condition", "{experiment}.done")], experiment=ALL_EXPERIMENTS)
     output:
-        all_conditions = out_dir + "workup/splitbams-all-conditions/splitbam_statistics.txt",
-        by_condition = out_dir + "workup/splitbams-by-condition/splitbam_statistics.txt"
+        all_conditions = os.path.join(out_dir, "workup", "splitbams-all-conditions", "splitbam_statistics.txt"),
+        by_condition = os.path.join(out_dir, "workup", "splitbams-by-condition", "splitbam_statistics.txt")
     params:
-        all_conditions = out_dir + "workup/splitbams-all-conditions",
-        by_condition = out_dir + "workup/splitbams-by-condition"
+        all_conditions = os.path.join(out_dir, "workup", "splitbams-all-conditions"),
+        by_condition = os.path.join(out_dir, "workup", "splitbams-by-condition")
     conda:
         "envs/sprite.yaml"
     shell:
