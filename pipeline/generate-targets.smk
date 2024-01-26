@@ -230,8 +230,6 @@ TRIM_RD = expand([out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barco
 #Logging
 ################################################################################
 
-LE_LOG_ALL = [out_dir + "workup/ligation_efficiency.txt"]
-
 ################################################################################
 #Barcoding
 ################################################################################
@@ -297,7 +295,8 @@ CONDITION_CLUSTERS = expand(
 OUTPUTS = expand(
     [
         out_dir + "workup/splitbams-all-conditions/{experiment}.done",
-        out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done"
+        out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done",
+        out_dir + "workup/ligation_efficiency.txt"
     ], 
     experiment=ALL_EXPERIMENTS,
     condition=conditions
