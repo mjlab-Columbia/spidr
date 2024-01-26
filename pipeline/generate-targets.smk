@@ -14,7 +14,6 @@ required_config_keys = [
     'num_tags',
     'conditions',
     'assembly',
-    'experiments',
     'output_dir',
     'temp_dir',
     'num_chunks',
@@ -32,10 +31,11 @@ optional_config_keys = [
 
 try:
     assert all([i in config.keys() for i in required_config_keys])
+    out_dir = config['output_dir']
 except AssertionError:
     for key in required_config_keys:
         if key not in config.keys():
-            print(f"Missing: {key}")
+            print(f"Missing: {key} in {configfile}")
     
     sys.exit()
 
@@ -44,115 +44,6 @@ if 'cutadapt_oligos' not in config.keys():
 else:
     config['cutadapt_oligos'] = "-g file:" + config['cutadapt_oligos']
 
-try:
-    email = config['email']
-except:
-    email = None
-    # print("Will not send email on error")
-
-##############################################################################
-#General settings
-##############################################################################
-
-try:
-    bid_config = config['bID']
-    # print('Using BarcodeID config', bid_config)
-except:
-    bid_config = 'config.txt'
-    # print('Config "bID" not specified, looking for config at:', bid_config)
-
-try:
-    num_tags = config['num_tags']
-    # print('Using', num_tags, 'tags')
-except:
-    num_tags = "6"
-    # print('Config "num_tags" not specified, using:', num_tags)
-
-try:
-    conditions = config['conditions']
-except:
-    # print("No conditions specified in config file. No defaults.")
-    sys.exit()
-
-try:
-    assembly = config['assembly']
-    assert assembly in ['mm10', 'hg38'], 'Only "mm10" or "hg38" currently supported'
-    # print('Using', assembly)
-except:
-    print('Config "assembly" not specified, defaulting to "mm10"')
-    assembly = 'mm10'
-
-try:
-    experiments = config['experiments']
-    # print('Using experiments file:', experiments)
-except:
-    experiments = './experiments.json'
-    # print('Defaulting to working directory for experiments json file')
-
-try:
-    out_dir = config['output_dir']
-    # print('All data will be written to:', out_dir)
-except:
-    out_dir = ''
-    # print('Defaulting to working directory as output directory')
-
-try:
-    temp_dir = config['temp_dir']
-    # print("Using temporary directory:", temp_dir)
-except:
-    temp_dir = '/central/scratch/'
-    # print('Defaulting to central scratch as temporary directory')
-
-try:
-    num_chunks = config['num_chunks']
-except:
-    num_chunks = 2
-
-try:
-    rounds_format = config['rounds_format']
-except:
-    rounds_format = "format_6_rounds.txt"
-
-try:
-    min_oligos = config["min_oligos"]
-except:
-    min_oligos = 2
-
-try:
-    proportion = config["proportion"]
-except:
-    proportion = 0.8
-
-try:
-    max_size = config["max_size"]
-except:
-    max_size = 10000
-
-try:
-    oligos = "-g file:" + config['cutadapt_oligos']
-    # print('Using bead oligo file', oligos)
-except:
-    oligos = "-g GGTGGTCTTT -g GCCTCTTGTT"
-    # print("Using junk oligos. FIX ME")
-
-################################################################################
-#Aligner Indexes
-################################################################################
-
-#RNA aligner
-
-try:
-    bowtie2_index = config['bowtie2_index'][config['assembly']]
-except:
-    print('Bowtie2 index not specified in config.yaml')
-    sys.exit() #no default, exit
-
-try:
-    star_index = config['star_index'][config['assembly']]
-except:
-    print('Star index not specified in config.yaml')
-    sys.exit() #no default, exit
-
 ################################################################################
 #make output directories (aren't created automatically on cluster)
 ################################################################################
@@ -160,7 +51,6 @@ except:
 # Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
 os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
 out_created = os.path.exists(out_dir + "workup/logs/cluster")
-# print('Output logs path created:', out_created)
 
 # Create directory for benchmark tsv files to be stored
 os.makedirs("benchmarks", exist_ok=True)
@@ -170,7 +60,7 @@ os.makedirs("benchmarks", exist_ok=True)
 ###############################################################################
 
 #Prep experiments from fastq directory using fastq2json_updated.py, now load json file
-FILES = json.load(open(experiments))
+FILES = json.load(open(config['experiments']))
 ALL_EXPERIMENTS = sorted(FILES.keys())
 
 ALL_FASTQ = []
@@ -178,7 +68,7 @@ for SAMPLE, file in FILES.items():
     ALL_FASTQ.extend([os.path.abspath(i) for i in file.get('R1')])
     ALL_FASTQ.extend([os.path.abspath(i) for i in file.get('R2')])
 
-NUM_CHUNKS = [f"{i:03}" for i in np.arange(0, num_chunks)]
+NUM_CHUNKS = [f"{i:03}" for i in np.arange(0, config['num_chunks'])]
 
 OUTPUTS = expand(
     [
@@ -187,7 +77,7 @@ OUTPUTS = expand(
         out_dir + "workup/ligation_efficiency.txt"
     ], 
     experiment=ALL_EXPERIMENTS,
-    condition=conditions
+    condition=config['conditions']
 )
 
 #COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
@@ -208,7 +98,8 @@ rule all:
 
 #Send and email if an error occurs during execution
 onerror:
-    shell('mail -s "an error occurred" ' + email + ' < {log}')
+    shell('mail -s "an error occurred" ' + config['email'] + ' < {log}')
+
 
 wildcard_constraints:
     experiment = "[^\.]+"
@@ -225,7 +116,8 @@ rule split_fastq_read1:
     params:
         dir = out_dir + "workup/splitfq",
         prefix_r1 = "{experiment}_R1.part_0",
-        prefix_r2 = "{experiment}_R2.part_0"
+        prefix_r2 = "{experiment}_R2.part_0",
+        num_chunks = config['num_chunks']
     log:
         out_dir + "workup/logs/{experiment}.splitfq.log"
     conda:
@@ -237,8 +129,9 @@ rule split_fastq_read1:
     shell:
         '''
         mkdir -p {params.dir}
-        bash scripts/split_fastq.sh {input.r1} {num_chunks} {params.dir} {params.prefix_r1}
+        bash scripts/split_fastq.sh {input.r1} {params.num_chunks} {params.dir} {params.prefix_r1}
         '''
+
 
 rule split_fastq_read2:
     input:
@@ -251,7 +144,8 @@ rule split_fastq_read2:
     params:
         dir = out_dir + "workup/splitfq",
         prefix_r1 = "{experiment}_R1.part_0",
-        prefix_r2 = "{experiment}_R2.part_0"
+        prefix_r2 = "{experiment}_R2.part_0",
+        num_chunks = config['num_chunks']
     log:
         out_dir + "workup/logs/{experiment}.splitfq.log"
     conda:
@@ -263,8 +157,9 @@ rule split_fastq_read2:
     shell:
         '''
         mkdir -p {params.dir}
-        bash scripts/split_fastq.sh {input.r2} {num_chunks} {params.dir} {params.prefix_r2}
+        bash scripts/split_fastq.sh {input.r2} {params.num_chunks} {params.dir} {params.prefix_r2}
         '''
+
 
 rule compress_fastq_read1:
     input:
@@ -282,6 +177,7 @@ rule compress_fastq_read1:
         pigz -p {threads} {input.r1}
         '''
 
+
 rule compress_fastq_read2:
     input:
         r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq"
@@ -298,8 +194,7 @@ rule compress_fastq_read2:
         pigz -p {threads} {input.r2}
         '''
 
-#Trim adaptors
-#multiple cores requires pigz to be installed on the system
+
 rule adaptor_trimming_pe:
     input:
         [out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz", 
@@ -329,7 +224,7 @@ rule adaptor_trimming_pe:
         {input} &> {log}
         '''
 
-#Identify barcodes using BarcodeIdentification_v1.2.0.jar
+
 rule barcode_id:
     input:
         r1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz",
@@ -337,6 +232,8 @@ rule barcode_id:
     output:
         r1_barcoded = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz",
         r2_barcoded = out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded.fastq.gz"
+    params:
+        big_config = config['bID']
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.bID.log"
     benchmark:
@@ -347,10 +244,10 @@ rule barcode_id:
             -jar scripts/java/BarcodeIdentification_v1.2.0.jar \
             --input1 {input.r1} --input2 {input.r2} \
             --output1 {output.r1_barcoded} --output2 {output.r2_barcoded} \
-            --config {bid_config}) &> {log}
+            --config {params.bid_config}) &> {log}
         """
 
-#Get ligation efficiency
+
 rule get_ligation_efficiency:
     input:
         r1 = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded.fastq.gz" 
@@ -370,6 +267,7 @@ rule cat_ligation_efficiency:
     shell:
         "tail -n +1 {input} > {output}"
 
+
 rule split_bpm_rpm:
     '''
     split bpm and rpm will also remove incomplete barcodes
@@ -388,6 +286,7 @@ rule split_bpm_rpm:
         "benchmarks/{experiment}.{splitid}.split_bpm_rpm.tsv"
     shell:
         "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
+
 
 rule split_bpm_rpm2:
     '''
@@ -483,6 +382,8 @@ rule bowtie2_align:
         mapped = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam",
         unmapped = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam",
         index = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"
+    params:
+        BOWTIE2_INDEX = config['bowtie2_index'][config['assembly']]
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.bt2.log"
     threads: 
@@ -496,7 +397,7 @@ rule bowtie2_align:
         (bowtie2 \
         -p 10 \
         -t \
-        -x {bowtie2_index} \
+        -x {params.BOWTIE2_INDEX} \
         -1 {input.fq1} -2 {input.fq2} | \
         samtools view -bS -> {output.bam}) &> {log}
         samtools view -b -f 4 {output.bam} | samtools sort -n -o {output.unmapped}
@@ -533,7 +434,8 @@ rule star_align:
         sorted = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
         filtered = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.bam")
     params:
-        STAR_OPTIONS = "--readFilesCommand zcat --alignEndsType EndToEnd --outFilterScoreMin 10 --outFilterMultimapNmax 1 --outFilterMismatchNmax 10 --alignIntronMax 100000 --alignMatesGapMax 1300 --alignIntronMin 80 --alignSJDBoverhangMin 5 --alignSJoverhangMin 8 --chimSegmentMin 20 --alignSJstitchMismatchNmax 5 -1 5 5 --outSAMunmapped Within --outReadsUnmapped Fastx", prefix = out_dir + "workup/alignments/{experiment}.part_{splitid}."
+        STAR_OPTIONS = "--readFilesCommand zcat --alignEndsType EndToEnd --outFilterScoreMin 10 --outFilterMultimapNmax 1 --outFilterMismatchNmax 10 --alignIntronMax 100000 --alignMatesGapMax 1300 --alignIntronMin 80 --alignSJDBoverhangMin 5 --alignSJoverhangMin 8 --chimSegmentMin 20 --alignSJstitchMismatchNmax 5 -1 5 5 --outSAMunmapped Within --outReadsUnmapped Fastx", prefix = out_dir + "workup/alignments/{experiment}.part_{splitid}.",
+        STAR_INDEX = config['star_index'][config['assembly']]
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.star.log"
     threads:
@@ -545,7 +447,7 @@ rule star_align:
     shell:
         '''
         (STAR \
-        --genomeDir {star_index} \
+        --genomeDir {params.STAR_INDEX} \
         --readFilesIn {input.r1} {input.r2} \
         --runThreadN {threads} {params.STAR_OPTIONS} \
         --outFileNamePrefix {params.prefix}) &> {log}
@@ -583,6 +485,8 @@ rule add_chromosome_info_bowtie2:
         bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"
     output:
         bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
+    params:
+        assembly = config['assembly']
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
     conda:
@@ -591,7 +495,7 @@ rule add_chromosome_info_bowtie2:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python scripts/python/add_chr_bt2.py -i {input.bt2} -o {output.bt2} --assembly {assembly} 
+        python scripts/python/add_chr_bt2.py -i {input.bt2} -o {output.bt2} --assembly {params.assembly} 
         '''
 
 
@@ -600,6 +504,8 @@ rule add_chromosome_info_star:
         star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
     output:
         star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
+    params:
+        assembly = config['assembly']
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
     conda:
@@ -608,7 +514,7 @@ rule add_chromosome_info_star:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python scripts/python/ensembl2ucsc.py -i {input.star} -o {output.star} --assembly {assembly} &> {log}
+        python scripts/python/ensembl2ucsc.py -i {input.star} -o {output.star} --assembly {params.assembly} &> {log}
         '''
 
 
@@ -633,16 +539,14 @@ rule merge_rna:
         '''
 
 
-##############################################################################
-#Workup Bead Oligo
-##############################################################################
-
 rule fastq_to_bam:
     input:
         out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"
     output:
         sorted = out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam",
         bam = temp(out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.unsorted.bam")
+    params:
+        bid_config = config['bID']
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.make_bam.log"
     conda:
@@ -653,7 +557,7 @@ rule fastq_to_bam:
         "benchmarks/{experiment}.{splitid}.fastq_to_bam.tsv"
     shell:
         '''
-        python scripts/python/fastq_to_bam.py --input {input} --output {output.bam} --config {bid_config} &> {log}
+        python scripts/python/fastq_to_bam.py --input {input} --output {output.bam} --config {params.bid_config} &> {log}
         samtools sort -@ {threads} -o {output.sorted} {output.bam}
         '''
 
@@ -685,6 +589,9 @@ rule make_clusters:
     output:
         unsorted = temp(out_dir + "workup/clusters/{experiment}.part_{splitid}.unsorted.clusters"),
         sorted = out_dir + "workup/clusters/{experiment}.part_{splitid}.clusters"
+    params:
+        temp_dir = config['temp_dir'],
+        num_tags = config['num_tags']
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.make_clusters.log"
     conda:
@@ -696,9 +603,9 @@ rule make_clusters:
         (python scripts/python/get_clusters.py \
         -i {input.bpm} {input.bt2} {input.rpm}\
         -o {output.unsorted} \
-        -n {num_tags})  &> {log}
+        -n {params.num_tags})  &> {log}
 
-        sort -k 1 -T {temp_dir} {output.unsorted} > {output.sorted}
+        sort -k 1 -T {params.temp_dir} {output.unsorted} > {output.sorted}
         '''
 
 
@@ -708,6 +615,8 @@ rule merge_clusters:
     output:
         mega = temp(out_dir + "workup/clusters/{experiment}.duplicated.clusters"),
         final = out_dir + "workup/clusters/{experiment}.clusters"
+    params:
+        temp_dir = config['temp_dir']
     conda:
        "envs/sprite.yaml"
     log:
@@ -716,12 +625,11 @@ rule merge_clusters:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         '''
-        sort -k 1 -T {temp_dir} -m {input} > {output.mega}
+        sort -k 1 -T {params.temp_dir} -m {input} > {output.mega}
         (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &> {log}
         '''        
 
 
-# Generate simple statistics for clusters
 rule generate_cluster_statistics:
     input:
         expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS)
@@ -735,6 +643,7 @@ rule generate_cluster_statistics:
         '''
         python scripts/python/generate_cluster_statistics.py --directory {params.dir} --pattern .clusters > {output}
         '''
+
 
 # Generate ecdfs of oligo distribution
 #rule generate_cluster_ecdfs:
@@ -755,7 +664,7 @@ rule generate_cluster_statistics:
 ## Profile size distribution of clusters
 #rule get_size_distribution:
 #    input:
-#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=conditions),
+#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=config['conditions']),
 #        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS),
 #    output:
 #        # FIXME: should these be changed to RPM equivalents?
@@ -787,8 +696,8 @@ rule generate_cluster_statistics:
 
 #rule multiqc:
 #    input:
-#        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS, condition=conditions),
-#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=conditions)
+#        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS, condition=config['conditions']),
+#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=config['conditions'])
 #    output:
 #        out_dir + "workup/qc/multiqc_report.html"
 #    log:
@@ -805,6 +714,8 @@ rule split_incorrect_clusters:
     output:
         complete_clusters = out_dir + "workup/clusters/{experiment}.complete.clusters",
         incomplete_clusters = out_dir + "workup/clusters/{experiment}.incomplete.clusters"
+    params:
+        rounds_format = config["rounds_format"]
     conda:
         "envs/sprite.yaml"
     log:
@@ -817,7 +728,7 @@ rule split_incorrect_clusters:
         --clusters {input.clusters} \
         --complete_output {output.complete_clusters} \
         --incomplete_output {output.incomplete_clusters} \
-    	--format {rounds_format}) &> {log}
+    	--format {params.rounds_format}) &> {log}
         '''
 
 
@@ -827,7 +738,7 @@ rule split_on_first_tag:
     output:
         expand(
             out_dir + "workup/condition-clusters/{{experiment}}.{condition}.clusters",
-            condition=conditions
+            condition=config['conditions']
         )
     conda:
         "envs/sprite.yaml"
@@ -851,14 +762,18 @@ rule thresh_and_split_condition:
     output:
         bam = out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.bam",
         touch = touch(out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done")
+    params:
+        directory = "workup/splitbams-by-condition",
+        max_size = config["max_size"],
+        proportion  = config["proportion"],
+        min_oligos = config["min_oligos"],
+        num_tags = config["num_tags"]
     conda:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{experiment}.{condition}.splitbams.log"
     benchmark:
         out_dir + "benchmarks/{experiment}.{condition}.thresh_and_split_control.tsv"
-    params:
-        directory = "workup/splitbams-by-condition"
     shell:
         '''
         mkdir -p splitbams_tmpdir
@@ -869,13 +784,13 @@ rule thresh_and_split_condition:
             -c {input.clusters} \
             -o {output.bam} \
             -d {params.directory} \
-            --min_oligos {min_oligos} \
-            --proportion {proportion} \
-            --max_size {max_size} \
-            --num_tags {num_tags}) &> {log}
+            --min_oligos {params.min_oligos} \
+            --proportion {params.proportion} \
+            --max_size {params.max_size} \
+            --num_tags {params.num_tags}) &> {log}
         '''
 
-# Generate bam files for individual targets based on assignments from clusterfile
+
 rule thresh_and_split_no_condition:
     input:
         bam = out_dir + "workup/alignments/{experiment}.merged.RPM.bam",
@@ -883,14 +798,18 @@ rule thresh_and_split_no_condition:
     output:
         bam = out_dir + "workup/splitbams-all-conditions/{experiment}.ALL_CONDITIONS.bam",
         touch = touch(out_dir + "workup/splitbams-all-conditions/{experiment}.done")
+    params:
+        directory = "workup/splitbams-all-conditions",
+        max_size = config["max_size"],
+        proportion  = config["proportion"],
+        min_oligos = config["min_oligos"],
+        num_tags = config["num_tags"]
     conda:
         "envs/sprite.yaml"
     log:
         out_dir + "workup/logs/{experiment}.merged.splitbams.log"
     benchmark:
         out_dir + "benchmarks/{experiment}.merged.thresh_and_split_control.tsv"
-    params:
-        directory = "workup/splitbams-all-conditions"
     shell:
         '''
         mkdir -p splitbams_tmpdir
@@ -901,13 +820,13 @@ rule thresh_and_split_no_condition:
             -c {input.clusters} \
             -o {output.bam} \
             -d {params.directory} \
-            --min_oligos {min_oligos} \
-            --proportion {proportion} \
-            --max_size {max_size} \
-            --num_tags {num_tags}) &> {log}
+            --min_oligos {params.min_oligos} \
+            --proportion {params.proportion} \
+            --max_size {params.max_size} \
+            --num_tags {params.num_tags}) &> {log}
         '''
 
-# Generate summary statistics of individiual bam files
+
 rule generate_splitbam_statistics:
     input:
         expand([out_dir + "workup/splitbams-all-conditions/{experiment}.done"], experiment=ALL_EXPERIMENTS),
@@ -925,4 +844,3 @@ rule generate_splitbam_statistics:
         for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}
         for f in {params.by_condition}/*bam; do echo $f; samtools view -c $f; done > {output.by_condition}
         """
-
