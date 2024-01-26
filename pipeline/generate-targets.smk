@@ -704,12 +704,10 @@ rule compress_unaligned:
         mv {input.r2}.gz {output.fq2}
         '''
 
-rule add_chr:
+rule add_chromosome_info_bowtie2:
     input:
-        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
         bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"
     output:
-        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
         bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
@@ -719,8 +717,23 @@ rule add_chr:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python {add_chr} -i {input.star} -o {output.star} --assembly {assembly} &> {log}
         python {add_chr_bt2} -i {input.bt2} -o {output.bt2} --assembly {assembly} 
+        '''
+
+rule add_chromosome_info_star:
+    input:
+        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
+    output:
+        star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
+    log:
+        out_dir + "workup/logs/{experiment}.{splitid}.add_chr.log",
+    conda:
+        "envs/sprite.yaml"
+    benchmark:
+        "benchmarks/{experiment}.{splitid}.add_chr.tsv"
+    shell:
+        '''
+        python {add_chr} -i {input.star} -o {output.star} --assembly {assembly} &> {log}
         '''
 
 rule merge_rna:
