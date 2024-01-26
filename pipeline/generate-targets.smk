@@ -89,8 +89,6 @@ OUTPUTS = expand(
 #
 #ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
 #         out_dir + "workup/clusters/Max_representation_counts.pdf"]
-#
-#MULTI_QC = [out_dir + "workup/qc/multiqc_report.html"]
 
 rule all:
     input: 
@@ -690,23 +688,6 @@ rule generate_cluster_statistics:
 #        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype DPM
 #        '''
 #
-################################################################################
-# MultiQC
-################################################################################
-
-#rule multiqc:
-#    input:
-#        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS, condition=config['conditions']),
-#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=config['conditions'])
-#    output:
-#        out_dir + "workup/qc/multiqc_report.html"
-#    log:
-#        out_dir + "workup/logs/multiqc.log"
-#    conda:
-#        "envs/sprite.yaml"
-#    shell:
-#        "(multiqc --force {out_dir}workup -o {out_dir}workup/qc) &> {log}"
-
 
 rule split_incorrect_clusters:
     input:
