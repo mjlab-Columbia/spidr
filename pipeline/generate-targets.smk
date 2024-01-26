@@ -213,85 +213,6 @@ for SAMPLE, file in FILES.items():
 
 NUM_CHUNKS = [f"{i:03}" for i in np.arange(0, num_chunks)]
 
-################################################################################
-#Trimming
-################################################################################
-
-SPLIT_FQ = expand(out_dir + "workup/splitfq/{experiment}_{read}.part_{splitid}.fastq.gz", experiment=ALL_EXPERIMENTS, read = ["R1", "R2"], splitid=NUM_CHUNKS)
-
-TRIM = expand([out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz", out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz"], experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-TRIM_LOG = expand(out_dir + "workup/trimmed/{experiment}_{read}.part_{splitid}.fastq.gz_trimming_report.txt", experiment=ALL_EXPERIMENTS, read = ["R1", "R2"], splitid = NUM_CHUNKS)
-TRIM_RD = expand([out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
-                  out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
-                  out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"],
-                  experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-################################################################################
-#Logging
-################################################################################
-
-################################################################################
-#Barcoding
-################################################################################
-
-BARCODEID = expand(out_dir + "workup/fastqs/{experiment}_{read}.part_{splitid}.barcoded.fastq.gz", experiment=ALL_EXPERIMENTS, read = ["R1", "R2"], splitid=NUM_CHUNKS)
-
-SPLIT_RPM_BPM = expand([out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
-                    out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz"], experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-SPLIT_RPM_BPM2 = expand([out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
-                    out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz"], experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-################################################################################
-#RNA workup
-################################################################################
-
-BT2_RNA_ALIGN = expand([out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam",
-                        out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam",
-                        out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam.bai"],
-                        experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-BAM_TO_FQ = expand([out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
-                    out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"],
-                    experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-STAR_ALIGN = expand(out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-UNALIGNED = expand([out_dir + "workup/unmapped/{experiment}_R1.part_{splitid}.unaligned.fastq.gz",
-                    out_dir + "workup/unmapped/{experiment}_R2.part_{splitid}.unaligned.fastq.gz"],
-                    experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-MERGE_RNA = expand(out_dir + "workup/alignments/{experiment}.merged.RPM.bam", experiment=ALL_EXPERIMENTS)
-
-CHR_RPM = expand([out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.chr.bam",
-                  out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.chr.bam"], 
-                  experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-################################################################################
-#Bead workup
-################################################################################
-
-FQ_TO_BAM = expand(out_dir + "workup/alignments/{experiment}.part_{splitid}.BPM.bam", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-
-MERGE_BEAD = expand(out_dir + "workup/alignments/{experiment}.merged.BPM.bam", experiment=ALL_EXPERIMENTS)
-
-################################################################################
-#Clustering
-################################################################################
-
-CLUSTERS = expand(out_dir + "workup/clusters/{experiment}.part_{splitid}.clusters", experiment=ALL_EXPERIMENTS, splitid=NUM_CHUNKS)
-CLUSTERS_MERGED = expand(out_dir + "workup/clusters/{experiment}.clusters", experiment=ALL_EXPERIMENTS)
-CLUSTERS_MERGED_COMPLETE = expand(out_dir + "workup/clusters/{experiment}.complete.clusters", experiment=ALL_EXPERIMENTS)
-CONDITION_CLUSTERS = expand(
-    out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters", 
-    experiment=ALL_EXPERIMENTS, 
-    condition=conditions
-)
-
-##############################################################################
-# Post Clustering
-##############################################################################
-
 OUTPUTS = expand(
     [
         out_dir + "workup/splitbams-all-conditions/{experiment}.done",
@@ -313,12 +234,6 @@ OUTPUTS = expand(
 #         out_dir + "workup/clusters/Max_representation_counts.pdf"]
 #
 #MULTI_QC = [out_dir + "workup/qc/multiqc_report.html"]
- 
-################################################################################
-################################################################################
-#RULE ALL
-################################################################################
-################################################################################
 
 rule all:
     input: 
@@ -331,10 +246,6 @@ onerror:
 wildcard_constraints:
     experiment = "[^\.]+"
 
-
-##################################################################################
-#Trimming and barcode identification
-##################################################################################
 
 rule split_fastq_read1:
     input:
@@ -527,9 +438,6 @@ rule split_bpm_rpm2:
     shell:
         "python {split_bpm_rpm} --r1 {input} &> {log}"
 
-################################################################################
-#Cutadapt
-################################################################################
 
 rule cutadapt_rpm:
     input:
@@ -566,6 +474,7 @@ rule cutadapt_rpm:
          fastqc {output.r2}
         '''
 
+
 rule cutadapt_oligo:
     '''
     Trim 9mer oligo sequence from bead barcode
@@ -594,9 +503,6 @@ rule cutadapt_oligo:
          {input} > {output.qc}) &> {log}
         '''
 
-################################################################################
-#RNA alignment
-################################################################################
 
 rule bowtie2_align:
     input:
@@ -628,6 +534,7 @@ rule bowtie2_align:
         samtools index {output.mapped}
         '''
 
+
 rule bam_to_fq:
     input: out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam"
     output: 
@@ -645,6 +552,7 @@ rule bam_to_fq:
         '''
         samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -@ {threads} -n {input} 
         '''
+
 
 rule star_align:
     input:
@@ -677,6 +585,7 @@ rule star_align:
         samtools index {output.sorted}
         '''
 
+
 rule compress_unaligned:
     input:
         r1 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate1",
@@ -698,6 +607,7 @@ rule compress_unaligned:
         mv {input.r2}.gz {output.fq2}
         '''
 
+
 rule add_chromosome_info_bowtie2:
     input:
         bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"
@@ -714,6 +624,7 @@ rule add_chromosome_info_bowtie2:
         python {add_chr_bt2} -i {input.bt2} -o {output.bt2} --assembly {assembly} 
         '''
 
+
 rule add_chromosome_info_star:
     input:
         star = out_dir + "workup/alignments/{experiment}.part_{splitid}.Aligned.out.sorted.bam",
@@ -729,6 +640,7 @@ rule add_chromosome_info_star:
         '''
         python {add_chr} -i {input.star} -o {output.star} --assembly {assembly} &> {log}
         '''
+
 
 rule merge_rna:
     input:
@@ -749,6 +661,7 @@ rule merge_rna:
         (samtools merge -@ {threads} {output} {input.bt2} {input.star}) &> {log}
         samtools index {output}
         '''
+
 
 ##############################################################################
 #Workup Bead Oligo
@@ -775,6 +688,7 @@ rule fastq_to_bam:
 
         '''
 
+
 rule merge_beads:
     input:
         expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.BPM.bam", splitid = NUM_CHUNKS)
@@ -793,9 +707,6 @@ rule merge_beads:
         (samtools merge -@ {threads} {output} {input}) >& {log}
         '''
 
-###########################################################################
-#Make clusters
-###########################################################################
 
 rule make_clusters:
     input:
@@ -821,6 +732,7 @@ rule make_clusters:
         sort -k 1 -T {temp_dir} {output.unsorted} > {output.sorted}
         '''
 
+
 rule merge_clusters:
     input:
         expand(out_dir + "workup/clusters/{{experiment}}.part_{splitid}.clusters", splitid=NUM_CHUNKS)
@@ -839,9 +751,6 @@ rule merge_clusters:
         (python {merge_clusters} -i {output.mega} -o {output.final}) &> {log}
         '''        
 
-##############################################################################
-# Profile clusters
-##############################################################################
 
 # Generate simple statistics for clusters
 rule generate_cluster_statistics:
@@ -920,9 +829,7 @@ rule generate_cluster_statistics:
 #    shell:
 #        "(multiqc --force {out_dir}workup -o {out_dir}workup/qc) &> {log}"
 
-##############################################################################
-# Remove incorrect clusters
-##############################################################################
+
 rule split_incorrect_clusters:
     input:
         clusters = out_dir + "workup/clusters/{experiment}.clusters"
@@ -944,9 +851,7 @@ rule split_incorrect_clusters:
     	--format {rounds_format}) &> {log}
         '''
 
-##############################################################################
-# Split based on first tag
-##############################################################################
+
 rule split_on_first_tag:
     input:
         complete_clusters = out_dir + "workup/clusters/{experiment}.complete.clusters"
@@ -968,9 +873,6 @@ rule split_on_first_tag:
             --output_dir workup/condition-clusters) &> {log}
         '''
 
-##############################################################################
-# Splitbams
-##############################################################################
 
 # Generate bam files for individual targets based on assignments from clusterfile
 rule thresh_and_split_condition:
