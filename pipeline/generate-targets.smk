@@ -1,7 +1,3 @@
-'''
-Aim: A Snakemake workflow to process SPIDR paired end data (in-progress)
-'''
-
 import json
 import os 
 import sys
@@ -10,6 +6,43 @@ import datetime
 from pathlib import Path
 
 configfile: "config.generate-targets.yaml"
+
+required_config_keys = [
+    'email',
+    'bID',
+    'experiments',
+    'num_tags',
+    'conditions',
+    'assembly',
+    'experiments',
+    'output_dir',
+    'temp_dir',
+    'num_chunks',
+    'rounds_format',
+    'min_oligos',
+    'proportion',
+    'max_size',
+    'bowtie2_index',
+    'star_index'
+]
+
+optional_config_keys = [
+    'cutadapt_oligos'
+]
+
+try:
+    assert all([i in config.keys() for i in required_config_keys])
+except AssertionError:
+    for key in required_config_keys:
+        if key not in config.keys():
+            print(f"Missing: {key}")
+    
+    sys.exit()
+
+if 'cutadapt_oligos' not in config.keys():
+    config['cutadapt_oligos'] = "-g GGTGGTCTTT -g GCCTCTTGTT"
+else:
+    config['cutadapt_oligos'] = "-g file:" + config['cutadapt_oligos']
 
 try:
     email = config['email']
@@ -94,13 +127,6 @@ try:
     max_size = config["max_size"]
 except:
     max_size = 10000
-
-try:
-    adapters = "-g file:" + config['cutadapt_dpm']
-    print('Using cutadapt sequence file', adapters)
-except:
-    adapters = "-g GGTGGTCTTT -g GCCTCTTGTT -g CCAGGTATTT -g TAAGAGAGTT -g TTCTCCTCTT -g ACCCTCGATT"
-    # print("No file provided for cutadapt. Using standard cutadapt sequences")
 
 try:
     oligos = "-g file:" + config['cutadapt_oligos']
@@ -429,7 +455,7 @@ rule cutadapt_oligo:
         fastq=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz",
         qc=out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.qc.txt"
     params:
-        adapters_r1 = oligos
+        adapters_r1 = config['cutadapt_oligos']
     log:
         out_dir + "workup/logs/{experiment}.{splitid}.BPM.cutadapt.log"
     threads: 
