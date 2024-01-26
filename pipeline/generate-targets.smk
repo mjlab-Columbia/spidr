@@ -396,13 +396,11 @@ rule split_fastq_read2:
         bash {split_fastq} {input.r2} {num_chunks} {params.dir} {params.prefix_r2}
         '''
 
-rule compress_fastq:
+rule compress_fastq_read1:
     input:
         r1 = out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq",
-        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq"
     output:
         r1 = out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz",
-        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"
     conda:
         "envs/sprite.yaml"
     threads:
@@ -412,6 +410,21 @@ rule compress_fastq:
     shell:
         '''
         pigz -p {threads} {input.r1}
+        '''
+
+rule compress_fastq_read2:
+    input:
+        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq"
+    output:
+        r2 = out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"
+    conda:
+        "envs/sprite.yaml"
+    threads:
+        8
+    benchmark:
+        "benchmarks/{experiment}.{splitid}.compress_fastq.tsv"
+    shell:
+        '''
         pigz -p {threads} {input.r2}
         '''
 
