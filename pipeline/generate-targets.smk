@@ -211,8 +211,6 @@ for SAMPLE, file in FILES.items():
     ALL_FASTQ.extend([os.path.abspath(i) for i in file.get('R1')])
     ALL_FASTQ.extend([os.path.abspath(i) for i in file.get('R2')])
 
-CONFIG = [out_dir + "workup/logs/config_" + run_date + "yaml"]
-
 NUM_CHUNKS = [f"{i:03}" for i in np.arange(0, num_chunks)]
 
 ################################################################################
@@ -326,7 +324,7 @@ THRESH_AND_SPLIT_CONDITION = expand(
 ################################################################################
 
 rule all:
-    input: CONFIG + SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONDITION_CLUSTERS + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONDITION + THRESH_AND_SPLIT_NO_CONDITION 
+    input: SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONDITION_CLUSTERS + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONDITION + THRESH_AND_SPLIT_NO_CONDITION 
 
 #Send and email if an error occurs during execution
 onerror:
@@ -899,16 +897,8 @@ rule generate_cluster_statistics:
 #        '''
 #
 ################################################################################
-# Logging and MultiQC
+# MultiQC
 ################################################################################
-# Copy config.yaml into logs folder with run date
-rule log_config:
-    input:
-        config_path
-    output:
-        out_dir + "workup/logs/config_" + run_date + "yaml"
-    shell:
-        "cp {input} {output}"
 
 #rule multiqc:
 #    input:
