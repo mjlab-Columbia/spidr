@@ -119,13 +119,13 @@ rule split_fastq_read1:
         prefix_r2 = "{experiment}_R2.part_0",
         num_chunks = config['num_chunks']
     log:
-        out_dir + "workup/logs/{experiment}.splitfq.log"
+        out_dir + "workup/logs/{experiment}.split_fastq_read1.log"
     conda:
         "envs/sprite.yaml"
     threads: 
         8
     benchmark:
-        "benchmarks/{experiment}.splitfq.tsv"
+        "benchmarks/{experiment}.split_fastq_read1.tsv"
     shell:
         '''
         mkdir -p {params.dir}
@@ -147,13 +147,13 @@ rule split_fastq_read2:
         prefix_r2 = "{experiment}_R2.part_0",
         num_chunks = config['num_chunks']
     log:
-        out_dir + "workup/logs/{experiment}.splitfq.log"
+        out_dir + "workup/logs/{experiment}.split_fastq_read2.log"
     conda:
         "envs/sprite.yaml"
     threads: 
         8
     benchmark:
-        "benchmarks/{experiment}.splitfq.tsv"
+        "benchmarks/{experiment}.split_fastq_read2.tsv"
     shell:
         '''
         mkdir -p {params.dir}
@@ -171,7 +171,7 @@ rule compress_fastq_read1:
     threads:
         8
     benchmark:
-        "benchmarks/{experiment}.{splitid}.compress_fastq.tsv"
+        "benchmarks/{experiment}.{splitid}.compress_fastq_read1.tsv"
     shell:
         '''
         pigz -p {threads} {input.r1}
@@ -188,14 +188,14 @@ rule compress_fastq_read2:
     threads:
         8
     benchmark:
-        "benchmarks/{experiment}.{splitid}.compress_fastq.tsv"
+        "benchmarks/{experiment}.{splitid}.compress_fastq_read2.tsv"
     shell:
         '''
         pigz -p {threads} {input.r2}
         '''
 
 
-rule adaptor_trimming_pe:
+rule trim_sequencing_adapters:
     input:
         [out_dir + "workup/splitfq/{experiment}_R1.part_{splitid}.fastq.gz", 
          out_dir + "workup/splitfq/{experiment}_R2.part_{splitid}.fastq.gz"]
@@ -207,11 +207,11 @@ rule adaptor_trimming_pe:
     threads:
         10
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.trim_galore.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.trim_sequencing_adapters.log"
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.adaptor_trimming_pe.tsv"
+        "benchmarks/{experiment}.{splitid}.trim_sequencing_adapters.tsv"
     shell:
         '''
         trim_galore \
@@ -225,7 +225,7 @@ rule adaptor_trimming_pe:
         '''
 
 
-rule barcode_id:
+rule identify_barcodes:
     input:
         r1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}_val_1.fq.gz",
         r2 = out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}_val_2.fq.gz"
@@ -235,9 +235,9 @@ rule barcode_id:
     params:
         big_config = config['bID']
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.bID.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.identify_barcodes.log"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.barcode_id.tsv"
+        "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
     shell:
         """
         (java \
@@ -268,7 +268,7 @@ rule cat_ligation_efficiency:
         "tail -n +1 {input} > {output}"
 
 
-rule split_bpm_rpm:
+rule split_reads_read1:
     '''
     split bpm and rpm will also remove incomplete barcodes
     '''
@@ -279,16 +279,16 @@ rule split_bpm_rpm:
         out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz",
         out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_short.fastq.gz"
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.BPM_RPM.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.split_reads_read1.log"
     conda:
        "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.split_bpm_rpm.tsv"
+        "benchmarks/{experiment}.{splitid}.split_reads_read1.tsv"
     shell:
         "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
 
 
-rule split_bpm_rpm2:
+rule split_reads_read2:
     '''
     split bpm and rpm will also remove incomplete barcodes
     '''
@@ -299,16 +299,16 @@ rule split_bpm_rpm2:
         out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_bpm.fastq.gz",
         out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_short.fastq.gz"
     log:
-        out_dir + "workup/logs/{experiment}.{splitid}.BPM_RPM.log"
+        out_dir + "workup/logs/{experiment}.{splitid}.split_reads_read2.log"
     conda:
        "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.split_bpm_rpm2.tsv"
+        "benchmarks/{experiment}.{splitid}.split_reads_read2.tsv"
     shell:
         "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
 
 
-rule cutadapt_rpm:
+rule trim_rpm_reads:
     input:
         read1 = out_dir + "workup/fastqs/{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz",
         read2 = out_dir + "workup/fastqs/{experiment}_R2.part_{splitid}.barcoded_rpm.fastq.gz"
@@ -327,7 +327,7 @@ rule cutadapt_rpm:
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.cutadapt_rpm.tsv"
+        "benchmarks/{experiment}.{splitid}.trim_rpm_reads.tsv"
     shell:
         '''
         (cutadapt \
@@ -344,7 +344,7 @@ rule cutadapt_rpm:
         '''
 
 
-rule cutadapt_oligo:
+rule trim_bead_oligo_reads:
     '''
     Trim 9mer oligo sequence from bead barcode
     '''
@@ -362,7 +362,7 @@ rule cutadapt_oligo:
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.cutadapt_oligo.tsv"
+        "benchmarks/{experiment}.{splitid}.trim_bead_oligo_reads.tsv"
     shell:
         '''
         (cutadapt \
@@ -373,7 +373,7 @@ rule cutadapt_oligo:
         '''
 
 
-rule bowtie2_align:
+rule align_bowtie2:
     input:
         fq1 = out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz",
         fq2 = out_dir + "workup/trimmed/{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
@@ -391,7 +391,7 @@ rule bowtie2_align:
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.bowtie2_align.tsv"
+        "benchmarks/{experiment}.{splitid}.align_bowtie2.tsv"
     shell:
         '''
         (bowtie2 \
@@ -406,7 +406,7 @@ rule bowtie2_align:
         '''
 
 
-rule bam_to_fq:
+rule convert_bam_to_fastq:
     input: out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.unmapped.bam"
     output: 
         r1 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
@@ -418,14 +418,14 @@ rule bam_to_fq:
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.bam_to_fq.tsv"
+        "benchmarks/{experiment}.{splitid}.convert_bam_to_fastq.tsv"
     shell:
         '''
         samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -@ {threads} -n {input} 
         '''
 
 
-rule star_align:
+rule align_star:
     input:
         r1 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R1.fq.gz",
         r2 = out_dir + "workup/fastqs/{experiment}.part_{splitid}.bowtie2.unmapped_R2.fq.gz"
@@ -443,7 +443,7 @@ rule star_align:
     conda:
         "envs/sprite.yaml"
     benchmark:
-        "benchmarks/{experiment}.{splitid}.star_align.tsv"
+        "benchmarks/{experiment}.{splitid}.align_star.tsv"
     shell:
         '''
         (STAR \
@@ -458,7 +458,7 @@ rule star_align:
         '''
 
 
-rule compress_unaligned:
+rule compress_unaligned_fastq:
     input:
         r1 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate1",
         r2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate2"
@@ -470,7 +470,7 @@ rule compress_unaligned:
     threads:
         8
     benchmark:
-        "benchmarks/{experiment}.{splitid}.compress_unaligned.tsv"
+        "benchmarks/{experiment}.{splitid}.compress_unaligned_fastq.tsv"
     shell:
         '''
         pigz -p {threads} {input.r1} {input.r2}
@@ -518,7 +518,7 @@ rule add_chromosome_info_star:
         '''
 
 
-rule merge_rna:
+rule merge_rna_bams:
     input:
         bt2 = expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.bowtie2.sorted.mapped.chr.bam", splitid=NUM_CHUNKS),
         star = expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.Aligned.out.sorted.chr.bam", splitid=NUM_CHUNKS)
@@ -531,7 +531,7 @@ rule merge_rna:
     log:
         out_dir + "workup/logs/{experiment}.merge_bams.log"
     benchmark:
-        "benchmarks/{experiment}.merge_rna.tsv"
+        "benchmarks/{experiment}.merge_rna_bams.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input.bt2} {input.star}) &> {log}
@@ -539,7 +539,7 @@ rule merge_rna:
         '''
 
 
-rule fastq_to_bam:
+rule convert_fastq_to_bam:
     input:
         out_dir + "workup/trimmed/{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"
     output:
@@ -554,7 +554,7 @@ rule fastq_to_bam:
     threads:
         8
     benchmark:
-        "benchmarks/{experiment}.{splitid}.fastq_to_bam.tsv"
+        "benchmarks/{experiment}.{splitid}.convert_fastq_to_bam.tsv"
     shell:
         '''
         python scripts/python/fastq_to_bam.py --input {input} --output {output.bam} --config {params.bid_config} &> {log}
@@ -562,7 +562,7 @@ rule fastq_to_bam:
         '''
 
 
-rule merge_beads:
+rule merge_bead_bams:
     input:
         expand(out_dir + "workup/alignments/{{experiment}}.part_{splitid}.BPM.bam", splitid = NUM_CHUNKS)
     output:
@@ -570,11 +570,11 @@ rule merge_beads:
     conda:
         "envs/sprite.yaml"
     log:
-        out_dir + "workup/logs/{experiment}.merge_beads.log"
+        out_dir + "workup/logs/{experiment}.merge_bead_bams.log"
     threads:
         8
     benchmark:
-        "benchmarks/{experiment}.merge_beads.tsv"
+        "benchmarks/{experiment}.merge_bead_bams.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input}) >& {log}
