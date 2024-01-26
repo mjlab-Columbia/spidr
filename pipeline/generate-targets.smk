@@ -28,7 +28,7 @@ try:
     email = config['email']
 except:
     email = None
-    print("Will not send email on error")
+    # print("Will not send email on error")
 
 ##############################################################################
 #Location of scripts
@@ -60,52 +60,52 @@ split_on_first_tag = "scripts/python/split_on_first_tag.py"
 
 try:
     bid_config = config['bID']
-    print('Using BarcodeID config', bid_config)
+    # print('Using BarcodeID config', bid_config)
 except:
     bid_config = 'config.txt'
-    print('Config "bID" not specified, looking for config at:', bid_config)
+    # print('Config "bID" not specified, looking for config at:', bid_config)
 
 try:
     num_tags = config['num_tags']
-    print('Using', num_tags, 'tags')
+    # print('Using', num_tags, 'tags')
 except:
     num_tags = "6"
-    print('Config "num_tags" not specified, using:', num_tags)
+    # print('Config "num_tags" not specified, using:', num_tags)
 
 try:
     conditions = config['conditions']
 except:
-    print("No conditions specified in config file. No defaults.")
+    # print("No conditions specified in config file. No defaults.")
     sys.exit()
 
 try:
     assembly = config['assembly']
     assert assembly in ['mm10', 'hg38'], 'Only "mm10" or "hg38" currently supported'
-    print('Using', assembly)
+    # print('Using', assembly)
 except:
     print('Config "assembly" not specified, defaulting to "mm10"')
     assembly = 'mm10'
 
 try:
     experiments = config['experiments']
-    print('Using experiments file:', experiments)
+    # print('Using experiments file:', experiments)
 except:
     experiments = './experiments.json'
-    print('Defaulting to working directory for experiments json file')
+    # print('Defaulting to working directory for experiments json file')
 
 try:
     out_dir = config['output_dir']
-    print('All data will be written to:', out_dir)
+    # print('All data will be written to:', out_dir)
 except:
     out_dir = ''
-    print('Defaulting to working directory as output directory')
+    # print('Defaulting to working directory as output directory')
 
 try:
     temp_dir = config['temp_dir']
-    print("Using temporary directory:", temp_dir)
+    # print("Using temporary directory:", temp_dir)
 except:
     temp_dir = '/central/scratch/'
-    print('Defaulting to central scratch as temporary directory')
+    # print('Defaulting to central scratch as temporary directory')
 
 try:
     num_chunks = config['num_chunks']
@@ -141,13 +141,13 @@ try:
 except:
     max_size = 10000
 
-if generate_splitbams:
-    print("Will generate bam files for individual targets using:", file=sys.stderr)
-    print("\t min_oligos: ", min_oligos, file=sys.stderr)
-    print("\t proportion: ", proportion, file=sys.stderr)
-    print("\t max_size: ", max_size, file=sys.stderr)
-else:
-    print("Will not generate bam files for individual targets.", file=sys.stderr)
+# if generate_splitbams:
+#     print("Will generate bam files for individual targets using:", file=sys.stderr)
+#     print("\t min_oligos: ", min_oligos, file=sys.stderr)
+#     print("\t proportion: ", proportion, file=sys.stderr)
+#     print("\t max_size: ", max_size, file=sys.stderr)
+# else:
+#     print("Will not generate bam files for individual targets.", file=sys.stderr)
 
 ##############################################################################
 ##Trimming Sequences
@@ -159,14 +159,14 @@ try:
 except:
     adapters = "-g GGTGGTCTTT -g GCCTCTTGTT \
         -g CCAGGTATTT -g TAAGAGAGTT -g TTCTCCTCTT -g ACCCTCGATT"
-    print("No file provided for cutadapt. Using standard cutadapt sequences")
+    # print("No file provided for cutadapt. Using standard cutadapt sequences")
 
 try:
     oligos = "-g file:" + config['cutadapt_oligos']
-    print('Using bead oligo file', oligos)
+    # print('Using bead oligo file', oligos)
 except:
     oligos = "-g GGTGGTCTTT -g GCCTCTTGTT"
-    print("Using junk oligos. FIX ME")
+    # print("Using junk oligos. FIX ME")
 
 ################################################################################
 #Aligner Indexes
@@ -193,7 +193,7 @@ except:
 # Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
 os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
 out_created = os.path.exists(out_dir + "workup/logs/cluster")
-print('Output logs path created:', out_created)
+# print('Output logs path created:', out_created)
 
 # Create directory for benchmark tsv files to be stored
 os.makedirs("benchmarks", exist_ok=True)
@@ -340,12 +340,16 @@ wildcard_constraints:
 #Trimming and barcode identification
 ##################################################################################
 
-rule splitfq:
+rule split_fastq_read1:
     input:
-        r1 = lambda wildcards: FILES[wildcards.experiment]['R1'],
-        r2 = lambda wildcards: FILES[wildcards.experiment]['R2']
+        r1 = lambda wildcards: FILES[wildcards.experiment]['R1']
     output:
-        temp(expand([(out_dir + "workup/splitfq/{{experiment}}_R1.part_{splitid}.fastq"), (out_dir + "workup/splitfq/{{experiment}}_R2.part_{splitid}.fastq")],  splitid=NUM_CHUNKS))
+        temp(
+            expand(
+                os.path.join(out_dir, "workup/splitfq/{{experiment}}_R1.part_{splitid}.fastq"),
+                splitid=NUM_CHUNKS
+            )
+        )
     params:
         dir = out_dir + "workup/splitfq",
         prefix_r1 = "{experiment}_R1.part_0",
@@ -362,6 +366,33 @@ rule splitfq:
         '''
         mkdir -p {params.dir}
         bash {split_fastq} {input.r1} {num_chunks} {params.dir} {params.prefix_r1}
+        '''
+
+rule split_fastq_read2:
+    input:
+        r2 = lambda wildcards: FILES[wildcards.experiment]['R2']
+    output:
+        temp(
+            expand(
+                os.path.join(out_dir, "workup/splitfq/{{experiment}}_R2.part_{splitid}.fastq"),
+                splitid=NUM_CHUNKS
+            )
+        )
+    params:
+        dir = out_dir + "workup/splitfq",
+        prefix_r1 = "{experiment}_R1.part_0",
+        prefix_r2 = "{experiment}_R2.part_0"
+    log:
+        out_dir + "workup/logs/{experiment}.splitfq.log"
+    conda:
+        "envs/sprite.yaml"
+    threads: 
+        8
+    benchmark:
+        "benchmarks/{experiment}.splitfq.tsv"
+    shell:
+        '''
+        mkdir -p {params.dir}
         bash {split_fastq} {input.r2} {num_chunks} {params.dir} {params.prefix_r2}
         '''
 
@@ -382,7 +413,7 @@ rule compress_fastq:
         '''
         pigz -p {threads} {input.r1}
         pigz -p {threads} {input.r2}
-        '''        
+        '''
 
 #Trim adaptors
 #multiple cores requires pigz to be installed on the system
