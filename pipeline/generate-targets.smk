@@ -899,16 +899,8 @@ rule generate_cluster_statistics:
 #        '''
 #
 ################################################################################
-# Logging and MultiQC
+# MultiQC
 ################################################################################
-# Copy config.yaml into logs folder with run date
-rule log_config:
-    input:
-        config_path
-    output:
-        out_dir + "workup/logs/config_" + run_date + "yaml"
-    shell:
-        "cp {input} {output}"
 
 #rule multiqc:
 #    input:
