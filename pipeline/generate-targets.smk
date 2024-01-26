@@ -294,15 +294,13 @@ CONDITION_CLUSTERS = expand(
 # Post Clustering
 ##############################################################################
 
-THRESH_AND_SPLIT_NO_CONDITION = expand(
-        [out_dir + "workup/splitbams-all-conditions/{experiment}.done"], 
-        experiment=ALL_EXPERIMENTS
-)
-
-THRESH_AND_SPLIT_CONDITION = expand(
-        [out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done"], 
-        experiment=ALL_EXPERIMENTS, 
-        condition=conditions
+OUTPUTS = expand(
+    [
+        out_dir + "workup/splitbams-all-conditions/{experiment}.done",
+        out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done"
+    ], 
+    experiment=ALL_EXPERIMENTS,
+    condition=conditions
 )
 
 #COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
@@ -324,7 +322,8 @@ THRESH_AND_SPLIT_CONDITION = expand(
 ################################################################################
 
 rule all:
-    input: SPLIT_FQ + ALL_FASTQ + TRIM + TRIM_LOG + TRIM_RD + BARCODEID + LE_LOG_ALL + MERGE_BEAD + FQ_TO_BAM + CLUSTERS + CLUSTERS_MERGED_COMPLETE + CONDITION_CLUSTERS + SPLIT_RPM_BPM + SPLIT_RPM_BPM2 + BT2_RNA_ALIGN + STAR_ALIGN + CHR_RPM + MERGE_RNA + THRESH_AND_SPLIT_CONDITION + THRESH_AND_SPLIT_NO_CONDITION 
+    input: 
+        OUTPUTS
 
 #Send and email if an error occurs during execution
 onerror:
