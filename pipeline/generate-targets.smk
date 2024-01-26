@@ -341,11 +341,9 @@ rule split_fastq_read1:
     input:
         r1 = lambda wildcards: FILES[wildcards.experiment]['R1']
     output:
-        temp(
-            expand(
-                os.path.join(out_dir, "workup/splitfq/{{experiment}}_R1.part_{splitid}.fastq"),
-                splitid=NUM_CHUNKS
-            )
+        expand(
+            os.path.join(out_dir, "workup/splitfq/{{experiment}}_R1.part_{splitid}.fastq"),
+            splitid=NUM_CHUNKS
         )
     params:
         dir = out_dir + "workup/splitfq",
@@ -369,11 +367,9 @@ rule split_fastq_read2:
     input:
         r2 = lambda wildcards: FILES[wildcards.experiment]['R2']
     output:
-        temp(
-            expand(
-                os.path.join(out_dir, "workup/splitfq/{{experiment}}_R2.part_{splitid}.fastq"),
-                splitid=NUM_CHUNKS
-            )
+        expand(
+            os.path.join(out_dir, "workup/splitfq/{{experiment}}_R2.part_{splitid}.fastq"),
+            splitid=NUM_CHUNKS
         )
     params:
         dir = out_dir + "workup/splitfq",
