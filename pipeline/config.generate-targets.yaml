@@ -5,7 +5,7 @@ email: "dsg2157@columbia.edu"
 bID: "config_6_rounds_mTOR.txt"
 
 # Location of the samples json file produced with the fastq2json.py script 
-samples: "./samples.json"
+experiments: "./experiments.json"
 
 # Output directory  
 output_dir: ""
@@ -28,6 +28,9 @@ num_tags: "7"
 
 # Number of chunks to split fastq
 num_chunks: 10
+
+# Maximum sise of bead clusters
+max_size: 10000
 
 # Format for splitting clusters
 rounds_format: 'format_6_rounds_mTOR.txt'
