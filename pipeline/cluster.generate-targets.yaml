@@ -6,7 +6,7 @@ __default__:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
-splitfq:
+split_fastq_read1:
     account: "mjlab"
     time: "02:00:00"
     mem: 64g
@@ -14,7 +14,15 @@ splitfq:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
-compress_fastq:
+split_fastq_read2:
+    account: "mjlab"
+    time: "02:00:00"
+    mem: 64g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+compress_fastq_read1:
     account: "mjlab"
     time: "02:00:00"
     mem: 64g
@@ -22,15 +30,15 @@ compress_fastq:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
-get_barcoded_rpm_r2:
+compress_fastq_read2:
     account: "mjlab"
-    time: "12:00:00"
-    mem: 50g
-    cpus: 10
+    time: "02:00:00"
+    mem: 64g
+    cpus: 8
     nodes: 1
-    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
-    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-adaptor_trimming_pe:
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+trim_sequencing_adapters:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -46,7 +54,7 @@ get_ligation_efficiency:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
-barcode_id:
+identify_barcodes:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -54,7 +62,7 @@ barcode_id:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-split_bpm_rpm:
+split_reads_read1:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -62,7 +70,7 @@ split_bpm_rpm:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-split_bpm_rpm2:
+split_reads_read2:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -70,7 +78,7 @@ split_bpm_rpm2:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-cutadapt_rpm:
+trim_rpm_reads:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -78,7 +86,7 @@ cutadapt_rpm:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-cutadapt_oligo:
+trim_bead_oligo_reads:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -86,7 +94,7 @@ cutadapt_oligo:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-bowtie2_align:
+align_bowtie2:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -94,7 +102,7 @@ bowtie2_align:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-bam_to_fq:
+convert_bam_to_fastq:
     account: "mjlab"
     time: "01:00:00"
     mem: 20g
@@ -102,7 +110,7 @@ bam_to_fq:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-star_align:
+align_star:
     account: "mjlab"
     time: "12:00:00"
     mem: 100g
@@ -110,7 +118,7 @@ star_align:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-merge_rna:
+merge_rna_bams:
     account: "mjlab"
     time: "48:00:00"
     mem: 50g
@@ -118,7 +126,7 @@ merge_rna:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
-add_chr:
+add_chromosome_info_bowtie2:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -126,7 +134,7 @@ add_chr:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-fastq_to_bam:
+add_chromosome_info_star:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
@@ -134,9 +142,16 @@ fastq_to_bam:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-merge_beads:
+convert_fastq_to_bam:
     account: "mjlab"
-    account: mjlab
+    time: "12:00:00"
+    mem: 50g
+    cpus: 10
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
+merge_bead_bams:
+    account: "mjlab"
     time: "24:00:00"
     mem: 50g
     cpus: 10
@@ -159,14 +174,6 @@ merge_clusters:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
-multiqc:
-    account: "mjlab"
-    time: "01:00:00"
-    mem: 32g
-    cpus: 1
-    nodes: 1
-    output: "workup/logs/cluster/{rule}.out"
-    error: "workup/logs/cluster/{rule}.err"
 cat_ligation_efficiency:
     account: "mjlab"
     time: "05:00:00"
@@ -196,9 +203,9 @@ get_size_distribution:
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
-log_config:
-    time: "05:00:00"
-    mem: 20g
+split_incorrect_clusters:
+    time: "00:15:00"
+    mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
@@ -210,7 +217,14 @@ split_on_first_tag:
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
-thresh_and_split:
+thresh_and_split_condition:
+    time: "01:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+thresh_and_split_no_condition:
     time: "01:00:00"
     mem: 32g
     cpus: 1
