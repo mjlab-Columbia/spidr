@@ -9,50 +9,13 @@ import numpy as np
 import datetime
 from pathlib import Path
 
-##############################################################################
-#Initialize settings
-##############################################################################
-
-#Copy config file into logs
-v = datetime.datetime.now()
-run_date = v.strftime('%Y.%m.%d.')
-
-try:
-    config_path = config["config_path"]
-except:
-    config_path = 'config.generate-targets.yaml'
-
-configfile: config_path
+configfile: "config.generate-targets.yaml"
 
 try:
     email = config['email']
 except:
     email = None
     # print("Will not send email on error")
-
-##############################################################################
-#Location of scripts
-##############################################################################
-
-barcode_id_jar = "scripts/java/BarcodeIdentification_v1.2.0.jar"
-lig_eff = "scripts/python/get_ligation_efficiency.py"
-split_bpm_rpm = "scripts/python/split_rpm_bpm_fq.py"
-add_chr = "scripts/python/ensembl2ucsc.py"
-get_clusters = "scripts/python/get_clusters.py"
-merge_clusters = "scripts/python/merge_clusters.py"
-label_clusters = "scripts/python/label_clusters.py"
-fq_to_bam = "scripts/python/fastq_to_bam.py"
-add_RG_to_bam = "scripts/python/add_tag_to_bam.py"
-split_fastq = "scripts/split_fastq.sh"
-add_chr_bt2 = "scripts/python/add_chr_bt2.py"
-
-cluster_counts = "scripts/python/generate_cluster_statistics.py"
-cluster_sizes = "scripts/python/get_bead_size_distribution.py"
-cluster_ecdfs = "scripts/python/max_representation_ecdfs_perlib.py"
-split_incorrect_clusters = "scripts/split_incorrect_clusters.py"
-tag_and_split = "scripts/threshold_tag_and_split.py"
-random_downsample_clip = "scripts/java/RandomDownsample_CLIP.jar"
-split_on_first_tag = "scripts/python/split_on_first_tag.py"
 
 ##############################################################################
 #General settings
@@ -117,15 +80,6 @@ try:
 except:
     rounds_format = "format_6_rounds.txt"
 
-##############################################################################
-# Load Post Clustering Setting
-##############################################################################
-
-try:
-    generate_splitbams = config["generate_splitbams"]
-except:
-    generate_splitbams = False
-
 try:
     min_oligos = config["min_oligos"]
 except:
@@ -141,24 +95,11 @@ try:
 except:
     max_size = 10000
 
-# if generate_splitbams:
-#     print("Will generate bam files for individual targets using:", file=sys.stderr)
-#     print("\t min_oligos: ", min_oligos, file=sys.stderr)
-#     print("\t proportion: ", proportion, file=sys.stderr)
-#     print("\t max_size: ", max_size, file=sys.stderr)
-# else:
-#     print("Will not generate bam files for individual targets.", file=sys.stderr)
-
-##############################################################################
-##Trimming Sequences
-##############################################################################
-
 try:
     adapters = "-g file:" + config['cutadapt_dpm']
     print('Using cutadapt sequence file', adapters)
 except:
-    adapters = "-g GGTGGTCTTT -g GCCTCTTGTT \
-        -g CCAGGTATTT -g TAAGAGAGTT -g TTCTCCTCTT -g ACCCTCGATT"
+    adapters = "-g GGTGGTCTTT -g GCCTCTTGTT -g CCAGGTATTT -g TAAGAGAGTT -g TTCTCCTCTT -g ACCCTCGATT"
     # print("No file provided for cutadapt. Using standard cutadapt sequences")
 
 try:
@@ -270,7 +211,7 @@ rule split_fastq_read1:
     shell:
         '''
         mkdir -p {params.dir}
-        bash {split_fastq} {input.r1} {num_chunks} {params.dir} {params.prefix_r1}
+        bash scripts/split_fastq.sh {input.r1} {num_chunks} {params.dir} {params.prefix_r1}
         '''
 
 rule split_fastq_read2:
@@ -296,7 +237,7 @@ rule split_fastq_read2:
     shell:
         '''
         mkdir -p {params.dir}
-        bash {split_fastq} {input.r2} {num_chunks} {params.dir} {params.prefix_r2}
+        bash scripts/split_fastq.sh {input.r2} {num_chunks} {params.dir} {params.prefix_r2}
         '''
 
 rule compress_fastq_read1:
@@ -375,10 +316,13 @@ rule barcode_id:
     benchmark:
         "benchmarks/{experiment}.{splitid}.barcode_id.tsv"
     shell:
-        "java -jar {barcode_id_jar} \
-        --input1 {input.r1} --input2 {input.r2} \
-        --output1 {output.r1_barcoded} --output2 {output.r2_barcoded} \
-        --config {bid_config} &> {log}"
+        """
+        (java \
+            -jar scripts/java/BarcodeIdentification_v1.2.0.jar \
+            --input1 {input.r1} --input2 {input.r2} \
+            --output1 {output.r1_barcoded} --output2 {output.r2_barcoded} \
+            --config {bid_config}) &> {log}
+        """
 
 #Get ligation efficiency
 rule get_ligation_efficiency:
@@ -389,7 +333,7 @@ rule get_ligation_efficiency:
     conda:
         "envs/sprite.yaml"
     shell:
-        "python {lig_eff} {input.r1} > {output}"
+        "python scripts/python/get_ligation_efficiency.py {input.r1} > {output}"
 
 
 rule cat_ligation_efficiency:
@@ -417,7 +361,7 @@ rule split_bpm_rpm:
     benchmark:
         "benchmarks/{experiment}.{splitid}.split_bpm_rpm.tsv"
     shell:
-        "python {split_bpm_rpm} --r1 {input} &> {log}"
+        "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
 
 rule split_bpm_rpm2:
     '''
@@ -436,7 +380,7 @@ rule split_bpm_rpm2:
     benchmark:
         "benchmarks/{experiment}.{splitid}.split_bpm_rpm2.tsv"
     shell:
-        "python {split_bpm_rpm} --r1 {input} &> {log}"
+        "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
 
 
 rule cutadapt_rpm:
@@ -621,7 +565,7 @@ rule add_chromosome_info_bowtie2:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python {add_chr_bt2} -i {input.bt2} -o {output.bt2} --assembly {assembly} 
+        python scripts/python/add_chr_bt2.py -i {input.bt2} -o {output.bt2} --assembly {assembly} 
         '''
 
 
@@ -638,7 +582,7 @@ rule add_chromosome_info_star:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python {add_chr} -i {input.star} -o {output.star} --assembly {assembly} &> {log}
+        python scripts/python/ensembl2ucsc.py -i {input.star} -o {output.star} --assembly {assembly} &> {log}
         '''
 
 
@@ -683,9 +627,8 @@ rule fastq_to_bam:
         "benchmarks/{experiment}.{splitid}.fastq_to_bam.tsv"
     shell:
         '''
-        python {fq_to_bam} --input {input} --output {output.bam} --config {bid_config} &> {log}
+        python scripts/python/fastq_to_bam.py --input {input} --output {output.bam} --config {bid_config} &> {log}
         samtools sort -@ {threads} -o {output.sorted} {output.bam}
-
         '''
 
 
@@ -724,7 +667,7 @@ rule make_clusters:
         "benchmarks/{experiment}.{splitid}.make_clusters.tsv"
     shell:
         '''
-        (python {get_clusters} \
+        (python scripts/python/get_clusters.py \
         -i {input.bpm} {input.bt2} {input.rpm}\
         -o {output.unsorted} \
         -n {num_tags})  &> {log}
@@ -747,8 +690,8 @@ rule merge_clusters:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         '''
-         sort -k 1 -T {temp_dir} -m {input} > {output.mega}
-        (python {merge_clusters} -i {output.mega} -o {output.final}) &> {log}
+        sort -k 1 -T {temp_dir} -m {input} > {output.mega}
+        (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &> {log}
         '''        
 
 
@@ -764,7 +707,7 @@ rule generate_cluster_statistics:
         "envs/sprite.yaml"
     shell:
         '''
-        python {cluster_counts} --directory {params.dir} --pattern .clusters > {output}
+        python scripts/python/generate_cluster_statistics.py --directory {params.dir} --pattern .clusters > {output}
         '''
 
 # Generate ecdfs of oligo distribution
@@ -780,7 +723,7 @@ rule generate_cluster_statistics:
 #        "envs/plotting.yaml"
 #    shell:
 #        '''
-#        python {cluster_ecdfs} --directory {params.dir} --pattern .clusters --xlim 30
+#        python scripts/python/max_representation_ecdfs_perlib.py --directory {params.dir} --pattern .clusters --xlim 30
 #        '''
 #
 ## Profile size distribution of clusters
@@ -805,11 +748,11 @@ rule generate_cluster_statistics:
 #        "envs/sprite.yaml"
 #    shell:
 #        '''
-#        python {cluster_sizes} --directory {params.no_condition_dir} --pattern .clusters --readtype BPM
-#        python {cluster_sizes} --directory {params.no_condition_dir} --pattern .clusters --readtype DPM
+#        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM
+#        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype DPM
 #
-#        python {cluster_sizes} --directory {params.condition_dir} --pattern .clusters --readtype BPM
-#        python {cluster_sizes} --directory {params.condition_dir} --pattern .clusters --readtype DPM
+#        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype BPM
+#        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype DPM
 #        '''
 #
 ################################################################################
@@ -844,7 +787,7 @@ rule split_incorrect_clusters:
         "benchmarks/{experiment}.split_incorrect_clusters.tsv"
     shell:
         '''
-        (python {split_incorrect_clusters} \
+        (python scripts/split_incorrect_clusters.py \
         --clusters {input.clusters} \
         --complete_output {output.complete_clusters} \
         --incomplete_output {output.incomplete_clusters} \
@@ -868,7 +811,7 @@ rule split_on_first_tag:
         "benchmarks/{experiment}.split_on_first_tag.tsv"
     shell:
         '''
-        (python {split_on_first_tag} \
+        (python scripts/python/split_on_first_tag.py \
             --complete_clusters {input.complete_clusters} \
             --output_dir workup/condition-clusters) &> {log}
         '''
@@ -895,7 +838,7 @@ rule thresh_and_split_condition:
         mkdir -p splitbams_tmpdir
         export TMPDIR=splitbams_tmpdir/
 
-        (python {tag_and_split} \
+        (python scripts/threshold_tag_and_split.py \
             -i {input.bam} \
             -c {input.clusters} \
             -o {output.bam} \
@@ -927,7 +870,7 @@ rule thresh_and_split_no_condition:
         mkdir -p splitbams_tmpdir
         export TMPDIR=splitbams_tmpdir/
 
-        (python {tag_and_split} \
+        (python scripts/threshold_tag_and_split.py \
             -i {input.bam} \
             -c {input.clusters} \
             -o {output.bam} \
