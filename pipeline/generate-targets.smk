@@ -456,28 +456,6 @@ rule align_star:
         '''
 
 
-rule compress_unaligned_fastq:
-    input:
-        r1 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate1",
-        r2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.Unmapped.out.mate2"
-    output:
-        fq1 = out_dir + "workup/unmapped/{experiment}_R1.part_{splitid}.unaligned.fastq.gz",
-        fq2 = out_dir + "workup/unmapped/{experiment}_R2.part_{splitid}.unaligned.fastq.gz"
-    conda:
-        "envs/sprite.yaml"
-    threads:
-        8
-    benchmark:
-        "benchmarks/{experiment}.{splitid}.compress_unaligned_fastq.tsv"
-    shell:
-        '''
-        pigz -p {threads} {input.r1} {input.r2}
-       
-        mv {input.r1}.gz {output.fq1}
-        mv {input.r2}.gz {output.fq2}
-        '''
-
-
 rule add_chromosome_info_bowtie2:
     input:
         bt2 = out_dir + "workup/alignments/{experiment}.part_{splitid}.bowtie2.sorted.mapped.bam"
