@@ -72,23 +72,26 @@ NUM_CHUNKS = [f"{i:03}" for i in np.arange(0, config['num_chunks'])]
 
 OUTPUTS = expand(
     [
-        out_dir + "workup/splitbams-all-conditions/{experiment}.done",
-        out_dir + "workup/splitbams-by-condition/{experiment}.{condition}.done",
-        out_dir + "workup/ligation_efficiency.txt"
-    ], 
-    experiment=ALL_EXPERIMENTS,
-    condition=config['conditions']
+        os.path.join(out_dir, "workup", "splitbams-all-conditions", "{experiment}.done"),
+        os.path.join(out_dir, "workup", "splitbams-by-condition", "{experiment}.{condition}.done"),
+        os.path.join(out_dir, "workup", "ligation_efficiency.txt"),
+        os.path.join(out_dir, "workup", "{experiment}.part_{splitid}.ligation_efficiency.txt"),
+        os.path.join(out_dir, "workup", "clusters", "cluster_statistics.txt"),
+        os.path.join(out_dir, "workup", "condition-clusters", "RPM_read_distribution.pdf"),
+        os.path.join(out_dir, "workup", "condition-clusters", "RPM_cluster_distribution.pdf"),
+        os.path.join(out_dir, "workup", "condition-clusters", "BPM_read_distribution.pdf"),
+        os.path.join(out_dir, "workup", "condition-clusters", "BPM_cluster_distribution.pdf"),
+        os.path.join(out_dir, "workup", "clusters", "RPM_read_distribution.pdf"),       
+        os.path.join(out_dir, "workup", "clusters", "RPM_cluster_distribution.pdf"),       
+        os.path.join(out_dir, "workup", "clusters", "BPM_read_distribution.pdf"),
+        os.path.join(out_dir, "workup", "clusters", "BPM_cluster_distribution.pdf"),
+        os.path.join(out_dir, "workup", "clusters", "Max_representation_ecdf.pdf"),
+        os.path.join(out_dir, "workup", "clusters", "Max_representation_counts.pdf")
+    ],
+    experiment = ALL_EXPERIMENTS,
+    condition = config['conditions'],
+    splitid = NUM_CHUNKS
 )
-
-#COUNTS = [out_dir + "workup/clusters/cluster_statistics.txt"]
-#
-#SIZES = [out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
-#         out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
-#         out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf",
-#         out_dir + "workup/condition-clusters/BPM_read_distribution.pdf"]
-#
-#ECDFS = [out_dir + "workup/clusters/Max_representation_ecdf.pdf",
-#         out_dir + "workup/clusters/Max_representation_counts.pdf"]
 
 rule all:
     input: 
@@ -252,7 +255,7 @@ rule get_ligation_efficiency:
     input:
         r1 = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz")
     output:
-        temp(os.path.join(out_dir, "workup", "{experiment}.part_{splitid}.ligation_efficiency.txt"))
+        os.path.join(out_dir, "workup", "{experiment}.part_{splitid}.ligation_efficiency.txt")
     conda:
         "envs/sprite.yaml"
     shell:
@@ -637,57 +640,75 @@ rule generate_cluster_statistics:
         dir = out_dir + "workup/clusters"
     conda:
         "envs/sprite.yaml"
+    log:
+        os.path.join(out_dir, "workup", "logs", "generate_cluster_statistics.log")
+    shell:
+        """
+        (python scripts/python/generate_cluster_statistics.py \
+            --directory {params.dir} \
+            --pattern .clusters > {output}) &> {log}
+        """
+
+
+rule generate_cluster_ecdfs:
+    input:
+        expand(
+            os.path.join(out_dir, "workup", "clusters", "{experiment}.clusters"), 
+            experiment=ALL_EXPERIMENTS
+        )
+    output:
+        ecdf = os.path.join(out_dir, "workup", "clusters", "Max_representation_ecdf.pdf"),
+        counts = os.path.join(out_dir, "workup", "clusters", "Max_representation_counts.pdf")
+    params:
+        dir = out_dir + "workup/clusters"
+    conda:
+        "envs/plotting.yaml"
+    log:
+        os.path.join(out_dir, "workup", "logs", "generate_cluster_ecdfs.log")        
+    shell:
+        """
+        (python scripts/python/max_representation_ecdfs_perlib.py \
+            --directory {params.dir} \
+            --pattern .clusters \
+            --xlim 30) &> {log}
+        """
+
+
+# Profile size distribution of clusters
+rule get_size_distribution:
+    input:
+        expand(
+            os.path.join(out_dir, "workup", "condition-clusters", "{experiment}.{condition}.clusters"), 
+            experiment = ALL_EXPERIMENTS, 
+            condition = config['conditions']
+        ),
+        expand(
+            os.path.join(out_dir, "workup", "clusters", "{experiment}.complete.clusters"), 
+            experiment=ALL_EXPERIMENTS
+        ),
+    output:
+        rpm = os.path.join(out_dir, "workup", "condition-clusters", "RPM_read_distribution.pdf"),
+        rpm2 = os.path.join(out_dir, "workup", "condition-clusters", "RPM_cluster_distribution.pdf"),
+        bpm = os.path.join(out_dir, "workup", "condition-clusters", "BPM_read_distribution.pdf"),
+        bpm2 = os.path.join(out_dir, "workup", "condition-clusters", "BPM_cluster_distribution.pdf"),
+        no_condition_rpm = os.path.join(out_dir, "workup", "clusters", "RPM_read_distribution.pdf"),       
+        no_condition_rpm2 = os.path.join(out_dir, "workup", "clusters", "RPM_cluster_distribution.pdf"),       
+        no_condition_bpm = os.path.join(out_dir, "workup", "clusters", "BPM_read_distribution.pdf"),
+        no_condition_bpm2 = os.path.join(out_dir, "workup", "clusters", "BPM_cluster_distribution.pdf")   
+    params:
+        condition_dir = "workup/condition-clusters",
+        no_condition_dir = "workup/clusters"
+    conda:
+        "envs/sprite.yaml"
     shell:
         '''
-        python scripts/python/generate_cluster_statistics.py --directory {params.dir} --pattern .clusters > {output}
+        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM
+        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype RPM
+
+        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype BPM
+        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype RPM
         '''
 
-
-# Generate ecdfs of oligo distribution
-#rule generate_cluster_ecdfs:
-#    input:
-#        expand([out_dir + "workup/clusters/{experiment}.clusters"], experiment=ALL_EXPERIMENTS)
-#    output:
-#        ecdf = out_dir + "workup/clusters/Max_representation_ecdf.pdf",
-#        counts = out_dir + "workup/clusters/Max_representation_counts.pdf"
-#    params:
-#        dir = out_dir + "workup/clusters"
-#    conda:
-#        "envs/plotting.yaml"
-#    shell:
-#        '''
-#        python scripts/python/max_representation_ecdfs_perlib.py --directory {params.dir} --pattern .clusters --xlim 30
-#        '''
-#
-## Profile size distribution of clusters
-#rule get_size_distribution:
-#    input:
-#        expand([out_dir + "workup/condition-clusters/{experiment}.{condition}.clusters"], experiment=ALL_EXPERIMENTS, condition=config['conditions']),
-#        expand([out_dir + "workup/clusters/{experiment}.complete.clusters"], experiment=ALL_EXPERIMENTS),
-#    output:
-#        # FIXME: should these be changed to RPM equivalents?
-#        dpm = out_dir + "workup/condition-clusters/DPM_read_distribution.pdf",
-#        dpm2 = out_dir + "workup/condition-clusters/DPM_cluster_distribution.pdf",
-#        bpm = out_dir + "workup/condition-clusters/BPM_read_distribution.pdf",
-#        bpm2 = out_dir + "workup/condition-clusters/BPM_cluster_distribution.pdf",
-#        no_condition_dpm = out_dir + "workup/clusters/DPM_read_distribution.pdf",
-#        no_condition_dpm2 = out_dir + "workup/clusters/DPM_cluster_distribution.pdf",
-#        no_condition_bpm = out_dir + "workup/clusters/BPM_read_distribution.pdf",
-#        no_condition_bpm2 = out_dir + "workup/clusters/BPM_cluster_distribution.pdf"
-#    params:
-#        condition_dir = "workup/condition-clusters",
-#        no_condition_dir = "workup/clusters"
-#    conda:
-#        "envs/sprite.yaml"
-#    shell:
-#        '''
-#        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM
-#        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype DPM
-#
-#        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype BPM
-#        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype DPM
-#        '''
-#
 
 rule split_incorrect_clusters:
     input:
