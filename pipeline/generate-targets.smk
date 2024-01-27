@@ -29,6 +29,7 @@ optional_config_keys = [
     'cutadapt_oligos'
 ]
 
+# Check that all the required yaml fields are present
 try:
     assert all([i in config.keys() for i in required_config_keys])
     out_dir = config['output_dir']
@@ -39,27 +40,29 @@ except AssertionError:
     
     sys.exit()
 
+# For optional fields, augment the value or fall back to defaults
 if 'cutadapt_oligos' not in config.keys():
     config['cutadapt_oligos'] = "-g GGTGGTCTTT -g GCCTCTTGTT"
 else:
     config['cutadapt_oligos'] = "-g file:" + config['cutadapt_oligos']
 
-################################################################################
-#make output directories (aren't created automatically on cluster)
-################################################################################
-
-# Path(out_dir + "workup/logs/cluster").mkdir(parents=True, exist_ok=True)
-os.makedirs(out_dir + "workup/logs/cluster", exist_ok=True)
-out_created = os.path.exists(out_dir + "workup/logs/cluster")
+# Create cluster subdirectory within logs/ directory manually
+os.makedirs(
+    os.path.join(out_dir, "workup", "logs", "cluster"),
+    exist_ok=True
+)
 
 # Create directory for benchmark tsv files to be stored
-os.makedirs("benchmarks", exist_ok=True)
+os.makedirs(
+    os.path.join("benchmarks"),
+    exist_ok=True
+)
 
 ################################################################################
 #Get experiment files
 ###############################################################################
 
-#Prep experiments from fastq directory using fastq2json_updated.py, now load json file
+# Prep experiments from fastq directory using fastq2json_updated.py, now load json file
 FILES = json.load(open(config['experiments']))
 ALL_EXPERIMENTS = sorted(FILES.keys())
 
