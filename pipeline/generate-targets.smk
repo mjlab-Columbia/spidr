@@ -130,7 +130,12 @@ rule split_fastq_read1:
     shell:
         '''
         mkdir -p {params.dir}
-        bash scripts/split_fastq.sh {input.r1} {params.num_chunks} {params.dir} {params.prefix_r1}
+        
+        (bash scripts/split_fastq.sh \
+            {input.r1} \
+            {params.num_chunks} \
+            {params.dir} \
+            {params.prefix_r1}) &> {log}
         '''
 
 
@@ -158,7 +163,12 @@ rule split_fastq_read2:
     shell:
         '''
         mkdir -p {params.dir}
-        bash scripts/split_fastq.sh {input.r2} {params.num_chunks} {params.dir} {params.prefix_r2}
+
+        (bash scripts/split_fastq.sh \
+            {input.r2} \
+            {params.num_chunks} \
+            {params.dir} \
+            {params.prefix_r2}) &> {log}
         '''
 
 
@@ -167,6 +177,8 @@ rule compress_fastq_read1:
         r1 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R1.part_{splitid}.fastq"),
     output:
         r1 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R1.part_{splitid}.fastq.gz"),
+    log:
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.compress_fastq_read1.log")
     conda:
         "envs/sprite.yaml"
     threads:
@@ -175,7 +187,7 @@ rule compress_fastq_read1:
         "benchmarks/{experiment}.{splitid}.compress_fastq_read1.tsv"
     shell:
         '''
-        pigz -p {threads} {input.r1}
+        (pigz -p {threads} {input.r1}) &> {log}
         '''
 
 
@@ -184,6 +196,8 @@ rule compress_fastq_read2:
         r2 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R2.part_{splitid}.fastq")
     output:
         r2 = os.path.join(out_dir, "workup", "splitfq", "{experiment}_R2.part_{splitid}.fastq.gz")
+    log:
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.compress_fastq_read2.log")
     conda:
         "envs/sprite.yaml"
     threads:
@@ -192,7 +206,7 @@ rule compress_fastq_read2:
         "benchmarks/{experiment}.{splitid}.compress_fastq_read2.tsv"
     shell:
         '''
-        pigz -p {threads} {input.r2}
+        (pigz -p {threads} {input.r2}) &> {log}
         '''
 
 
@@ -215,14 +229,14 @@ rule trim_sequencing_adapters:
         "benchmarks/{experiment}.{splitid}.trim_sequencing_adapters.tsv"
     shell:
         '''
-        trim_galore \
-        --paired \
-        --gzip \
-        --cores {threads} \
-        --quality 20 \
-        --fastqc \
-        -o {out_dir}workup/trimmed/ \
-        {input} &> {log}
+        (trim_galore \
+            --paired \
+            --gzip \
+            --cores {threads} \
+            --quality 20 \
+            --fastqc \
+            -o {out_dir}workup/trimmed/ \
+            {input}) &> {log}
         '''
 
 
@@ -256,10 +270,14 @@ rule get_ligation_efficiency:
         r1 = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz")
     output:
         os.path.join(out_dir, "workup", "{experiment}.part_{splitid}.ligation_efficiency.txt")
+    log:
+        os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.get_ligation_efficiency.log")
     conda:
         "envs/sprite.yaml"
     shell:
-        "python scripts/python/get_ligation_efficiency.py {input.r1} > {output}"
+        """
+        (python scripts/python/get_ligation_efficiency.py {input.r1} > {output}) &> {log}
+        """
 
 
 rule cat_ligation_efficiency:
@@ -271,8 +289,12 @@ rule cat_ligation_efficiency:
         )
     output:
         out_dir + "workup/ligation_efficiency.txt"
+    log:
+        os.path.join(out_dir, "workup", "logs", "cat_ligation_efficiency.log")
     shell:
-        "tail -n +1 {input} > {output}"
+        """
+        (tail -n +1 {input} > {output}) &> {log}
+        """
 
 
 rule split_reads_read1:
@@ -292,7 +314,9 @@ rule split_reads_read1:
     benchmark:
         "benchmarks/{experiment}.{splitid}.split_reads_read1.tsv"
     shell:
-        "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
+        """
+        (python scripts/python/split_rpm_bpm_fq.py --r1 {input}) &> {log}
+        """
 
 
 rule split_reads_read2:
@@ -312,7 +336,9 @@ rule split_reads_read2:
     benchmark:
         "benchmarks/{experiment}.{splitid}.split_reads_read2.tsv"
     shell:
-        "python scripts/python/split_rpm_bpm_fq.py --r1 {input} &> {log}"
+        """
+        (python scripts/python/split_rpm_bpm_fq.py --r1 {input}) &> {log}
+        """
 
 
 rule trim_rpm_reads:
@@ -338,16 +364,16 @@ rule trim_rpm_reads:
     shell:
         '''
         (cutadapt \
-         {params.adapters_r1} \
-         {params.adapters_r2} \
-         {params.others} \
-         -o {output.r1} \
-         -p {output.r2} \
-         -j {threads} \
-         {input.read1} {input.read2} > {output.qc}) &> {log}
+            {params.adapters_r1} \
+            {params.adapters_r2} \
+            {params.others} \
+            -o {output.r1} \
+            -p {output.r2} \
+            -j {threads} \
+            {input.read1} {input.read2} > {output.qc}) &> {log}
         
-         fastqc {output.r1}
-         fastqc {output.r2}
+        (fastqc {output.r1}) &>> {log}
+        fastqc {output.r2} &>> {log}
         '''
 
 
@@ -373,10 +399,10 @@ rule trim_bead_oligo_reads:
     shell:
         '''
         (cutadapt \
-         {params.adapters_r1} \
-         -o {output.fastq} \
-         -j {threads} \
-         {input} > {output.qc}) &> {log}
+            {params.adapters_r1} \
+            -o {output.fastq} \
+            -j {threads} \
+            {input} > {output.qc}) &> {log}
         '''
 
 
@@ -402,14 +428,15 @@ rule align_bowtie2:
     shell:
         '''
         (bowtie2 \
-        -p 10 \
-        -t \
-        -x {params.BOWTIE2_INDEX} \
-        -1 {input.fq1} -2 {input.fq2} | \
-        samtools view -bS -> {output.bam}) &> {log}
-        samtools view -b -f 4 {output.bam} | samtools sort -n -o {output.unmapped}
-        samtools view -b -F 4 {output.bam} | samtools sort > {output.mapped}
-        samtools index {output.mapped}
+            -p 10 \
+            -t \
+            -x {params.BOWTIE2_INDEX} \
+            -1 {input.fq1} -2 {input.fq2} | \
+            samtools view -bS -> {output.bam}) &> {log}
+        
+        (samtools view -b -f 4 {output.bam} | samtools sort -n -o {output.unmapped}) &>> {log}
+        (samtools view -b -F 4 {output.bam} | samtools sort > {output.mapped}) &>> {log}
+        (samtools index {output.mapped}) &>> {log}
         '''
 
 
@@ -429,7 +456,13 @@ rule convert_bam_to_fastq:
         "benchmarks/{experiment}.{splitid}.convert_bam_to_fastq.tsv"
     shell:
         '''
-        samtools fastq -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -@ {threads} -n {input} 
+        (samtools fastq \
+            -1 {output.r1} \
+            -2 {output.r2} \
+            -0 /dev/null \
+            -s /dev/null \
+            -@ {threads} \
+            -n {input}) &> {log}
         '''
 
 
@@ -455,14 +488,14 @@ rule align_star:
     shell:
         '''
         (STAR \
-        --genomeDir {params.STAR_INDEX} \
-        --readFilesIn {input.r1} {input.r2} \
-        --runThreadN {threads} {params.STAR_OPTIONS} \
-        --outFileNamePrefix {params.prefix}) &> {log}
+            --genomeDir {params.STAR_INDEX} \
+            --readFilesIn {input.r1} {input.r2} \
+            --runThreadN {threads} {params.STAR_OPTIONS} \
+            --outFileNamePrefix {params.prefix}) &> {log}
 
-        samtools view -@ {threads} -bS {output.sam} > {output.filtered}
-        samtools sort -@ {threads} -o {output.sorted} {output.filtered}
-        samtools index {output.sorted}
+        (samtools view -@ {threads} -bS {output.sam} > {output.filtered}) &>> {log}
+        (samtools sort -@ {threads} -o {output.sorted} {output.filtered}) &>> {log}
+        (samtools index {output.sorted}) &>> {log}
         '''
 
 
@@ -481,7 +514,10 @@ rule add_chromosome_info_bowtie2:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python scripts/python/add_chr_bt2.py -i {input.bt2} -o {output.bt2} --assembly {params.assembly} 
+        (python scripts/python/add_chr_bt2.py \
+            -i {input.bt2} \
+            -o {output.bt2} \
+            --assembly {params.assembly}) &> {log}
         '''
 
 
@@ -500,7 +536,10 @@ rule add_chromosome_info_star:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
         '''
-        python scripts/python/ensembl2ucsc.py -i {input.star} -o {output.star} --assembly {params.assembly} &> {log}
+        (python scripts/python/ensembl2ucsc.py \
+            -i {input.star} \
+            -o {output.star} \
+            --assembly {params.assembly}) &> {log}
         '''
 
 
@@ -516,18 +555,18 @@ rule merge_rna_bams:
         )
     output:
         os.path.join(out_dir, "workup", "alignments", "{experiment}.merged.RPM.bam")
+    log:
+        os.path.join(out_dir, "workup", "logs", "{experiment}.merge_rna_bams.log")
     conda:
         "envs/sprite.yaml"
     threads:
         8
-    log:
-        os.path.join(out_dir, "workup", "logs", "{experiment}.merge_bams.log")
     benchmark:
         "benchmarks/{experiment}.merge_rna_bams.tsv"
     shell:
         '''
         (samtools merge -@ {threads} {output} {input.bt2} {input.star}) &> {log}
-        samtools index {output}
+        (samtools index {output}) &>> {log}
         '''
 
 
@@ -550,7 +589,7 @@ rule convert_fastq_to_bam:
     shell:
         '''
         python scripts/python/fastq_to_bam.py --input {input} --output {output.bam} --config {params.bid_config} &> {log}
-        samtools sort -@ {threads} -o {output.sorted} {output.bam}
+        (samtools sort -@ {threads} -o {output.sorted} {output.bam}) &>> {log}
         '''
 
 
@@ -572,7 +611,7 @@ rule merge_bead_bams:
         "benchmarks/{experiment}.merge_bead_bams.tsv"
     shell:
         '''
-        (samtools merge -@ {threads} {output} {input}) >& {log}
+        (samtools merge -@ {threads} {output} {input}) &> {log}
         '''
 
 
@@ -600,7 +639,7 @@ rule make_clusters:
         -o {output.unsorted} \
         -n {params.num_tags})  &> {log}
 
-        sort -k 1 -T {params.temp_dir} {output.unsorted} > {output.sorted}
+        (sort -k 1 -T {params.temp_dir} {output.unsorted} > {output.sorted}) &> {log}
         '''
 
 
@@ -623,8 +662,8 @@ rule merge_clusters:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         '''
-        sort -k 1 -T {params.temp_dir} -m {input} > {output.mega}
-        (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &> {log}
+        (sort -k 1 -T {params.temp_dir} -m {input} > {output.mega}) &> {log}
+        (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &>> {log}
         '''        
 
 
@@ -698,15 +737,17 @@ rule get_size_distribution:
     params:
         condition_dir = "workup/condition-clusters",
         no_condition_dir = "workup/clusters"
+    log:
+        os.path.join(out_dir, "workup", "logs", "get_size_distribution.log")
     conda:
         "envs/sprite.yaml"
     shell:
         '''
-        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM
-        python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype RPM
+        (python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM) &> {log}
+        (python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype RPM) &>> {log}
 
-        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype BPM
-        python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype RPM
+        (python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype BPM) &>> {log}
+        (python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype RPM) &>> {log}
         '''
 
 
@@ -727,10 +768,10 @@ rule split_incorrect_clusters:
     shell:
         '''
         (python scripts/split_incorrect_clusters.py \
-        --clusters {input.clusters} \
-        --complete_output {output.complete_clusters} \
-        --incomplete_output {output.incomplete_clusters} \
-    	--format {params.rounds_format}) &> {log}
+            --clusters {input.clusters} \
+            --complete_output {output.complete_clusters} \
+            --incomplete_output {output.incomplete_clusters} \
+            --format {params.rounds_format}) &> {log}
         '''
 
 
@@ -839,10 +880,12 @@ rule generate_splitbam_statistics:
     params:
         all_conditions = os.path.join(out_dir, "workup", "splitbams-all-conditions"),
         by_condition = os.path.join(out_dir, "workup", "splitbams-by-condition")
+    log:
+        os.path.join(out_dir, "workup", "logs", "generate_splitbam_statistics.log")
     conda:
         "envs/sprite.yaml"
     shell:
         """
-        for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}
-        for f in {params.by_condition}/*bam; do echo $f; samtools view -c $f; done > {output.by_condition}
+        (for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}) &> {log}
+        (for f in {params.by_condition}/*bam; do echo $f; samtools view -c $f; done > {output.by_condition}) &> {log}
         """
