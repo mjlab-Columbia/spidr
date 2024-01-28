@@ -134,7 +134,7 @@ rule split_fastq_read1:
         '''
         mkdir -p {params.dir}
         
-        (bash scripts/split_fastq.sh \
+        (bash scripts/bash/split_fastq.sh \
             {input.r1} \
             {params.num_chunks} \
             {params.dir} \
@@ -770,7 +770,7 @@ rule split_incorrect_clusters:
         "benchmarks/{experiment}.split_incorrect_clusters.tsv"
     shell:
         '''
-        (python scripts/split_incorrect_clusters.py \
+        (python scripts/python/split_incorrect_clusters.py \
             --clusters {input.clusters} \
             --complete_output {output.complete_clusters} \
             --incomplete_output {output.incomplete_clusters} \
@@ -825,7 +825,7 @@ rule thresh_and_split_condition:
         mkdir -p splitbams_tmpdir
         export TMPDIR=splitbams_tmpdir/
 
-        (python scripts/threshold_tag_and_split.py \
+        (python scripts/python/threshold_tag_and_split.py \
             -i {input.bam} \
             -c {input.clusters} \
             -o {output.bam} \
@@ -861,7 +861,7 @@ rule thresh_and_split_no_condition:
         mkdir -p splitbams_tmpdir
         export TMPDIR=splitbams_tmpdir/
 
-        (python scripts/threshold_tag_and_split.py \
+        (python scripts/python/threshold_tag_and_split.py \
             -i {input.bam} \
             -c {input.clusters} \
             -o {output.bam} \
