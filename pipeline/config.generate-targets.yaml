@@ -5,13 +5,13 @@ email: "dsg2157@columbia.edu"
 bID: "config_6_rounds_mTOR.txt"
 
 # Location of the samples json file produced with the fastq2json.py script 
-samples: "./samples.json"
+samples: "./experiments.json"
 
 # Output directory  
 output_dir: ""
 
 # Temporary directory
-temp_dir: "/burg/mjlab/projects/spidr_preprocessing_dg/scratch"
+temp_dir: "./"
 
 # Unique tags in the ROUND1 tags within config
 conditions: ['CNTRL', 'TORIN']
@@ -38,11 +38,11 @@ cutadapt_oligos: "oligo2_reverse.fasta"
 # Bowtie2 Indexes
 # Note: mm10 index currently not available at specified filepath
 bowtie2_index:
-    hg38: "/burg/mjlab/projects/spidr_preprocessing_dg/ncRNA_bt2/ncRNA"
-    mm10: "/burg/mjlab/projects/spidr_preprocessing_dg/mm10_ncRNA_bt2/mm10_ncRNA"
+    hg38: "/burg/mjlab/projects/spidr-alignment-indices/ncRNA_bt2/ncRNA"
+    mm10: "/burg/mjlab/projects/spidr-alignment-indices/mm10_ncRNA_bt2/mm10_ncRNA"
 
 # Star Indexes
 # Note: mm10 index currently not available at specified filepath
 star_index:
-    mm10: "/burg/mjlab/projects/spidr_preprocessing_dg/mus_musculus/GRCm38/star"
-    hg38: "/burg/mjlab/projects/spidr_preprocessing_dg/hg38"
+    mm10: "/burg/mjlab/projects/spidr-alignment-indices/mus_musculus/GRCm38/star"
+    hg38: "/burg/mjlab/projects/spidr-alignment-indices/hg38"
