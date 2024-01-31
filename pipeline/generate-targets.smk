@@ -251,7 +251,7 @@ rule identify_barcodes:
         r1_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz"),
         r2_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded.fastq.gz")
     params:
-        big_config = config['bID']
+        bid_config = config['bID']
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
     benchmark:
