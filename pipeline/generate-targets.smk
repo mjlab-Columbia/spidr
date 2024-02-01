@@ -167,7 +167,7 @@ rule split_fastq_read2:
         '''
         mkdir -p {params.dir}
 
-        (bash scripts/split_fastq.sh \
+        (bash scripts/bash/split_fastq.sh \
             {input.r2} \
             {params.num_chunks} \
             {params.dir} \
@@ -292,9 +292,10 @@ rule identify_barcodes:
             --input_read2 {input.r2} \
             --output_read1 {output.r1_barcoded} \
             --output_read2 {output.r2_barcoded} \
-            --read1_format {params.read1_format} \
-            --read2_format {params.read2_format} \
+            --read1_format '{params.read1_format}' \
+            --read2_format '{params.read2_format}' \
             --start_offset {params.start_offset} \
+            --sequence_length {params.sequence_length} \
             --config {params.bid_config}) &> {log}
         """
 
