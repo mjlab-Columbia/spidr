@@ -20,6 +20,7 @@ pipeline/*.clusters
 pipeline/benchmarks
 pipeline/run-log*.txt
 pipeline/*.png
+pipeline/config.generate-targets.yaml
 
 # Ignore non-essential documentation files at all levels
 **/*.aux
