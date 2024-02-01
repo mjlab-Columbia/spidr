@@ -214,6 +214,7 @@ def pad_barcodes(barcodes: List[str], expected_length: int) -> List[str]:
 @ click.option('--start_offset', type=int, help="Bases to skip from 5' end before bead oligo search")
 @ click.option('--sequence_length', type=int, help="Length of sequences to identify")
 @ click.option('--config', type=click.Path(exists=True), help='Config file contains bead sequences')
+@ click.option('--show_progress_bar', type=bool, help='Whether or not to show a tqdm progress bar', default=False)
 def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.PathLike, output_read2: os.PathLike, read1_format: str, read2_format: str, start_offset: str, sequence_length: int, config: os.PathLike) -> None:
     """
     Entry point for the program
@@ -256,11 +257,23 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
         progress_bar = tqdm(zip(read1_iterator, read2_iterator),
                             total=num_chunks)
 
-        # Temporarary: List to store all barcodes
-        all_barcodes = []
+        if show_progress_bar:
+            progress_bar = tqdm(zip(read1_iterator, read2_iterator),
+                                total=num_chunks)
+            counter = None
+        else:
+            progress_bar = zip(read1_iterator, read2_iterator)
+            counter = 0
 
         # Iterate through read 1 and 2 in chunks of 4 (i.e. one read + metadata at a time)
         for chunk_read1, chunk_read2 in progress_bar:
+
+            # Display progress if we're using a counter
+            if counter is not None:
+                counter += 1
+                if counter % 10000 == 0:
+                    progress_bar.set_description(f"Processed {counter} reads")
+
             header_r1, read_r1, plus_line_r1, quality_r1 = chunk_read1
             header_r2, read_r2, plus_line_r2, quality_r2 = chunk_read2
 
