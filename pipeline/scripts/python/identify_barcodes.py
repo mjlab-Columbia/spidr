@@ -2,10 +2,12 @@ import click
 import pandas as pd
 from pdb import set_trace as st
 import os
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Set
 from tqdm import tqdm
 import gzip
 import numpy as np
+from itertools import combinations, product
+from collections import deque
 
 # Number of bases between barcodes (equivalent to the length of odd overhang or even overhang)
 # TODO: Move this into CLI options or config
@@ -56,15 +58,71 @@ def hamming_distance(seq1: str, seq2: str) -> int:
     return sum(ch1 != ch2 for ch1, ch2 in zip(seq1, seq2))
 
 
+def get_all_seqs_within_k(seq: str, k: int) -> Set[str]:
+    """
+    Get all sequences within a Hamming distance of k from a given sequence
+
+    Args:
+        seq: str = sequence to search around
+        k: int = Hamming distance to search for
+
+    Returns:
+        Set[str] = set of all sequences within a Hamming distance of k from `seq`
+    """
+    alphabet = "ACGT"  # DNA alphabet, you can modify this for different alphabets
+    sequence_length = len(seq)
+    possible_mutations = set()
+
+    # Initialize the queue with the original sequence and distance 0
+    queue = deque([(seq, 0)])
+
+    while queue:
+        current_seq, current_distance = queue.popleft()
+
+        # If we reach the desired Hamming distance, add it to the result
+        if current_distance == k:
+            possible_mutations.add(current_seq)
+            continue
+
+        # Generate all possible sequences with Hamming distance + 1
+        for position in range(sequence_length):
+            for nucleotide in alphabet:
+                if nucleotide != current_seq[position]:
+                    mutated_seq = current_seq[:position] + \
+                        nucleotide + current_seq[position + 1:]
+                    queue.append((mutated_seq, current_distance + 1))
+
+    return possible_mutations
+
+
+def create_hamming_hashmap(barcode_df: pd.DataFrame) -> Dict[str, Set[str]]:
+    """
+    Create a hashmap of all barcodes with a Hamming distance of k from known barcodes
+
+    Args:
+        barcode_df: pd.DataFrame = dataframe containing barcode sequences
+        k: int = Hamming distance to search for
+    """
+    cols = ["name", "sequence", "tolerance"]
+    basic_hashmap = barcode_df[cols].to_records(index=False)
+    hamming_hashmap = {}
+    for name, seq, tol in basic_hashmap:
+        hamming_hashmap[name] = get_all_seqs_within_k(seq, tol)
+        hamming_hashmap[name].add(seq)
+
+    return hamming_hashmap
+
+
 def find_terminal_barcode(read: str,
-                          barcode_df: pd.DataFrame,
-                          start: int) -> Tuple[str, int]:
+                          barcode_hashmap: Dict[str, Set[str]],
+                          start: int,
+                          possible_lengths: List[int] = [9, 10]) -> Tuple[str, int]:
     """
     Identify the terminal barcode on read 2
 
     Args:
         read: str = read 2 from paired end reads
-        barcode_df: pd.DataFrame = dataframe containing config entries for terminal barcodes
+        barcode_hashmap: Dict[str, Set[str]] = hashmap containing config entries for terminal barcodes and their Hamming neighbors
         start: int = 0-based index to start looking from in read
 
     Returns:
@@ -72,28 +130,19 @@ def find_terminal_barcode(read: str,
         int = new start position relative to 5' end of read 2
     """
     # For every possible terminal barcode length, check for terminal barcodes
-    possible_term_sizes = barcode_df["sequence"].str.len().unique()
-    possible_term_sizes = sorted(possible_term_sizes.tolist())
-
-    for term_size in possible_term_sizes:
-        cols = ["name", "sequence", "tolerance"]
-        size_mask = barcode_df["sequence"].str.len() == term_size
-        term_df = barcode_df[size_mask]
-        seq_tol = term_df[cols].to_records(index=False)
-
-        # Search for terminal barcodes within a Hamming distance of 2 from sequence
-        for name, seq, tol in seq_tol:
-            dist = hamming_distance(seq, read[:term_size])
-            if dist <= tol:
-                return name, start + term_size
+    for term_size in possible_lengths:
+        for terminal_bc in barcode_hashmap:
+            if read[start:(start + term_size)] in barcode_hashmap[terminal_bc]:
+                return terminal_bc, start + term_size
 
     # If we've gone through all possible sizes and haven't returned anything
     return NOT_FOUND, start + term_size
 
 
 def find_nonterminal_barcode(read: str,
-                             barcode_df: pd.DataFrame,
-                             start: int) -> Tuple[str, int]:
+                             barcode_hashmap: Dict[str, Set[str]],
+                             start: int,
+                             possible_lengths: List[int] = [15]) -> Tuple[str, int]:
     """
     Find non-terminal barcodes in read 2
 
@@ -106,14 +155,17 @@ def find_nonterminal_barcode(read: str,
         str = barcode name (e.g. "ROUND2_B2")
         int = new start position relative to 5' end of read 2
     """
+    # To account for barcodes of different lengths, we need to search for each possible barcode size
+    possible_bc_sizes = sorted(possible_lengths)
+    max_bc_size = max(possible_bc_sizes)
+
     # Barcodes can be offset within the range [0, LAXITY]
     for offset in range(0, LAXITY + 1):
-        possible_bc_sizes = barcode_df["sequence"].str.len().unique()
-        possible_bc_sizes = sorted(possible_bc_sizes.tolist())
+        # Window start doesn't change with barcode length, but the window end does
+        window_start = start + offset
 
         # If there's multiple sizes of barcodes, search by each barcode size
         for barcode_size in possible_bc_sizes:
-            window_start = start + offset
             window_end = window_start + barcode_size
             substring = read[window_start:window_end]
 
@@ -121,32 +173,30 @@ def find_nonterminal_barcode(read: str,
             if len(substring) < barcode_size:
                 return NOT_FOUND, start + BARCODE_LENGTH
 
-            cols = ["name", "sequence", "tolerance"]
-            mask = barcode_df["sequence"].str.len() == barcode_size
-            bc_df = barcode_df[mask]
-            seq_tol = bc_df[cols].to_records(index=False)
+            # If we find a barcode in the hashmap, return the barcode and the new start position
+            for bc in barcode_hashmap:
+                if substring in barcode_hashmap[bc]:
+                    return bc, start + BARCODE_LENGTH
 
-            # Search for barcodes within a Hamming distance of 2
-            for name, seq, tol in seq_tol:
-                dist = hamming_distance(seq, substring)
-                if dist <= tol:
-                    return name, start + BARCODE_LENGTH
-
-            is_max_size = (barcode_size == max(possible_bc_sizes))
+            is_max_size = (barcode_size == max_bc_size)
             is_max_laxity = (offset == LAXITY)
             if (is_max_size) and (is_max_laxity):
                 return NOT_FOUND, start + BARCODE_LENGTH
 
 
 def find_barcodes(read: str,
-                  config_df: pd.DataFrame,
+                  even_hashmap: Dict[str, Set[str]],
+                  odd_hashmap: Dict[str, Set[str]],
+                  term_hashmap: Dict[str, Set[str]],
                   read2_format: List[str]) -> List[str]:
     """
     Find all barcode sequences in read 2
 
     Args:
         read: str = read 2 of paired end reads from 5' to 3' 
-        config_df: pd.DataFrame = configuration file with sequence type, name, sequence bases, and tolerance
+        odd_hashmap: Dict[str, Set[str]] = hashmap of all odd barcodes and their Hamming neighbors
+        even_hashmap: Dict[str, Set[str]] = hashmap of all even barcodes and their Hamming neighbors
+        term_hashmap: Dict[str, Set[str]] = hashmap of all terminal barcodes and their Hamming neighbors
         read2_format: List[str] = barcode categories listed from 5' to 3' on read 2 (e.g. ['Y', 'SPACER', 'ODD'])
 
     Returns:
@@ -158,22 +208,24 @@ def find_barcodes(read: str,
     barcode_type = layout.pop(0)
 
     while len(layout) > 0:
-        type_mask = config_df["type"] == barcode_type
-        barcode_df = config_df[type_mask]
-
-        # Y is the label for a terminal barcode
         if barcode_type == "Y":
-            bc, new_start = find_terminal_barcode(read, barcode_df, start)
+            bc, new_start = find_terminal_barcode(read, term_hashmap, start)
             barcodes.append(bc)
             start = new_start
         elif barcode_type == "SPACER":
             start += SPACER
         elif barcode_type == "END":
             break
-        else:
-            bc, new_start = find_nonterminal_barcode(read, barcode_df, start)
+        elif barcode_type == "ODD":
+            bc, new_start = find_nonterminal_barcode(read, odd_hashmap, start)
             barcodes.append(bc)
             start = new_start
+        elif barcode_type == "EVEN":
+            bc, new_start = find_nonterminal_barcode(read, even_hashmap, start)
+            barcodes.append(bc)
+            start = new_start
+        else:
+            raise Exception("Invalid barcode type")
 
         # If there isn't a BAROCDE_LENGTH's worth of bases, it's impossible to find another barcode
         if (len(read) - start) < BARCODE_LENGTH:
@@ -237,6 +289,14 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
     bead_df = config_df[config_df["type"] == "DPM"][["name", "sequence"]]
     bead_hashmap = bead_df.set_index("sequence").to_dict()["name"]
 
+    # Keep a dataframe for each barcode type
+    odd_df = config_df[config_df["type"] == "ODD"].copy()
+    even_df = config_df[config_df["type"] == "EVEN"].copy()
+    term_df = config_df[config_df["type"] == "Y"].copy()
+    odd_hashmap = create_hamming_hashmap(barcode_df=odd_df)
+    even_hashmap = create_hamming_hashmap(barcode_df=even_df)
+    term_hashmap = create_hamming_hashmap(barcode_df=term_df)
+
     # Read from inputs and write to outputs in same order to preserve fastq header order
     with gzip.open(input_read1, "rb") as read1_in, \
             gzip.open(output_read1, "wb") as read1_out, \
@@ -284,9 +344,11 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
                                    bead_hashmap)
 
             # Find all non-bead barcodes
-            barcodes = find_barcodes(read_r2,
-                                     config_df,
-                                     read2_format)
+            barcodes = find_barcodes(read=read_r2,
+                                     odd_hashmap=odd_hashmap,
+                                     even_hashmap=even_hashmap,
+                                     term_hashmap=term_hashmap,
+                                     read2_format=read2_format)
 
             # Concatenate bead id and barcodes and pad with ["NOT_FOUND"] if necessary
             final_barcodes = [bead_id] + barcodes
