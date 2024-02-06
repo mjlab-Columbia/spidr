@@ -337,6 +337,11 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
             header_r1, read_r1, plus_line_r1, quality_r1 = chunk_read1
             header_r2, read_r2, plus_line_r2, quality_r2 = chunk_read2
 
+            # Remove the space and everything after it in the header, since it's not needed
+            # Keeping the space causes issues with bowtie2 and STAR
+            header_r1 = header_r1.split(" ")[0]
+            header_r2 = header_r2.split(" ")[0]
+
             # Bead ID is only found in read 1
             bead_id = find_bead_id(chunk_read1,
                                    start_offset,
