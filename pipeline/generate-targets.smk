@@ -456,7 +456,7 @@ rule align_bowtie2:
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.bt2.log")
     threads: 
-        10
+        4
     conda:
         "envs/sprite.yaml"
     benchmark:
@@ -464,11 +464,12 @@ rule align_bowtie2:
     shell:
         '''
         (bowtie2 \
-            -p 10 \
+            -p 4 \
             -t \
             -x {params.BOWTIE2_INDEX} \
-            -1 {input.fq1} -2 {input.fq2} | \
-            samtools view -bS -> {output.bam}) &> {log}
+            -1 {input.fq1} \
+            -2 {input.fq2} \
+            | samtools view -bS -> {output.bam}) &> {log}
         
         (samtools view -b -f 4 {output.bam} | samtools sort -n -o {output.unmapped}) &>> {log}
         (samtools view -b -F 4 {output.bam} | samtools sort > {output.mapped}) &>> {log}
