@@ -16,7 +16,7 @@ pipeline_to_run="both"
 
 # Check if a command-line argument is provided
 if [ $# -gt 0  ]; then
-        pipeline_to_run=$1
+    pipeline_to_run=$1
 fi
 
 # Run the selected pipeline section(s)
@@ -25,6 +25,7 @@ if [ "$pipeline_to_run" = "generate"  ] || [ "$pipeline_to_run" = "both"  ]; the
     --snakefile generate-targets.smk \
         --use-conda \
         --rerun-incomplete \
+        --keep-going \
         -j 128 \
         --cluster-config cluster.generate-targets.yaml \
         --configfile config.generate-targets.yaml \
@@ -38,6 +39,7 @@ if [ "$pipeline_to_run" = "postprocess"  ] || [ "$pipeline_to_run" = "both"  ]; 
        --snakefile postprocess-targets.smk \
        --use-conda \
        --rerun-incomplete \
+       --keep-going \
        -j 128 \
        --cluster-config cluster.postprocess-targets.yaml \
        --configfile config.postprocess-targets.yaml \
