@@ -22,7 +22,11 @@ required_config_keys = [
     'proportion',
     'max_size',
     'bowtie2_index',
-    'star_index'
+    'star_index',
+    'read1_format',
+    'read2_format',
+    'read1_start_offset',
+    'sequence_length'
 ]
 
 optional_config_keys = [
@@ -243,31 +247,6 @@ rule trim_sequencing_adapters:
         '''
 
 
-# rule old_identify_barcodes:
-#     input:
-#         r1 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}_val_1.fq.gz"),
-#         r2 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R2.part_{splitid}_val_2.fq.gz")
-#     output:
-#         r1_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz"),
-#         r2_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded.fastq.gz")
-#     params:
-#         bid_config = config['bID']
-#     log:
-#         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
-#     benchmark:
-#         "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
-#     shell:
-#         """
-#         (java \
-#             -jar scripts/java/BarcodeIdentification_v1.2.0.jar \
-#             --input1 {input.r1} \
-#             --input2 {input.r2} \
-#             --output1 {output.r1_barcoded} \
-#             --output2 {output.r2_barcoded} \
-#             --config {params.bid_config}) &> {log}
-#         """
-
-
 rule identify_barcodes:
     input:
         r1 = os.path.join(out_dir, "workup", "trimmed", "{experiment}_R1.part_{splitid}_val_1.fq.gz"),
@@ -277,10 +256,10 @@ rule identify_barcodes:
         r2_barcoded = os.path.join(out_dir, "workup", "fastqs", "{experiment}_R2.part_{splitid}.barcoded.fastq.gz")
     params:
         bid_config = config['bID'],
-        read1_format = "DPM",
-        read2_format = "Y|SPACER|ODD|SPACER|EVEN|SPACER|ODD|SPACER|EVEN|SPACER|ODD",
-        start_offset = 35,
-        sequence_length = 15
+        read1_format = config["read1_format"],
+        read2_format = config["read2_format"],
+        start_offset = config["read1_start_offset"],
+        sequence_length = config["sequence_length"]
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
     benchmark:
