@@ -19,7 +19,7 @@ NOT_FOUND = "NOT_FOUND"
 
 def find_bead_id(chunk: Tuple[str],
                  start_offset: int,
-                 sequence_length: int,
+                 bead_id_lengths: List[int],
                  bead_hashmap: Dict[str, str]) -> str:
     """
     Find the bead id sequence in read 1 of paired-end read
@@ -27,19 +27,21 @@ def find_bead_id(chunk: Tuple[str],
     Args:
         chunk: Tuple[str] = tuple of 4 reads from a fastq (header, read, +, quality)
         start_offset: int = number of bases from the 5' end of read 1 to start looking for bead id
-        sequence_length: int = length of bead id to search for (this might get deprecated)
+        bead_id_lengths: List[int] = possible lengths of bead ids
         bead_hashmap: Dict[str, str] = dictionary of form { BEAD_SEQUENCE: BEAD_ID_NAME } to efficiently search for bead ids
 
     Returns:
         str = name of bead id found or NOT_FOUND
     """
     header, read, plus_line, quality = chunk
-    potential_match = read[start_offset:(start_offset + sequence_length)]
 
-    if potential_match in bead_hashmap:
-        return bead_hashmap[potential_match]
-    else:
-        return NOT_FOUND
+    # Iterate through all possible bead id lengths and check if the sequence is in the hashmap
+    for length in bead_id_lengths:
+        potential_match = read[start_offset:(start_offset + length)]
+        if potential_match in bead_hashmap:
+            return bead_hashmap[potential_match]
+
+    return NOT_FOUND
 
 
 def hamming_distance(seq1: str, seq2: str) -> int:
@@ -69,7 +71,7 @@ def get_all_seqs_within_k(seq: str, k: int) -> Set[str]:
     Returns:
         Set[str] = set of all sequences within a Hamming distance of k from `seq`
     """
-    alphabet = "ACGT"  # DNA alphabet, you can modify this for different alphabets
+    alphabet = "ACGT"
     sequence_length = len(seq)
     possible_mutations = set()
 
@@ -264,10 +266,9 @@ def pad_barcodes(barcodes: List[str], expected_length: int) -> List[str]:
 @ click.option('--read1_format', help="Read 1 barcode format string (e.g. 'DPM')")
 @ click.option('--read2_format', help="Read 2 barcode format (e.g. 'Y|SPACER|ODD|SPACER|EVEN')")
 @ click.option('--start_offset', type=int, help="Bases to skip from 5' end before bead oligo search")
-@ click.option('--sequence_length', type=int, help="Length of sequences to identify")
 @ click.option('--config', type=click.Path(exists=True), help='Config file contains bead sequences')
 @ click.option('--show_progress_bar', type=bool, help='Whether or not to show a tqdm progress bar', default=False)
-def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.PathLike, output_read2: os.PathLike, read1_format: str, read2_format: str, start_offset: str, sequence_length: int, config: os.PathLike, show_progress_bar: bool) -> None:
+def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.PathLike, output_read2: os.PathLike, read1_format: str, read2_format: str, start_offset: str, config: os.PathLike, show_progress_bar: bool) -> None:
     """
     Entry point for the program
     """
@@ -288,6 +289,7 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
     # Create a dictionary of the format { BEAD_SEQUENCE: BEAD_NAME } for all DPM entries
     bead_df = config_df[config_df["type"] == "DPM"][["name", "sequence"]]
     bead_hashmap = bead_df.set_index("sequence").to_dict()["name"]
+    bead_id_lengths = bead_df["sequence"].str.len().unique()
 
     # Keep a dataframe for each barcode type
     odd_df = config_df[config_df["type"] == "ODD"].copy()
@@ -345,7 +347,7 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
             # Bead ID is only found in read 1
             bead_id = find_bead_id(chunk_read1,
                                    start_offset,
-                                   sequence_length,
+                                   bead_id_lengths,
                                    bead_hashmap)
 
             # Find all non-bead barcodes
