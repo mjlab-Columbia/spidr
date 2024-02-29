@@ -26,7 +26,6 @@ required_config_keys = [
     'read1_format',
     'read2_format',
     'read1_start_offset',
-    'sequence_length'
 ]
 
 optional_config_keys = [
@@ -259,7 +258,6 @@ rule identify_barcodes:
         read1_format = config["read1_format"],
         read2_format = config["read2_format"],
         start_offset = config["read1_start_offset"],
-        sequence_length = config["sequence_length"]
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
     benchmark:
@@ -274,7 +272,6 @@ rule identify_barcodes:
             --read1_format '{params.read1_format}' \
             --read2_format '{params.read2_format}' \
             --start_offset {params.start_offset} \
-            --sequence_length {params.sequence_length} \
             --config {params.bid_config}) &> {log}
         """
 
