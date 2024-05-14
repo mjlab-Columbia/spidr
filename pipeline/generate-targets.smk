@@ -131,6 +131,8 @@ rule split_fastq_read1:
         "envs/sprite.yaml"
     threads: 
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.split_fastq_read1.tsv"
     shell:
@@ -164,6 +166,8 @@ rule split_fastq_read2:
         "envs/sprite.yaml"
     threads: 
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.split_fastq_read2.tsv"
     shell:
@@ -189,6 +193,8 @@ rule compress_fastq_read1:
         "envs/sprite.yaml"
     threads:
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.compress_fastq_read1.tsv"
     shell:
@@ -208,6 +214,8 @@ rule compress_fastq_read2:
         "envs/sprite.yaml"
     threads:
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.compress_fastq_read2.tsv"
     shell:
@@ -231,6 +239,8 @@ rule trim_sequencing_adapters:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.trim_sequencing_adapters.log")
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.trim_sequencing_adapters.tsv"
     shell:
@@ -260,6 +270,10 @@ rule identify_barcodes:
         start_offset = config["read1_start_offset"],
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
+    conda:
+        "envs/barcoding.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
     shell:
@@ -286,6 +300,8 @@ rule get_ligation_efficiency:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.get_ligation_efficiency.log")
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     shell:
         """
         (python scripts/python/get_ligation_efficiency.py {input.r1} > {output}) &> {log}
@@ -303,6 +319,8 @@ rule cat_ligation_efficiency:
         out_dir + "workup/ligation_efficiency.txt"
     log:
         os.path.join(out_dir, "workup", "logs", "cat_ligation_efficiency.log")
+    resources:
+        tmpdir = config["temp_dir"]
     shell:
         """
         (tail -n +1 {input} > {output}) &> {log}
@@ -323,6 +341,8 @@ rule split_reads_read1:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.split_reads_read1.log")
     conda:
        "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.split_reads_read1.tsv"
     shell:
@@ -345,6 +365,8 @@ rule split_reads_read2:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.split_reads_read2.log")
     conda:
        "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.split_reads_read2.tsv"
     shell:
@@ -371,6 +393,8 @@ rule trim_rpm_reads:
         10
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.trim_rpm_reads.tsv"
     shell:
@@ -406,6 +430,8 @@ rule trim_bead_oligo_reads:
         10
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.trim_bead_oligo_reads.tsv"
     shell:
@@ -435,6 +461,8 @@ rule align_bowtie2:
         4
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.align_bowtie2.tsv"
     shell:
@@ -465,6 +493,8 @@ rule convert_bam_to_fastq:
         1
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.convert_bam_to_fastq.tsv"
     shell:
@@ -498,6 +528,8 @@ rule align_star:
         "envs/sprite.yaml"
     benchmark:
         "benchmarks/{experiment}.{splitid}.align_star.tsv"
+    resources:
+        tmpdir = config["temp_dir"]
     shell:
         '''
         (STAR \
@@ -523,6 +555,8 @@ rule add_chromosome_info_bowtie2:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.add_chr.log"),
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
@@ -545,6 +579,8 @@ rule add_chromosome_info_star:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.add_chr.log"),
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.add_chr.tsv"
     shell:
@@ -574,6 +610,8 @@ rule merge_rna_bams:
         "envs/sprite.yaml"
     threads:
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.merge_rna_bams.tsv"
     shell:
@@ -597,6 +635,8 @@ rule convert_fastq_to_bam:
         "envs/sprite.yaml"
     threads:
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.convert_fastq_to_bam.tsv"
     shell:
@@ -620,6 +660,8 @@ rule merge_bead_bams:
         os.path.join(out_dir, "workup", "logs", "{experiment}.merge_bead_bams.log")
     threads:
         8
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.merge_bead_bams.tsv"
     shell:
@@ -643,6 +685,8 @@ rule make_clusters:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.make_clusters.log")
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.{splitid}.make_clusters.tsv"
     shell:
@@ -671,6 +715,8 @@ rule merge_clusters:
        "envs/sprite.yaml"
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.merge_clusters.log")
+    resources:
+        tmpdir = config["temp_dir"]
     benchmark:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
@@ -694,6 +740,8 @@ rule generate_cluster_statistics:
         "envs/sprite.yaml"
     log:
         os.path.join(out_dir, "workup", "logs", "generate_cluster_statistics.log")
+    resources:
+        tmpdir = config["temp_dir"]
     shell:
         """
         (python scripts/python/generate_cluster_statistics.py \
@@ -715,6 +763,8 @@ rule generate_cluster_ecdfs:
         dir = out_dir + "workup/clusters"
     conda:
         "envs/plotting.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     log:
         os.path.join(out_dir, "workup", "logs", "generate_cluster_ecdfs.log")        
     shell:
@@ -754,6 +804,8 @@ rule get_size_distribution:
         os.path.join(out_dir, "workup", "logs", "get_size_distribution.log")
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     shell:
         '''
         (python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM) &> {log}
@@ -774,6 +826,8 @@ rule split_incorrect_clusters:
         rounds_format = config["rounds_format"]
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.incorrectclusters.log")
     benchmark:
@@ -798,6 +852,8 @@ rule split_on_first_tag:
         )
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.splitonfirsttag.log")
     benchmark:
@@ -826,6 +882,8 @@ rule thresh_and_split_condition:
         num_tags = config["num_tags"]
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{condition}.splitbams.log")
     benchmark:
@@ -862,6 +920,8 @@ rule thresh_and_split_no_condition:
         num_tags = config["num_tags"]
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     log:
         out_dir + "workup/logs/{experiment}.merged.splitbams.log"
     benchmark:
@@ -897,6 +957,8 @@ rule generate_splitbam_statistics:
         os.path.join(out_dir, "workup", "logs", "generate_splitbam_statistics.log")
     conda:
         "envs/sprite.yaml"
+    resources:
+        tmpdir = config["temp_dir"]
     shell:
         """
         (for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}) &> {log}
