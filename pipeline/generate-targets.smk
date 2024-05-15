@@ -39,7 +39,7 @@ try:
 except AssertionError:
     for key in required_config_keys:
         if key not in config.keys():
-            print(f"Missing: {key} in {configfile}")
+            print(f"Missing: {key} in config.generate-targets.yaml")
     
     sys.exit()
 
