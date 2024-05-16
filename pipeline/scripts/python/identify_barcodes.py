@@ -115,10 +115,11 @@ def create_hamming_hashmap(barcode_df: pd.DataFrame) -> Dict[str, Set[str]]:
     return hamming_hashmap
 
 
+# FIXME: Add possible terminal barcode lengths as an option in the CLI with [9, ..., 12] as default
 def find_terminal_barcode(read: str,
                           barcode_hashmap: Dict[str, Set[str]],
                           start: int,
-                          possible_lengths: List[int] = [9, 10]) -> Tuple[str, int]:
+                          possible_lengths: List[int] = [9, 10, 11, 12]) -> Tuple[str, int]:
     """
     Identify the terminal barcode on read 2
 
