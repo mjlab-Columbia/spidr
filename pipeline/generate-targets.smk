@@ -26,6 +26,7 @@ required_config_keys = [
     'read1_format',
     'read2_format',
     'read1_start_offset',
+    'read2_start_offset',
 ]
 
 optional_config_keys = [
@@ -268,6 +269,7 @@ rule identify_barcodes:
         read1_format = config["read1_format"],
         read2_format = config["read2_format"],
         start_offset = config["read1_start_offset"],
+        read2_start_offset = config["read2_start_offset"],
     log:
         os.path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log")
     conda:
@@ -286,6 +288,7 @@ rule identify_barcodes:
             --read1_format '{params.read1_format}' \
             --read2_format '{params.read2_format}' \
             --start_offset {params.start_offset} \
+            --read2_start_offset {params.read2_start_offset} \
             --config {params.bid_config}) &> {log}
         """
 

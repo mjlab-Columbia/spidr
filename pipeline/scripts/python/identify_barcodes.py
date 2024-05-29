@@ -1,4 +1,4 @@
-import click
+from click import command, option, Path
 import pandas as pd
 from pdb import set_trace as st
 import os
@@ -191,7 +191,8 @@ def find_barcodes(read: str,
                   even_hashmap: Dict[str, Set[str]],
                   odd_hashmap: Dict[str, Set[str]],
                   term_hashmap: Dict[str, Set[str]],
-                  read2_format: List[str]) -> List[str]:
+                  read2_format: List[str],
+                  read2_start_offset: int) -> List[str]:
     """
     Find all barcode sequences in read 2
 
@@ -205,7 +206,7 @@ def find_barcodes(read: str,
     Returns:
         List[str] = list of barcodes from name column of config_df
     """
-    start = 0
+    start = read2_start_offset
     barcodes = []
     layout = read2_format.copy() + ["END"]
     barcode_type = layout.pop(0)
@@ -259,19 +260,31 @@ def pad_barcodes(barcodes: List[str], expected_length: int) -> List[str]:
         raise Exception("barcodes is greater than expected_length")
 
 
-@ click.command()
-@ click.option('--input_read1', type=click.Path(exists=True), help='Unbarcoded read 1 fastq file')
-@ click.option('--input_read2', type=click.Path(exists=True), help='Unbarcoded read 2 fastq file')
-@ click.option('--output_read1', help='Path to output barcoded read 1 fastq file')
-@ click.option('--output_read2', help='Path to output barcoded read 2 fastq file')
-@ click.option('--read1_format', help="Read 1 barcode format string (e.g. 'DPM')")
-@ click.option('--read2_format', help="Read 2 barcode format (e.g. 'Y|SPACER|ODD|SPACER|EVEN')")
-@ click.option('--start_offset', type=int, help="Bases to skip from 5' end before bead oligo search")
-@ click.option('--config', type=click.Path(exists=True), help='Config file contains bead sequences')
-@ click.option('--show_progress_bar', type=bool, help='Whether or not to show a tqdm progress bar', default=False)
-def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.PathLike, output_read2: os.PathLike, read1_format: str, read2_format: str, start_offset: str, config: os.PathLike, show_progress_bar: bool) -> None:
+@command()
+@option('--input_read1', type=Path(exists=True), help='Unbarcoded read 1 fastq file')
+@option('--input_read2', type=Path(exists=True), help='Unbarcoded read 2 fastq file')
+@option('--output_read1', help='Path to output barcoded read 1 fastq file')
+@option('--output_read2', help='Path to output barcoded read 2 fastq file')
+@option('--read1_format', help="Read 1 barcode format string (e.g. 'DPM')")
+@option('--read2_format', help="Read 2 barcode format (e.g. 'Y|SPACER|ODD|SPACER|EVEN')")
+@option('--start_offset', type=int, help="Skip this many bases from 5' end on read1 before bead oligo search", default=0, show_default=True)
+@option('--read2_start_offset', type=int, help="Skip this many bases from 5' on read2 before terminal barcode search", default=0, show_default=True)
+@option('--config', type=Path(exists=True), help='Config file contains bead sequences')
+@option('--show_progress_bar', type=bool, help='Whether or not to show a tqdm progress bar', default=False)
+def main(input_read1: os.PathLike, 
+         input_read2: os.PathLike, 
+         output_read1: os.PathLike, 
+         output_read2: os.PathLike, 
+         read1_format: str, 
+         read2_format: str, 
+         start_offset: str, 
+         read2_start_offset: str, 
+         config: os.PathLike, 
+         show_progress_bar: bool) -> None:
     """
-    Entry point for the program
+    Barcode identification script for SPIDR pipeline
+
+    Last Updated: 2024-05-29
     """
     # Turn format strings into lists of strings (e.g. "A|B" --> ["A", "B"])
     read1_format = [s.strip() for s in read1_format.split('|')]
@@ -356,7 +369,8 @@ def main(input_read1: os.PathLike, input_read2: os.PathLike, output_read1: os.Pa
                                      odd_hashmap=odd_hashmap,
                                      even_hashmap=even_hashmap,
                                      term_hashmap=term_hashmap,
-                                     read2_format=read2_format)
+                                     read2_format=read2_format,
+                                     read2_start_offset=read2_start_offset)
 
             # Concatenate bead id and barcodes and pad with ["NOT_FOUND"] if necessary
             final_barcodes = [bead_id] + barcodes
