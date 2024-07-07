@@ -1,6 +1,0 @@
-name: java
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-  - openjdk==20.0.0

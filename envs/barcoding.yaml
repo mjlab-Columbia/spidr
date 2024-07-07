@@ -1,0 +1,11 @@
+name: barcoding
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python
+  - tqdm
+  - pandas
+  - click
+  - gzip
+  - numpy
