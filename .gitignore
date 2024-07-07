@@ -9,18 +9,18 @@ TODO.md
 **/*.pyc
 
 # User-specific files that shouldn't be committed
-pipeline/experiments.json
-pipeline/fastq_files
-pipeline/.snakemake
-pipeline/.conda
-pipeline/*.pdf
-pipeline/workup/*
-pipeline/slurm-*.out
-pipeline/*.clusters
-pipeline/benchmarks
-pipeline/run-log*.txt
-pipeline/*.png
-pipeline/config.generate-targets.yaml
+experiments.json
+.snakemake
+.conda
+*.pdf
+workup/*
+slurm-*.out
+*.clusters
+benchmarks
+run-log*.txt
+*.png
+config.yaml
+cluster.yaml
 
 # Ignore non-essential documentation files at all levels
 **/*.aux
