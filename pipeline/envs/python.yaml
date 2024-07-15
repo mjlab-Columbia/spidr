@@ -1,0 +1,13 @@
+name: python
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python
+  - pysam==0.22.1
+  - tqdm
+  - pandas
+  - numpy
+  - matplotlib
+  - click
+  - samtools==1.20

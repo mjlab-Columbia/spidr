@@ -1,0 +1,9 @@
+name: samtools
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - samtools
+    - python
+    - pandas
+    - pysam

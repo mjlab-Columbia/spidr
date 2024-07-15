@@ -1,0 +1,8 @@
+name: cutadapt
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - openjdk
+  - cutadapt
+  - fastqc
