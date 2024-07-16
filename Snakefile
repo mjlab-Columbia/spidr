@@ -405,7 +405,10 @@ rule trim_bead_oligo_reads:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 48000,
+        time = "12:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.trim_bead_oligo_reads.tsv"
     shell:
@@ -436,7 +439,10 @@ rule align_bowtie2:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 48000,
+        time = "01:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.align_bowtie2.tsv"
     shell:
@@ -468,7 +474,10 @@ rule convert_bam_to_fastq:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 32000,
+        time = "01:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.convert_bam_to_fastq.tsv"
     shell:
@@ -517,7 +526,10 @@ rule align_star:
     benchmark:
         "benchmarks/{experiment}.{splitid}.align_star.tsv"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 10,
+        mem_mb = 100000,
+        time = "12:00:00"
     shell:
         '''
         mkdir -p workup/align_star
@@ -544,7 +556,10 @@ rule add_chromosome_info_bowtie2:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb= 48000,
+        time = "02:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.add_chromosome_info_bowtie2.tsv"
     shell:
@@ -569,7 +584,10 @@ rule add_chromosome_info_star:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 48000,
+        time = "01:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.add_chromosome_info_star.tsv"
     shell:
@@ -600,7 +618,10 @@ rule merge_rna_bams:
     threads:
         8
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 48000,
+        time = "02:00:00"
     benchmark:
         "benchmarks/{experiment}.merge_rna_bams.tsv"
     shell:
@@ -625,7 +646,10 @@ rule convert_fastq_to_bam:
     threads:
         8
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 48000,
+        time = "12:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.convert_fastq_to_bam.tsv"
     shell:
@@ -654,7 +678,10 @@ rule merge_bead_bams:
     threads:
         8
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 48000,
+        time = "24:00:00"
     benchmark:
         "benchmarks/{experiment}.merge_bead_bams.tsv"
     shell:
@@ -679,7 +706,10 @@ rule make_clusters:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 32000,
+        time = "01:00:00"
     benchmark:
         "benchmarks/{experiment}.{splitid}.make_clusters.tsv"
     shell:
@@ -709,7 +739,10 @@ rule merge_clusters:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.merge_clusters.log")
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 64000,
+        time = "01:00:00"
     benchmark:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
@@ -730,7 +763,10 @@ rule split_incorrect_clusters:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 32000,
+        time = "00:15:00"
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.split_incorrect_clusters.log")
     benchmark:
@@ -760,7 +796,10 @@ rule generate_cluster_statistics:
     log:
         path.join(out_dir, "workup", "logs", "generate_cluster_statistics.log")
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 50000,
+        time = "12:00:00"
     shell:
         """
         (python scripts/python/generate_cluster_statistics.py \
@@ -783,7 +822,10 @@ rule generate_cluster_ecdfs:
     conda:
         "envs/plotting.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 50000,
+        time = "12:00:00"
     log:
         path.join(out_dir, "workup", "logs", "generate_cluster_ecdfs.log")        
     shell:
@@ -806,7 +848,10 @@ rule split_on_first_tag:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 32000,
+        time = "00:15:00"
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.splitonfirsttag.log")
     benchmark:
@@ -848,7 +893,10 @@ rule get_size_distribution:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 50000,
+        time = "12:00:00"
     shell:
         '''
         (python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM) &> {log}
@@ -876,7 +924,10 @@ rule thresh_and_split_condition:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 32000,
+        time = "00:15:00"
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{condition}.splitbams.log")
     benchmark:
@@ -911,7 +962,10 @@ rule thresh_and_split_no_condition:
     conda:
         "envs/sprite.yaml"
     resources:
-        tmpdir = config["temp_dir"]
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 32000,
+        time = "00:15:00"
     log:
         path.join("workup", "logs", "{experiment}.merged.splitbams.log")
     benchmark:
