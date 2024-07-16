@@ -5,7 +5,8 @@ import os
 from collections import defaultdict, Counter
 from pathlib import Path
 import itertools
-import tqdm
+from tqdm import tqdm
+from pdb import set_trace
 
 def parse_args():
 
@@ -58,14 +59,20 @@ def parse_args():
 def main():
     args = parse_args()
     labels = assign_labels(args.clusters,args.min_oligos, args.proportion, args.max_size)
-    label_bam_file(args.input_bam, args.output_bam, labels, args.num_tags)
+    label_bam_file(args.input_bam, 
+                   args.output_bam, 
+                   args.dir, labels, 
+                   args.num_tags, 
+                   args.min_oligos, 
+                   args.proportion, 
+                   args.max_size)
     split_bam_by_RG(args.output_bam, args.dir)
 
 
 def assign_labels(clusterfile, min_oligos, proportion, max_size):
     labels = {}
     with open(clusterfile, 'r') as clusters:
-        for line in tqdm.tqdm(clusters):
+        for line in tqdm(clusters):
             barcode, *reads = line.rstrip('\n').split('\t')
             multilabel = get_single_label(reads, min_oligos, proportion, max_size)
             labels[barcode] = multilabel
@@ -96,19 +103,19 @@ def get_single_label(reads,min_oligos, proportion, max_size):
      return 'malformed'
 
 
-def label_bam_file(input_bam, output_bam, labels, num_tags):
+def label_bam_file(input_bam, output_bam, directory, labels, num_tags, min_oligos, proportion, max_size):
     count, duplicates, skipped = 0,0,0
     written = defaultdict(int)
-    pattern = re.compile('::' + num_tags * '\[([a-zA-Z0-9_\-]+)\]')
+    pattern = re.compile('::' + num_tags * '\\[([a-zA-Z0-9_\\-]+)\\]')
     library = os.path.basename(input_bam).split('.')[0]
-    header = construct_read_group_header(input_bam, labels)
+    header = construct_read_group_header(input_bam, output_bam, directory, labels, num_tags, min_oligos, proportion, max_size)
     found = defaultdict(set)
 
     # For debugging purposes
     readlabels_set = set()
-
+    
     with pysam.AlignmentFile(input_bam, "rb") as in_bam, \
-    pysam.AlignmentFile(output_bam, "wb", header=header) as out_bam:
+    pysam.AlignmentFile(output_bam, mode="wb", header=header) as out_bam:
         for read in in_bam.fetch(until_eof = True):
             count += 1
             if count % 1000000 == 0:
@@ -137,13 +144,29 @@ def label_bam_file(input_bam, output_bam, labels, num_tags):
     print('Duplicate reads:', duplicates)
     print('Reads with an error not written out:', skipped)
 
-def construct_read_group_header(input_bam, labels):
+def construct_read_group_header(input_bam, output_bam, directory, labels, num_tags, min_oligos, proportion, max_size):
     proteins = set(labels.values())
     sample_name = input_bam.split('.',1)[0]
+    base_command = f"python scripts/python/threshold_tag_and_split.py "
+    files_options = f"-i {input_bam} -o {output_bam} -d {directory} "
+    cluster_options = f"--min_oligos {min_oligos} --proportion {proportion} --max_size {max_size} --num_tags {num_tags}"
+    full_command = base_command + files_options + cluster_options
+    description = "Splitting cDNA aligned reads by bead clusters into BAM files for each RBP in SPIDR experiment"
+
     with pysam.AlignmentFile(input_bam, 'rb') as input_file:
         bam_header = input_file.header.to_dict()
         read_group_dict = [{"ID":name, "SM":sample_name} for name in list(proteins)]
         bam_header["RG"] = read_group_dict
+
+        # PP is PG-ID of previous program
+        # Set it to last item of current PG header which will be samtools merge command
+        pg_header = {"PN": "threshold_tag_and_split.py",
+                     "ID": "threshold_tag_and_split", 
+                     "VN": "1",
+                     "PP": bam_header["PG"][-1]["ID"],
+                     "DS": description,
+                     "CL": full_command}
+        bam_header["PG"].append(pg_header)
         return bam_header
 
 
@@ -157,4 +180,3 @@ def split_bam_by_RG(output_bam, output_dir):
 
 if __name__== "__main__":
     main()
-
