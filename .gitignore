@@ -9,6 +9,7 @@ TODO.md
 **/*.pyc
 
 # User-specific files that shouldn't be committed
+experimental/*
 experiments.json
 .snakemake
 .conda
