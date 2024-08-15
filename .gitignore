@@ -21,7 +21,6 @@ benchmarks
 run-log*.txt
 *.png
 config.yaml
-cluster.yaml
 
 # Ignore non-essential documentation files at all levels
 **/*.aux
