@@ -1,0 +1,10 @@
+name: python
+channels:
+    - conda-forge
+dependencies:
+    - python
+    - tqdm
+    - pandas
+    - numpy
+    - matplotlib
+    - click

@@ -1,0 +1,5 @@
+name: fastqsplitter
+channels:
+    - conda-forge
+dependencies:
+    - fastqsplitter
