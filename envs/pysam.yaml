@@ -1,0 +1,9 @@
+name: pysam
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - conda-forge::python
+    - bioconda::pysam
+    - conda-forge::pandas
+    - bioconda::samtools

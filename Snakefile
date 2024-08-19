@@ -437,7 +437,7 @@ rule align_bowtie2:
     threads: 
         4
     conda:
-        "envs/sprite.yaml"
+        "envs/bowtie2.yaml"
     resources:
         tmpdir = config["temp_dir"],
         cpus = 1,
@@ -472,7 +472,7 @@ rule convert_bam_to_fastq:
     threads: 
         1
     conda:
-        "envs/sprite.yaml"
+        "envs/samtools.yaml"
     resources:
         tmpdir = config["temp_dir"],
         cpus = 1,
@@ -614,7 +614,7 @@ rule merge_rna_bams:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.merge_rna_bams.log")
     conda:
-        "envs/sprite.yaml"
+        "envs/samtools.yaml"
     threads:
         8
     resources:
@@ -642,7 +642,7 @@ rule convert_fastq_to_bam:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.make_bam.log")
     conda:
-        "envs/sprite.yaml"
+        "envs/pysam.yaml"
     threads:
         8
     resources:
