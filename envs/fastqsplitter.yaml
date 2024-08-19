@@ -2,4 +2,4 @@ name: fastqsplitter
 channels:
     - conda-forge
 dependencies:
-    - fastqsplitter
+    - conda-forge::fastqsplitter
