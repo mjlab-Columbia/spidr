@@ -1,0 +1,26 @@
+executor: cluster-generic
+jobs: 50
+cluster-generic-submit-cmd:
+  mkdir -p logs/{rule} &&
+  sbatch
+    --account=mjlab
+    --cores={resources.cpus}
+    --mem={resources.mem_mb}M
+    --job-name=smk-{rule}-{wildcards}
+    --output=logs/{rule}/{rule}-{wildcards}-%j.out
+    --time={resources.time}
+default-resources:
+    account: mjlab
+    mem_mb: 2000
+
+restart-times: 0
+max-jobs-per-second: 10
+max-status-checks-per-second: 1
+local-cores: 1
+latency-wait: 60
+jobs: 500
+keep-going: True
+rerun-incomplete: True
+printshellcmds: True
+scheduler: greedy
+use-conda: True

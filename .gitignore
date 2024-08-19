@@ -19,7 +19,6 @@ slurm-*.out
 benchmarks
 run-log*.txt
 *.png
-config.yaml
 
 # Ignore non-essential documentation files at all levels
 **/*.aux
