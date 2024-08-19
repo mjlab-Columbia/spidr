@@ -1,0 +1,420 @@
+\documentclass{article}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+}
+
+\definecolor{bashkeyword}{RGB}{0,0,255}
+\definecolor{bashstring}{RGB}{42,0,255}
+\definecolor{bashcomment}{RGB}{0,128,0}
+
+\lstdefinestyle{bashstyle}{
+    language=bash,
+    basicstyle=\ttfamily,
+    keywordstyle=\color{bashkeyword},
+    stringstyle=\color{bashstring},
+    commentstyle=\color{bashcomment},
+    numbers=left,
+    numberstyle=\small\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    backgroundcolor=\color{white},
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    rulecolor=\color{black},
+    tabsize=2,
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    escapeinside={(*@}{@*)},
+    xleftmargin=4pt,
+    framexleftmargin=5pt,
+    framexrightmargin=5pt,
+}
+
+\newcommand{\UNI}{UNI}
+\newcommand{\DIRNAME}{test}
+
+\author{Darvesh Gorhe}
+\title{SPIDR Pipeline V1}
+\date{June 27th, 2024}
+
+\begin{document}
+    \maketitle
+    \tableofcontents
+    \section{Notes}
+    \begin{itemize}
+        \item \texttt{\UNI} is always a placeholder for your actual UNI, please replace it when running commands
+        \item The \texttt{\DIRNAME} directory is a placeholder as well, but feel free to use it as is
+        \item It's recommended that you type out the commands (labeled with \underline{cmd}). Sometimes the underscores and spaces don't get copied correctly.
+        \item If you run into issues with conda environments not setting up properly, you may need to set your channel priority to strict. You can do this with the following command:
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{conda config --set channel\_priority strict}
+            \item Alternatively you can create a \texttt{.condarc} file where you installed miniforge. Put the following into the \texttt{.condarc} file:
+            \begin{quote}
+                \begin{verbatim}
+                channels:
+                    - conda-forge
+                    - bioconda
+
+                channel_priority: strict
+                \end{verbatim}
+            \end{quote}
+        \end{itemize}
+        \item Assuming you set up your conda environment correctly, this file should be located in \path{/burg/mjlab/projects/cli-tools/UNI/miniforge3/.condarc}
+
+    \end{itemize}
+
+    \section{Pre-requisites}
+    \begin{enumerate}
+        \item Ensure that you have \texttt{mamba} installed. You can check this by running:
+            \begin{itemize}
+                \item \underline{cmd}: \texttt{mamba --version}
+                \item If you get a version number, then \texttt{mamba} is installed
+                \item If \texttt{mamba} is not installed go to the Installing \texttt{mamba} subsection for instructions on how to install \texttt{mamba}
+            \end{itemize}
+
+        \item Ensure that you have \texttt{snakemake} installed in your base environment. You can check this by running:
+            \begin{itemize}
+                \item \underline{cmd}: \texttt{snakemake --version}
+                \item If you get a version number, then \texttt{snakemake} is installed
+                \item If \texttt{snakemake} is not installed go to the Installing \texttt{snakemake} subsection for instructions on how to install \texttt{snakemake}
+            \end{itemize}
+    \end{enumerate}
+
+    \subsection{Installing \texttt{mamba}}
+    \begin{enumerate}
+        \item Log in to Ginsburg
+        \item Create a directory for your command-line tools if it doesn't already exist
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mkdir -p /burg/mjlab/projects/cli-tools/\UNI}
+        \end{itemize}
+
+        \item Navigate to the directory you created 
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cd /burg/mjlab/projects/cli-tools/\UNI}
+        \end{itemize}
+
+        \item Download the installation script
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{curl -L -O} \path{"https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-\$(uname)-\$(uname -m).sh"}
+        \end{itemize}
+
+        \item Run the installation script
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{bash Miniforge3-\$(uname)-\$(uname -m).sh}
+            \item Type 'yes' and hit enter to agree to the terms of service
+            \item When asked where to install \texttt{miniforge3}, type \path{/burg/mjlab/projects/cli-tools/\UNI} instead of the default path (usually \path{/burg/\UNI/miniforge3})
+            \item Type 'y' or 'yes' for any of the following prompts to agree to them
+        \end{itemize}
+
+        \item Set \texttt{\$CONDA\_ROOT} in your \texttt{~/.bashrc} file to the directory where miniforge3 is installed
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{echo export "CONDA\_ROOT=/burg/mjlab/projects/cli-tools/\UNI/miniforge3" >> $\sim$/.bashrc}
+            \item This is important because there is a specific precedence for \texttt{.condarc} file which can change which version of packages are installed
+            \item \texttt{.condarc} files tell \texttt{conda} and \texttt{mamba} which channels to look at, in what order to look at channels, and how strictly to look at channels
+            \item You can learn more about the \texttt{.condarc} specifics \href{https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html}{here}.
+            \item You can learn more about channels \href{https://conda.io/projects/conda/en/latest/user-guide/concepts/channels.html}{here}.
+        \end{itemize}
+
+        \item Re-start your shell to make sure the changes take effect
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{source $\sim$/.bashrc}
+        \end{itemize}
+
+        \item Ensure your \texttt{.condarc} file has only \texttt{}
+
+    \end{enumerate}
+
+    \subsection{Installing \texttt{snakemake}}
+    \begin{enumerate}
+        \item Log in to Ginsburg
+
+        \item Make sure you have \texttt{mamba} installed and running, you can check this with the following command
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mamba --version}
+            \item If you get a version number, then \texttt{mamba} is installed
+            \item If \texttt{mamba} is not installed go to the Installing \texttt{mamba} subsection for instructions on how to install \texttt{mamba}
+        \end{itemize}
+
+        \item Install \texttt{snakemake} from the \texttt{bioconda} channel
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mamba install -c bioconda snakemake}
+            \item This will list all the dependencies that \texttt{mamba} will download and install, type 'Y' and hit enter to confirm
+        \end{itemize}
+
+        \item Confirm that \texttt{snakemake} is installed properly
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{snakemake --version}
+            \item If you get a version number (probably 7.32.4 or higher), then \texttt{snakemake} is installed correctly
+        \end{itemize}
+
+    \end{enumerate}
+
+    \noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+
+    \section{SPIDR Run with \texttt{HEK\_MTOR\_QC} Data - Ginsburg HPC}
+    \begin{enumerate}
+        \item Create a directory \path{/burg/mjlab/projects/spidr-runs/\UNI/\DIRNAME} if it doesn't exist.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mkdir -p /burg/mjlab/projects/spidr-runs/\UNI/\DIRNAME}
+            \item For the remainder of the document we'll call this directory \path{\DIRNAME}
+        \end{itemize}
+
+        \item Navigate to that directory (test in our case)
+        \begin{itemize}
+            \item \underline{cmd}: \path{/burg/mjlab/projects/spidr-runs/\UNI/\DIRNAME}
+        \end{itemize}
+        
+        \item Clone the SPIDR repository with all the code into this folder.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{git clone https://github.com/mjlab-Columbia/spidr.git}
+            \item This will create a directory called \texttt{spidr}
+        \end{itemize}
+
+        \item Navigate to the new \texttt{spidr} directory
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cd spidr}
+        \end{itemize}
+
+        \item Create the \texttt{experiments.json} file to tell the pipeline where your read files are.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{python scripts/python/fastq2json.py --fastq\_dir /burg/mjlab/projects/HEK\_MTOR\_QC}
+            \item This will be the directory containing the paired-end files from your sequencing run
+            \item Avoid copying the files from where they are since they're often large
+        \end{itemize}
+
+        \item Copy the example barcode configuration file \path{config_6_rounds_mTOR.txt} file located at \path{/burg/mjlab/projects/spidr-barcoding-files/config_6_rounds_mTOR.txt}
+        \begin{itemize}
+            \item \underline{cmd}: \path{cp /burg/mjlab/projects/spidr-barcoding-files/config_6_rounds_mTOR.txt ./config_6_rounds_mTOR.txt}
+            \item This file contains 4 columns separate by tabs: barcode type, barcode name, barcode sequence, and barcode mismatch tolerance
+            \item You can learn more about the barcode structure on the wiki.
+        \end{itemize}
+
+        \item Copy the barcode format file \path{format_6_rounds_mTOR.txt} file located at \path{/burg/mjlab/projects/spidr-barcoding-files/format_6_rounds_mTOR.txt}
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cp /burg/mjlab/projects/spidr-barcoding-files/format\_6\_rounds\_mTOR.txt ./format\_6\_rounds\_mTOR.txt}
+            \item This file should contain 3 columns separated by tabs: the expected position of the combinatorial barcode (with 1 being the first barcode), the barcode name, and the barcode sequence
+            \item This file is used to remove complete barcodes with barcodes in the incorrect order.
+            \item There may be a 4th column in the example file, but you can ignore that column.
+        \end{itemize}
+
+        \item Copy the example \texttt{config.yaml} file located at \path{/burg/mjlab/projects/spidr-barcoding-files/config.yaml}
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cp /burg/mjlab/projects/spidr-barcoding-files/config.yaml ./config.yaml}
+            \item Editing the file is covered in the next step
+        \end{itemize}
+
+        \item Edit the \texttt{config.yaml} file to ensure all the settings are appropriate for your experiment.
+        \begin{itemize}
+            \item In this case since we're using example files, you only need to change the email section (i.e. change \texttt{email: "dsg2157@columbia.edu"})
+            \item Please visit the wiki for more information on all the parameters.
+            \item Alignment indices are located at \path{/burg/mjlab/projects/spidr-alignment-indices}. For the STAR index, point it to the directory containing the index files and for bowtie2, make sure you include the file name prefix in addition to the full path. (Note: add more clarification here later)
+            \item For help navigating and editing files on Ginsburg, see the \texttt{ginsburg} repository on GitHub. 
+        \end{itemize}
+
+        \item Request more resources within an interactive job
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{srun --pty -t 0-04:00 -A mjlab --mem$=$32G -N 1 -c 4 /bin/bash}
+            \item By default, you're put into a login node when logging into Ginsburg. The login node has limited resources and if you use too many resources, Ginsburg may automatically terminate your session (i.e. they kick you out). We need to get off the login node to avoid this issue.
+            \item This command requests a single node with 4 CPU cores and 32 Gb of RAM for 4 hours
+            \item More details about the \texttt{srun} command can be found \href{https://slurm.schedmd.com/srun.html}{here}.
+            \item Ginsburg specific limitations/info can be found \href{https://columbiauniversity.atlassian.net/wiki/spaces/rcs/pages/62141877/Ginsburg+HPC+Cluster+User+Documentation}{here}.
+        \end{itemize}
+
+        \item Perform a "dry" run of the pipeline
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{bash run.sh --dry\_run}
+            \item This command will show what steps will be run and the input/output file names for each step without actually running the steps
+            \item This will help catch basic errors like missing files, misnamed files, etc.
+        \end{itemize}
+
+        \item Run the actual pipeline
+            \begin{enumerate}
+                \item (Foreground) \underline{cmd}: \texttt{bash run.sh}
+                \item (Background) \underline{cmd}: \texttt{sbatch run.sh}
+            \end{enumerate}
+        \begin{itemize}
+            \item When running the pipeline in the foreground you will need to keep your terminal open. If you close your terminal, the pipeline will stop (but it will finish whatever steps it already started).
+            \item When running the pipeline in the background a file called \texttt{spidr.log} will be created to capture outputs and errors from the run. It captures the equivalent of what you would see on your screen when executing in the foreground.
+        \end{itemize}
+    \end{enumerate}
+
+    \noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+
+    \section{SPIDR Run with Non-test Data - Ginsburg HPC}
+    \begin{enumerate}
+        \item Create a directory, ideally within \path{/burg/mjlab/projects/spidr-runs} under a folder with UNI.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mkdir /burg/mjlab/projects/spidr-runs/\UNI/\DIRNAME}
+            \item For the remainder of the document we'll call this directory \path{\DIRNAME}
+        \end{itemize}
+
+        \item Navigate to that directory (test in our case)
+        \begin{itemize}
+            \item \underline{cmd}: \path{/burg/mjlab/projects/spidr-runs/\UNI/\DIRNAME}
+        \end{itemize}
+        
+        \item Clone the SPIDR repository with all the code into this folder.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{git clone https://github.com/mjlab-Columbia/spidr.git}
+            \item This will create a directory called \texttt{spidr}
+        \end{itemize}
+
+        \item Navigate to the new \texttt{spidr} directory
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cd spidr}
+        \end{itemize}
+
+        \item Create the \texttt{experiments.json} file to tell the pipeline where your read files are.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{python scripts/python/fastq2json.py --fastq\_dir <Path to directory containing read 1 and read 2>}
+            \item This will be the directory containing the paired-end files from your sequencing run
+            \item Avoid copying the files from where they are since they're often large
+        \end{itemize}
+
+        \item Create a barcode config file
+        \begin{itemize}
+            \item Other than the first 3 rows, this file should contain 4 columns separated by tabs in the following order: barcode category, barcode name, barcode sequence, and mismatch tolerance
+            \item The first row has the read 1 format (usually just "READ1=DPM")
+            \item The second row has the read 2 format (something like "READ2=Y$\mid$SPACER$\mid$ODD$\mid$SPACER$\mid$EVEN")
+            \item The third row is empty
+            \item Please see the wiki for more information.
+            \item You can see an example of barcode config file at \path{/burg/mjlab/projects/spidr-barcoding-files/config_6_rounds_mTOR.txt}
+        \end{itemize}
+
+        \item Create a barcode format file
+        \begin{itemize}
+            \item This file should contain 3 columns separated by tabs in the following order: barcode positon (first barcode is position 1), barcode name, barcode sequence
+            \item Please see the wiki for more information.
+            \item You can see an example of barcode format file at \path{/burg/mjlab/projects/spidr-barcoding-files/format_6_rounds_mTOR.txt}
+        \end{itemize}
+
+        \item Create a \texttt{config.yaml} file and ensure all the settings are correct.
+        \begin{itemize}
+            \item There is an example \texttt{config.yaml} located here \path{/burg/mjlab/projects/spidr-barcoding-files/config.yaml}
+            \item Please visit the wiki for more information on all the parameters.
+            \item Alignment indices are located at \path{/burg/mjlab/projects/spidr-alignment-indices}. For the STAR index, point it to the directory containing the index files and for bowtie2, make sure you include the file name prefix in addition to the full path. (Note: add more clarification here later)
+            \item For help navigating and editing files on Ginsburg, see the \texttt{ginsburg} repository on GitHub. 
+        \end{itemize}
+
+        \item Request more resources within an interactive job
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{srun --pty -t 0-04:00 -A mjlab --mem$=$32G -N 1 -c 4 /bin/bash}
+            \item By default, you're put into a login node when logging into Ginsburg. The login node has limited resources and if you use too many resources, Ginsburg may automatically terminate your session (i.e. they kick you out). We need to get off the login node to avoid this issue.
+            \item This command requests a single node with 4 CPU cores and 32 Gb of RAM for 4 hours
+            \item More details about the \texttt{srun} command can be found \href{https://slurm.schedmd.com/srun.html}{here}.
+            \item Ginsburg specific limitations/info can be found \href{https://columbiauniversity.atlassian.net/wiki/spaces/rcs/pages/62141877/Ginsburg+HPC+Cluster+User+Documentation}{here}.
+        \end{itemize}
+
+        \item Perform a "dry" run of the pipeline
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{bash run.sh --dry\_run}
+            \item This command will show what steps will be run and the input/output file names for each step without actually running the steps
+            \item This will help catch basic errors like missing files, misnamed files, etc.
+        \end{itemize}
+
+        \item Run the pipeline
+            \begin{enumerate}
+                \item (Foreground) \underline{cmd}: \texttt{bash run.sh}
+                \item (Background) \underline{cmd}: \texttt{sbatch run.sh}
+            \end{enumerate}
+        \begin{itemize}
+            \item When running the pipeline in the foreground you will need to keep your terminal open. If you close your terminal, the pipeline will stop (but it will finish whatever steps it already started).
+            \item When running the pipeline in the background a file called \texttt{spidr.log} will be created to capture outputs and errors from the run. It captures the equivalent of what you would see on your screen when executing in the foreground.
+        \end{itemize}
+    \end{enumerate}
+
+    \noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+
+    \section{SPIDR Run with \texttt{HEK\_MTOR\_QC Data} - MacOS (Experimental and Incomplete)}
+
+    There is an experimental script called \texttt{local.sh} which is an attempt to run the SPIDR pipeline on a Mac. This Mac should ideally have an M-series chip and 32Gb+ of RAM and 1Tb+ of SSD space. This method requires a lot of manual work, so it's not recommended. It was originally conceived as an exercise in hubris, but it might actually be useful.
+
+    \begin{enumerate}
+        \item Install the following packages via Homebrew
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{brew install parallel bowtie2 samtools gcc@11 libomp}
+            \item If you don't have Homebrew installed on your Mac, visit https://brew.sh/ to learn how to install it.
+            \item \texttt{gcc} version 11 is the latest stable GCC compiler that compiles \texttt{STAR} on MacOS, so the \texttt{@11} is important.
+        \end{itemize}
+
+        \item Create a conda environment
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mamba create -n spidr\_local -c bioconda -c conda-forge cutadapt fastqsplitter python}
+        \end{itemize}
+
+        \item Activate the conda environment
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{mamba activate spidr\_local}
+        \end{itemize}
+
+        \item Install \texttt{trim\_galore}
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cd \$HOME}
+            \item \underline{cmd}: \texttt{curl -fsSL https://github.com/FelixKrueger/TrimGalore/archive/0.6.10.tar.gz -o trim\_galore.tar.gz}
+            \item \underline{cmd}: \texttt{tar xvzf trim\_galore.tar.gz}
+            \item \underline{cmd}: \texttt{echo "export PATH=\$PATH:\$HOME/TrimGalore-0.6.10" >> $\sim$/.zshrc}
+            \item Note: If you're using the \texttt{bash} shell then \path{$\sim$/.zshrc} should be replaced with \path{$\sim$/.bashrc} (\texttt{zsh} is the default shell which is why it's in the instructions).
+        \end{itemize}
+
+        \item Download the source code for \texttt{STAR} and compile it
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{cd \$HOME}
+            \item \underline{cmd}: \texttt{git clone https://github.com/alexdobin/STAR.git}
+            \item \underline{cmd}: \texttt{cd STAR/source}
+            \item \underline{cmd}: \texttt{make STARforMacStatic CXX=/opt/homebrew/Cellar/gcc@11/11.4.0/bin/g++-11}
+            \item \underline{cmd}: \texttt{echo "export PATH=\$PATH:\$HOME/STAR/bin/MacOSX\_x86\_64/STAR" >> $\sim$/.zshrc}
+            \item Note: This compilation from scratch is necessary because there are no distributions for \texttt{STAR} on conda for MacOS. That is to say, things like \texttt{conda install STAR} or \texttt{mamba install STAR} won't work on MacOS.
+            \item Note: Double-check the exact path to the \texttt{gcc} version installed by Homebrew (i.e. it may have a slightly different number than 11.4.0)
+        \end{itemize}
+
+        \item Download the \texttt{HEK\_MTOR\_QC} data to your Mac.
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{wget "S3 URL HERE"}
+        \end{itemize}
+
+        \item Un-archive the folder
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{tar -xvf "FILE FROM S3 HERE"}
+        \end{itemize}
+
+        \item Run \texttt{local.sh}
+        \begin{itemize}
+            \item \underline{cmd}: \texttt{./local.sh HEK\_MTOR\_QC/HEK\_MTOR\_QC\_R1.fastq.gz HEK\_MTOR\_QC/HEK\_MTOR\_QC\_R2.fastq.gz HEK\_MTOR\_QC 10}
+            \item The arguments are as follows
+                \begin{enumerate}
+                    \item[1] Path to gzipped read 1 fastq file
+                    \item[2] Path to gzipped read 2 fastq file
+                    \item[3] Prefix for filenames to be created
+                    \item[4] Number of equal chunks to split the reads into
+                \end{enumerate}
+            \item This executes the same steps as the snakemake based pipeline
+        \end{itemize}
+    \end{enumerate}
+
+    \noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+
+    \section{Debugging}
+
+    \begin{itemize}
+        \item You can get a visual representation of the pipeline by creating a rulegraph. You can run the following:
+            \begin{itemize}
+                \item \underline{cmd}: \texttt{snakemake --rulegraph | dot -Tpdf > rulegraph.pdf}
+                \item You can run this on Ginsburg, and then copy it on to your local computer via `scp` or using the Globus portal
+            \end{itemize}
+    \end{itemize}
+
+\end{document}

@@ -13,7 +13,6 @@ experimental/*
 experiments.json
 .snakemake
 .conda
-*.pdf
 workup/*
 slurm-*.out
 *.clusters
@@ -24,6 +23,7 @@ config.yaml
 
 # Ignore non-essential documentation files at all levels
 **/*.aux
+**/*.dvi
 **/*.fdb_latexmk
 **/*.fls
 **/*.log
