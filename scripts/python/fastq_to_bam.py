@@ -23,7 +23,7 @@ def parse_arguments():
 
 
 def construct_sam_header(config):
-    df = pd.read_csv(config, comment = '#', error_bad_lines=False, sep='\t', names=['Tag', 'Name', 'Sequence','Number']).dropna()
+    df = pd.read_csv(config, comment = '#', on_bad_lines='skip', sep='\t', names=['Tag', 'Name', 'Sequence','Number']).dropna()
     names = list(df['Name'])
     beads = [x for x in names if 'BEAD' in x]
     reference_names =  list()
