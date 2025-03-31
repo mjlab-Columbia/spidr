@@ -1,0 +1,23 @@
+[tool.autopep8]
+max-line-length = 120
+aggressive = 1
+
+[tool.pylsp]
+plugins.autopep8.enabled = true
+plugins.autopep8.args = ["--max-line-length=120"]
+plugins.flake8.enabled = true
+plugins.flake8.maxLineLength = 120
+plugins.pycodestyle.enabled = true
+plugins.pycodestyle.maxLineLength = 120
+plugins.pylsp_mypy.enabled = true
+plugins.pylsp_rope.enabled = true
+plugins.pyflakes.enabled = true
+plugins.pylint.enabled = false
+plugins.yapf.enabled = false
+plugins.rope_completion.enabled = true
+plugins.rope_rename.enabled = true
+plugins.rope_find_definition.enabled = true
+plugins.rope_goto_definition.enabled = true
+plugins.rope_organize_imports.enabled = true
+plugins.rope_inline.enabled = true
+plugins.rope_highlight.enabled = true 
