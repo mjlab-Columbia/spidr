@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+
 class Assembly(object):
     _chromsizes = None
     _resolution = None
@@ -15,21 +16,17 @@ class Assembly(object):
             self._offsets[chrom] = count
             count += -(-size // self._resolution)
 
-
     def get_size(self, chrom):
         return self._chromsizes.get(chrom)
-
 
     def get_offset(self, chrom):
         return self._offsets.get(chrom)
 
-
     def get_position(self, n):
         for (chrom, offset) in reversed(self._offsets.items()):
-            if n - offset >=  0:
+            if n - offset >= 0:
                 return (chrom, (n - offset) * self._resolution)
         raise ValueError
-
 
     def get_index(self, chrom, pos):
         read_bin = pos // self._resolution

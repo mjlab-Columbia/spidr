@@ -3,6 +3,7 @@ import os
 import argparse
 import re
 
+
 def parse_args():
 
     parser = argparse.ArgumentParser(description='Remove short barcodes')
@@ -17,7 +18,7 @@ def parse_args():
 
 def main():
 
-    #argparse
+    # argparse
     opts = parse_args()
 
     read_1_path = opts.read_1
@@ -28,30 +29,29 @@ def main():
     full_count = 0
     incomplete = 0
     print(opts.read_type)
-    pattern = re.compile('\[([a-zA-Z0-9_\-]+)\]')
+    pattern = re.compile('\\[([a-zA-Z0-9_\\-]+)\\]')
 
     with file_open(read_1_path) as read_1, \
-    gzip.open(full_out_path, 'wt') as dpm_out, \
-    gzip.open(short_out_path, 'wt') as short_out:
+            gzip.open(full_out_path, 'wt') as dpm_out, \
+            gzip.open(short_out_path, 'wt') as short_out:
         for qname, seq, thrd, qual in fastq_parse(read_1):
-                barcodes = pattern.findall(qname)
-                if opts.read_type == 'RPM':
-                    barcodes[0] = 'RPM'
-                    qname = qname.replace('::[NOT_FOUND]', '::[RPM]') 
-                else:
-                    seq = qname.split('_', 1)[1].split('::')[0]
-                    qual = 'F'*len(seq)
-                    qname = qname.split('_',1)[0] + '::' + qname.split('::')[1]
-                if 'NOT_FOUND' in barcodes:
-                    incomplete += 1
-                    short_out.write(qname + '\n' + seq + '\n' + thrd + '\n' + qual + '\n')
-                else:
-                    full_count += 1
-                    dpm_out.write(qname + '\n' + seq + '\n' + thrd + '\n' + qual + '\n')
+            barcodes = pattern.findall(qname)
+            if opts.read_type == 'RPM':
+                barcodes[0] = 'RPM'
+                qname = qname.replace('::[NOT_FOUND]', '::[RPM]')
+            else:
+                seq = qname.split('_', 1)[1].split('::')[0]
+                qual = 'F' * len(seq)
+                qname = qname.split('_', 1)[0] + '::' + qname.split('::')[1]
+            if 'NOT_FOUND' in barcodes:
+                incomplete += 1
+                short_out.write(qname + '\n' + seq + '\n' + thrd + '\n' + qual + '\n')
+            else:
+                full_count += 1
+                dpm_out.write(qname + '\n' + seq + '\n' + thrd + '\n' + qual + '\n')
 
     print('Reads without full barcode:', incomplete)
     print('Full reads out:', full_count)
-    
 
 
 def file_open(filename):
@@ -59,10 +59,10 @@ def file_open(filename):
     Open as normal or as gzip
     Faster using zcat?
     """
-    #does file exist?
-    f = open(filename,'rb')
-    if (f.read(2) == b'\x1f\x8b'): #compressed alsways start with these two bytes
-        f.seek(0) #return to start of file
+    # does file exist?
+    f = open(filename, 'rb')
+    if (f.read(2) == b'\x1f\x8b'):  # compressed alsways start with these two bytes
+        f.seek(0)  # return to start of file
         return gzip.GzipFile(fileobj=f, mode='rb')
     else:
         f.seek(0)
@@ -83,8 +83,8 @@ def fastq_parse(fp):
                 name = line.decode('UTF-8').rstrip()
             except AttributeError:
                 name = line.rstrip()
-            assert name.startswith('@'),\
-                   "ERROR: The 1st line in fastq element does not start with '@'.\n\
+            assert name.startswith('@'), \
+                "ERROR: The 1st line in fastq element does not start with '@'.\n\
                    Please check FastQ file near line number %s" % (linecount)
         elif linecount % 4 == 2:
             try:
@@ -96,16 +96,16 @@ def fastq_parse(fp):
                 thrd = line.decode('UTF-8').rstrip()
             except AttributeError:
                 thrd = line.rstrip()
-            assert thrd.startswith('+'),\
-                   "ERROR: The 3st line in fastq element does not start with '+'.\n\
+            assert thrd.startswith('+'), \
+                "ERROR: The 3st line in fastq element does not start with '+'.\n\
                    Please check FastQ file near line number %s" % (linecount)
         elif linecount % 4 == 0:
             try:
                 qual = line.decode('UTF-8').rstrip()
             except AttributeError:
                 qual = line.rstrip()
-            assert len(seq) == len(qual),\
-                    "ERROR: The length of Sequence and Quality aren't equal.\n\
+            assert len(seq) == len(qual), \
+                "ERROR: The length of Sequence and Quality aren't equal.\n\
                     Please check FastQ file near line number %s" % (linecount)
             yield name, seq, thrd, qual,
             name, seq, thrd, qual = [None] * 4

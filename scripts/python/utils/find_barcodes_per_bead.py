@@ -1,11 +1,10 @@
 import click
 import os
-from pdb import set_trace as st
-import re
 from collections import defaultdict
 from typing import List
 import gzip
 from tqdm import tqdm
+
 
 @click.command()
 @click.option('--output', '-o', help='Output file', required=True)
@@ -52,7 +51,7 @@ def main(input: List[os.PathLike], header: bool, output: os.PathLike):
         barcode_string = ".".join(b[1:])
         bead_id = b[0]
         barcode_dict[barcode_string][bead_id] += 1
-    
+
     # Write the dictionary to a file
     with open(output, 'w') as f:
         if header:
