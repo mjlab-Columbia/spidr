@@ -6,6 +6,7 @@ from typing import Iterable
 from tqdm import tqdm
 from pdb import set_trace
 
+
 @click.command()
 @click.option('--input_dir', '-i', type=click.Path(exists=True))
 @click.option('--output_dir', '-o', type=click.Path(exists=True))
@@ -13,9 +14,9 @@ from pdb import set_trace
 @click.option('--use_sbatch', type=bool, default=True)
 @click.option('--dry_run', type=bool, default=False)
 def main(input_dir: Path, output_dir: Path, downsampling_script: Path, use_sbatch: bool, dry_run: bool) -> None:
-    input_dir = os.path.abspath(input_dir) 
-    output_dir = os.path.abspath(output_dir) 
-    downsampling_script = os.path.abspath(downsampling_script) 
+    input_dir = os.path.abspath(input_dir)
+    output_dir = os.path.abspath(output_dir)
+    downsampling_script = os.path.abspath(downsampling_script)
 
     # Create iterable of bam files with full paths
     bams: Iterable[Path] = os.listdir(input_dir)
@@ -42,6 +43,7 @@ def main(input_dir: Path, output_dir: Path, downsampling_script: Path, use_sbatc
         # The --wrap option encloses `command` in a simple /bin/sh script
         full_command: str = f"{preamble} --wrap='{command}'".strip()
         print(full_command, "\n\n") if dry_run else os.system(full_command)
+
 
 if __name__ == "__main__":
     main()

@@ -7,15 +7,29 @@ from tqdm import tqdm
 from collections import defaultdict
 
 # Function to convert h:m:s to seconds
+
+
 def hms_to_seconds(hms_str):
     h, m, s = map(int, hms_str.split(':'))
     return h * 3600 + m * 60 + s
+
 
 @click.command()
 @click.option('--log-dir', default='.', help='Path to the directory containing log files')
 def consolidate_benchmarks(log_dir):
     # Initialize a DataFrame to store consolidated data
-    columns = ['rule_name', 'sample_id', 'max_rss', 'max_vms', 'max_uss', 'max_pss', 'io_in', 'io_out', 'mean_load', 'cpu_time', 'time_seconds']
+    columns = [
+        'rule_name',
+        'sample_id',
+        'max_rss',
+        'max_vms',
+        'max_uss',
+        'max_pss',
+        'io_in',
+        'io_out',
+        'mean_load',
+        'cpu_time',
+        'time_seconds']
     consolidated_data = pd.DataFrame(columns=columns)
 
     filedict = defaultdict(lambda: defaultdict(list))
@@ -52,6 +66,6 @@ def consolidate_benchmarks(log_dir):
     consolidated_data.to_csv(consolidated_data_path, sep='\t', index=False)
     print("Consolidation complete. Consolidated data saved to 'consolidated_benchmark.tsv'.")
 
+
 if __name__ == '__main__':
     consolidate_benchmarks()
-

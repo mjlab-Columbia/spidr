@@ -1,11 +1,8 @@
 import gzip
 from pandas import DataFrame, concat, Series
-from numpy import zeros
 from click import command, option, Path
-from pdb import set_trace
 from typing import List
 from os import PathLike
-from collections import defaultdict
 from tqdm import tqdm
 
 
