@@ -1,14 +1,10 @@
 from click import command, option, Path
 import pandas as pd
-from pdb import set_trace
 import os
 from typing import Tuple, Dict, List, Set
 from tqdm import tqdm
 import gzip
-import numpy as np
-from itertools import combinations, product
 from collections import deque
-from scipy.spatial.distance import hamming
 
 # Number of bases between barcodes (equivalent to the length of odd overhang or even overhang)
 # TODO: Move this into CLI options or config
@@ -201,7 +197,7 @@ def find_barcodes(read: str,
     Find all barcode sequences in read 2
 
     Args:
-        read: str = read 2 of paired end reads from 5' to 3' 
+        read: str = read 2 of paired end reads from 5' to 3'
         odd_hashmap: Dict[str, Set[str]] = hashmap of all odd barcodes and their Hamming neighbors
         even_hashmap: Dict[str, Set[str]] = hashmap of all even barcodes and their Hamming neighbors
         term_hashmap: Dict[str, Set[str]] = hashmap of all terminal barcodes and their Hamming neighbors
@@ -271,19 +267,21 @@ def pad_barcodes(barcodes: List[str], expected_length: int) -> List[str]:
 @option('--output_read2', help='Path to output barcoded read 2 fastq file')
 @option('--read1_format', help="Read 1 barcode format string (e.g. 'DPM')")
 @option('--read2_format', help="Read 2 barcode format (e.g. 'Y|SPACER|ODD|SPACER|EVEN')")
-@option('--read1_start_offset', type=int, help="Skip this many bases from 5' end on read1 before bead oligo search", default=0, show_default=True)
-@option('--read2_start_offset', type=int, help="Skip this many bases from 5' on read2 before terminal barcode search", default=0, show_default=True)
+@option('--read1_start_offset', type=int,
+        help="Skip this many bases from 5' end on read1 before bead oligo search", default=0, show_default=True)
+@option('--read2_start_offset', type=int,
+        help="Skip this many bases from 5' on read2 before terminal barcode search", default=0, show_default=True)
 @option('--config', type=Path(exists=True), help='Config file contains bead sequences')
 @option('--show_progress_bar', type=bool, help='Whether or not to show a tqdm progress bar', default=False)
-def main(input_read1: os.PathLike, 
-         input_read2: os.PathLike, 
-         output_read1: os.PathLike, 
-         output_read2: os.PathLike, 
-         read1_format: str, 
-         read2_format: str, 
-         read1_start_offset: str, 
-         read2_start_offset: str, 
-         config: os.PathLike, 
+def main(input_read1: os.PathLike,
+         input_read2: os.PathLike,
+         output_read1: os.PathLike,
+         output_read2: os.PathLike,
+         read1_format: str,
+         read2_format: str,
+         read1_start_offset: str,
+         read2_start_offset: str,
+         config: os.PathLike,
          show_progress_bar: bool) -> None:
     """
     Barcode identification script for SPIDR pipeline

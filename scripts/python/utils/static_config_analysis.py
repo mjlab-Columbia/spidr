@@ -1,27 +1,27 @@
 import sys
 import os
-from pdb import set_trace
 import pandas as pd
 import yaml
 import click
 import json
-from colorama import Fore, Back, Style, init
 
 # Initialize colorama
 init(autoreset=True)
+
 
 def prepend_to_file(filename, lines):
     with open(filename, 'r+') as f:
         content = f.read()
         f.seek(0, 0)
-                                    
+
         if isinstance(lines, list):
             lines = '\n'.join(lines)
             f.write(lines.rstrip('\r\n') + '\n' + content)
 
+
 def fix_barcodes(barcode_df):
     df = barcode_df.copy()
-    
+
     # Issue: ROUND1 tags don't contain a condition in the middle
     # Solution: add a single condition called BLANK
     def add_blank_tag(tag):
@@ -38,10 +38,11 @@ def fix_barcodes(barcode_df):
     # TODO: Add more automatic fixes
 
     return df
+
 
 def fix_rounds_format(rounds_df):
     df = rounds_df.copy()
-    
+
     # Issue: ROUND1 tags don't contain a condition in the middle
     # Solution: add a single condition called BLANK
     def add_blank_tag(tag):
@@ -58,6 +59,7 @@ def fix_rounds_format(rounds_df):
     # TODO: Add more automatic fixes
 
     return df
+
 
 def check_barcodes(barcode_df, config, fix, barcodes_path):
     round1_tags = barcode_df[barcode_df['tag-name'].str.contains('ROUND1')]['tag-name']
@@ -86,13 +88,13 @@ def check_barcodes(barcode_df, config, fix, barcodes_path):
             new_barcodes_path = os.path.join(os.path.dirname(barcodes_path), new_barcodes_basename)
 
             fixed_barcode_df.to_csv(new_barcodes_path, sep='\t', index=False, header=False)
-            
+
             with open(config['bID'], 'r') as f:
                 preamble = f.read().split('\n')[:3]
 
             with open(new_barcodes_path, 'r') as f:
                 original_content = f.read()
-                
+
             with open(new_barcodes_path, 'w') as f:
                 for line in preamble:
                     f.write(line + '\n')
@@ -103,11 +105,12 @@ def check_barcodes(barcode_df, config, fix, barcodes_path):
 
     print(f"{Fore.GREEN}Barcodes look good :)")
 
+
 def check_rounds_format(rounds_df, config, fix, rounds_path):
     round1_tags = rounds_df[rounds_df['tag-name'].str.contains('ROUND1')]['tag-name']
     conditions = round1_tags.str.split('_').apply(lambda x: x[1])
     rounds_conditions = set(conditions)
-    
+
     config_conditions = config['conditions']
 
     try:
@@ -140,7 +143,7 @@ def precheck_config(smk_config):
     rounds_format_path = smk_config['rounds_format']
     barcode = os.path.basename(barcode_config_path).split('.')[0]
     rounds = os.path.basename(rounds_format_path).split('.')[0]
-    
+
     if barcode.endswith('_FIXED') or rounds.endswith('_FIXED'):
         print(f'{Fore.YELLOW}Ignoring --fix because barcode config and/or rounds format have been fixed')
         print(f"{Fore.YELLOW}barcodes fixed: {barcode.endswith('_FIXED')}")
@@ -153,31 +156,31 @@ def precheck_config(smk_config):
 
 @click.command()
 @click.option('--snakemake_config', required=True, type=click.Path(exists=True), show_default=True)
-@click.option('--fix', required=False, type=bool, default=False, show_default=True)   
+@click.option('--fix', required=False, type=bool, default=False, show_default=True)
 def main(snakemake_config, fix):
 
     # Load the YAML
     with open(snakemake_config, 'r') as f:
         smk_config = yaml.load(
-                f.read(), 
-                Loader=yaml.CLoader
+            f.read(),
+            Loader=yaml.CLoader
         )
 
     # Avoid fixing a file that's already been fixed
     if fix:
         fix = precheck_config(smk_config)
-    
-    # Names based on SPRITE GitHub Wiki 
+
+    # Names based on SPRITE GitHub Wiki
     # https://github.com/GuttmanLab/sprite-pipeline/wiki/1.-Barcode-Identification#configuration-file
     try:
         barcode_ids = pd.read_csv(
-                smk_config['bID'], 
-                sep='\t', 
-                skiprows=3, 
-                skipfooter=1,
-                engine='python',
-                names=['tag-category', 'tag-name', 'tag-sequence', 'tag-error-tolerance']
-        ) 
+            smk_config['bID'],
+            sep='\t',
+            skiprows=3,
+            skipfooter=1,
+            engine='python',
+            names=['tag-category', 'tag-name', 'tag-sequence', 'tag-error-tolerance']
+        )
     except FileNotFoundError:
         print(f"{Fore.RED}Looks like the value for the `bID` doesn't point to a correct path.")
         print(f"{Fore.RED}Please check the `bID` key in {snakemake_config}")
@@ -186,10 +189,10 @@ def main(snakemake_config, fix):
     # Only `tag-position` and `tag-name` are used in the pipeline
     try:
         rounds_format = pd.read_csv(
-                smk_config['rounds_format'], 
-                sep='\t',
-                names=['tag-position', 'tag-name', 'tag-sequence', 'tag-error-tolerance']
-        ) 
+            smk_config['rounds_format'],
+            sep='\t',
+            names=['tag-position', 'tag-name', 'tag-sequence', 'tag-error-tolerance']
+        )
     except FileNotFoundError:
         print(f"{Fore.RED}Looks like the value for the `rounds_format` doesn't point to a correct path.")
         print(f"{Fore.RED}Please check the `rounds_format` key in {snakemake_config}")
@@ -212,6 +215,7 @@ def main(snakemake_config, fix):
         print(f"{Fore.GREEN}Updated {snakemake_config} with new values\n")
         with open(snakemake_config, 'w') as f:
             yaml.dump(smk_config, f)
+
 
 if __name__ == "__main__":
     main()
