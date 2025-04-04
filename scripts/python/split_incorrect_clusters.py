@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import argparse
 from tqdm import tqdm
+from collections import defaultdict
 
 
 def main():
