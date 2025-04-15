@@ -184,10 +184,10 @@ rule trim_sequencing_adapters:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.trim_sequencing_adapters.log")
     conda:
-        "envs/sprite.yaml"
+        "envs/trim_galore.yaml"
     resources:
         tmpdir = config["temp_dir"],
-        cpus = 10,
+        cpus = 15,
         mem_mb = 50000,
         time = "12:00:00"
     benchmark:
@@ -197,7 +197,7 @@ rule trim_sequencing_adapters:
         (trim_galore \
             --paired \
             --gzip \
-            --cores {threads} \
+            --cores 4 \
             --quality 20 \
             --fastqc \
             -o {out_dir}workup/trim_sequencing_adapters/ \
@@ -363,7 +363,7 @@ rule trim_rpm_reads:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.trim_rpm_reads.log")
     conda:
-        "envs/sprite.yaml"
+        "envs/cutadapt.yaml"
     resources:
         tmpdir = config["temp_dir"],
         cpus = 1,
@@ -379,7 +379,7 @@ rule trim_rpm_reads:
             {params.others} \
             -o {output.r1} \
             -p {output.r2} \
-            -j {threads} \
+            -j 0 \
             {input.read1} {input.read2} > {output.qc}) &> {log}
         
         (fastqc {output.r1}) &>> {log}
@@ -403,7 +403,7 @@ rule trim_bead_oligo_reads:
     threads: 
         10
     conda:
-        "envs/sprite.yaml"
+        "envs/cutadapt.yaml"
     resources:
         tmpdir = config["temp_dir"],
         cpus = 1,
@@ -416,7 +416,7 @@ rule trim_bead_oligo_reads:
         (cutadapt \
             {params.adapters_r1} \
             -o {output.fastq} \
-            -j {threads} \
+            -j 0 \
             {input} > {output.qc}) &> {log}
         '''
 
