@@ -134,7 +134,7 @@ def label_bam_file(input_bam, output_bam, labels, num_tags):
     print('Total reads:', count)
     print('Reads written:', written)
     print('Duplicate reads:', duplicates)
-    print('Reads with an error not written out:', skipped)
+    print('Reads from input bam without matching barcode in clusterfile:', skipped)
 
 
 def construct_read_group_header(input_bam, labels):
