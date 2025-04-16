@@ -42,7 +42,7 @@ trim_sequencing_adapters:
     account: "mjlab"
     time: "12:00:00"
     mem: 50g
-    cpus: 10
+    cpus: 15
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
