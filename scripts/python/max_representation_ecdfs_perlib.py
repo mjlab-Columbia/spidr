@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import glob
 import argparse
+import os
 
 mpl.use("Agg")
 
@@ -14,22 +15,22 @@ Generate maximum representation ecdfs for bead type representation within cluste
 
 def main():
     args = parse_arguments()
-    search = args.directory + "/*" + args.pattern
+    search = args.input_directory + "/*" + args.pattern
     files = glob.glob(search)
+
     ecdf_plot_ax = "None"
     for f in files:
         ecdf_plot_ax = max_representation_ecdf(f, ecdf_plot_ax)
     ecdf_plot_fig = ecdf_plot_ax.get_figure()
-    ecdf_plot_fig.savefig(
-        args.directory + "/Max_representation_ecdf.pdf", bbox_inches="tight"
-    )
+    ecdf_savepath = os.path.join(args.output_directory, "Max_representation_ecdf.pdf")
+    ecdf_plot_fig.savefig(ecdf_savepath, bbox_inches="tight")
+
     ecdf_counts_ax = "None"
     for f in files:
         ecdf_counts_ax = max_representation_ecdf_counts(f, ecdf_counts_ax, args.xlim)
     ecdf_counts_fig = ecdf_counts_ax.get_figure()
-    ecdf_counts_fig.savefig(
-        args.directory + "/Max_representation_counts.pdf", bbox_inches="tight"
-    )
+    counts_savepath = os.path.join(args.output_directory, "Max_representation_counts.pdf")
+    ecdf_counts_fig.savefig(counts_savepath, bbox_inches="tight")
 
 
 def max_representation_ecdf(clusterfile, ax):
@@ -97,7 +98,14 @@ def parse_arguments():
         description="Generate the maximum representation ecdf plots to check for bead type uniqueness within clusters."
     )
     parser.add_argument(
-        "--directory",
+        "--input_directory",
+        metavar="FILE",
+        action="store",
+        required=True,
+        help="The directory of clusters file",
+    )
+    parser.add_argument(
+        "--output_directory",
         metavar="FILE",
         action="store",
         required=True,

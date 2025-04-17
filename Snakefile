@@ -84,7 +84,7 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_read_distribution.pdf"),
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
-        path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_counts.pdf")
+        path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
     ],
     experiment = ALL_EXPERIMENTS,
     condition = config['conditions'],
@@ -818,7 +818,8 @@ rule generate_cluster_ecdfs:
         ecdf = path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
         counts = path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_counts.pdf")
     params:
-        dir = path.join(out_dir, "workup", "generate_cluster_ecdfs")
+        input_dir = path.join(out_dir, "workup", "merge_clusters"),
+        output_dir = path.join(out_dir, "workup", "generate_cluster_ecdfs")
     conda:
         "envs/plotting.yaml"
     resources:
@@ -831,7 +832,8 @@ rule generate_cluster_ecdfs:
     shell:
         """
         (python scripts/python/max_representation_ecdfs_perlib.py \
-            --directory {params.dir} \
+            --input_directory {params.input_dir} \
+            --output_directory {params.output_dir} \
             --pattern .clusters \
             --xlim 30) &> {log}
         """
