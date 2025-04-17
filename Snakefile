@@ -85,6 +85,7 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
+        path.join(out_dir, "workup", "qc", "{experiment}.bowtie2_qc.log")
     ],
     experiment = ALL_EXPERIMENTS,
     condition = config['conditions'],
@@ -459,6 +460,37 @@ rule align_bowtie2:
         (samtools view -b -F 4 {output.bam} | samtools sort > {output.mapped}) &>> {log}
         (samtools index {output.mapped}) &>> {log}
         '''
+
+
+rule collate_bowtie2_qc:
+    input:
+        expand(
+            path.join(out_dir, "workup", "logs", "{{experiment}}.{splitid}.align_bowtie2.log"),
+            splitid=NUM_CHUNKS
+        )
+    output:
+        path.join(out_dir, "workup", "qc", "{experiment}.bowtie2_qc.log")
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.collate_bowtie2_qc.log")
+    conda:
+        "envs/bowtie2.yaml"
+    threads:
+        1
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 4000,
+        time = "00:30:00"
+    benchmark:
+        "benchmarks/{experiment}.collate_bowtie2_qc.tsv"
+    shell:
+        """
+        (for log in {input}; do
+            echo $(basename $log .align_bowtie2.log) >> {output};
+            cat $log >> {output};
+            echo "" >> {output};
+        done) &> {log}
+        """
 
 
 rule convert_bam_to_fastq:
