@@ -85,7 +85,8 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
-        path.join(out_dir, "workup", "qc", "{experiment}.bowtie2_qc.log")
+        path.join(out_dir, "workup", "qc", "{experiment}.bowtie2_qc.log"),
+        path.join(out_dir, "workup", "qc", "{experiment}.part_{splitid}.barcode_table.tsv.gz"),
     ],
     experiment = ALL_EXPERIMENTS,
     condition = config['conditions'],
@@ -242,6 +243,32 @@ rule identify_barcodes:
             --read1_start_offset {params.read1_start_offset} \
             --read2_start_offset {params.read2_start_offset} \
             --config {params.bid_config}) &> {log}
+        """
+
+
+rule generate_barcode_table:
+    input:
+        path.join(out_dir, "workup", "identify_barcodes", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz"),
+    output:
+        path.join(out_dir, "workup", "qc", "{experiment}.part_{splitid}.barcode_table.tsv.gz"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.generate_barcode_table.log")
+    conda:
+        "envs/barcoding.yaml"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 16000,
+        time = "01:00:00"
+    benchmark:
+        "benchmarks/{experiment}.{splitid}.generate_barcode_table.tsv"
+    shell:
+        """
+        (gzip -dc {input} \
+            | awk 'NR%4==1' \
+            | grep -Eo '(\[[^]]*\])+$' \
+            | sed 's/\]\[/\t/g; s/^\[//; s/\]$//'\
+            | gzip > {output})
         """
 
 
