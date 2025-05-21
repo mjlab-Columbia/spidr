@@ -25,7 +25,7 @@ def find_bead_id(chunk: Tuple[str],
         chunk: Tuple[str] = tuple of 4 reads from a fastq (header, read, +, quality)
         read1_start_offset: int = number of bases from the 5' end of read 1 to start looking for bead id
         bead_id_lengths: List[int] = possible lengths of bead ids
-        bead_hashmap: Dict[str, str] = dictionary of form { BEAD_SEQUENCE: BEAD_ID_NAME } to efficiently search for bead ids
+        bead_hashmap: Dict[str, str] = dictionary of form { BEAD_SEQUENCE: BEAD_ID_NAME } to search for bead ids
 
     Returns:
         str = name of bead id found or NOT_FOUND
@@ -122,7 +122,7 @@ def find_terminal_barcode(read: str,
 
     Args:
         read: str = read 2 from paired end reads
-        barcode_hashmap: Dict[str, Set[str]] = hashmap containing config entries for terminal barcodes and their Hamming neighbors
+        barcode_hashmap: Dict[str, Set[str]] = hashmap with config entries for term barcodes and their Hamming neighbors
         start: int = 0-based index to start looking from in read
 
     Returns:
