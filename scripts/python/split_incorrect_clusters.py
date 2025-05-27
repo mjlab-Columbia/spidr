@@ -77,7 +77,7 @@ def load_format(formatfile):
     result_dict = defaultdict(lambda: [-1])
 
     for index, value in df.iterrows():
-        result_dict[index].append(value[0])
+        result_dict[index].append(int(value[0]))
 
     return result_dict
 
