@@ -1294,7 +1294,9 @@ rule thresh_and_split_no_condition:
 
 rule count_barcoded_reads_in_bams:
     """
-    TODO: Figure out how to count by condition as well. For now total number of reads is fine.
+    Count all reads across all bams that are not from ambiguous.bam, none.bam, uncertain.bam, 
+    which contain reads that did not meet cluster cutoffs or the pooled bam which is the aggregate
+    of all 
     """
     input:
         path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"),
@@ -1308,7 +1310,9 @@ rule count_barcoded_reads_in_bams:
         "envs/samtools.yaml"
     shell:
         """
-        (for bam in {params.directory}/*.bam; do samtools view -c $bam; done | awk '{{sum += $1}} END {{print sum}}' > {output}) &> {log}
+        ALL_BAMS=$(ls workup/splitbams_all_conditions/*.bam | grep -E '.*\.ALL_CONDITIONS_.+\.bam' | grep -v -E 'ambiguous|none|uncertain')
+
+        (for bam in $ALL_BAMS; do samtools view -c $bam; done | awk '{{sum += $1}} END {{print sum}}' > {output}) &> {log}
         """
 
 
