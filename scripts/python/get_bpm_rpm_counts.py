@@ -25,7 +25,14 @@ def main(clusters, output):
             counts_table.append(entry)
 
     df = pd.DataFrame(counts_table)
-    df.to_csv(output, sep="\t", index=False)
+
+    if output.endswith(".tsv.gz"):
+        df.to_csv(output, sep="\t", index=False, compression="gzip")
+    elif output.endswith(".tsv"):
+        df.to_csv(output, sep="\t", index=False)
+    else:
+        print("Supported formats: .tsv and .tsv.gz")
+        raise NotImplementedError("Output file format not supported")
 
     return
 

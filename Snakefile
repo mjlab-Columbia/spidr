@@ -71,6 +71,9 @@ NUM_CHUNKS = [f"{i:03}" for i in range(0, config['num_chunks'])]
 
 OUTPUTS = expand(
     [
+        path.join(out_dir, "workup", "count_fully_barcoded_reads", "{experiment}_R1.part_{splitid}.pre_alignment_barcode_count.txt"),
+        path.join(out_dir, "workup", "count_fully_barcoded_reads", "{experiment}_R2.part_{splitid}.pre_alignment_barcode_count.txt"),
+        path.join(out_dir, "workup", "plot_cdna_length_histogram", "{experiment}.cdna_histogram.pdf"),
         path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"),
         path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done"),
         path.join(out_dir, "workup", "cat_ligation_efficiency", "ligation_efficiency.txt"),
@@ -83,10 +86,15 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "split_incorrect_clusters", "RPM_cluster_distribution.pdf"),       
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_read_distribution.pdf"),
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
+        path.join(out_dir, "workup", "count_barcoded_reads_post_alignment", "{experiment}.post_alignment_barcoded_count.txt"),
+        path.join(out_dir, "workup", "count_barcoded_reads_in_clusters", "{experiment}.barcoded_reads_assigned_to_clusters.txt"),
+        path.join(out_dir, "workup", "count_barcoded_reads_in_bams", "{experiment}.barcoded_reads_assigned_to_bams.txt"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
         path.join(out_dir, "workup", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
         path.join(out_dir, "workup", "qc", "{experiment}.bowtie2_qc.log"),
         path.join(out_dir, "workup", "qc", "{experiment}.part_{splitid}.barcode_table.tsv.gz"),
+        path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_condition.{condition}.log"),
+        path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_no_condition.ALL_CONDITIONS.log")
     ],
     experiment = ALL_EXPERIMENTS,
     condition = config['conditions'],
@@ -246,11 +254,61 @@ rule identify_barcodes:
         """
 
 
+rule count_barcoded_reads_pre_alignment:
+    """
+    Count the number of reads with a full combinatorial barcode after initial barcode identification
+
+    Explanation of shell logic:
+    gzip - Decompresses fastq.gz and streams it to stdout
+    awk - extract header lines where barcodes are stored
+    grep - extract barcode from header @NB551203:643:HNFCCAFX3:1:11101:21927:1057::[BEAD_ILF3][NYBot67_Stg][ROUND5_H4][ROUND4_E6][ROUND3_E5][ROUND2_C3][ROUND1_CNTRL_A1] --> [BEAD_ILF3][NYBot67_Stg][ROUND5_H4][ROUND4_E6][ROUND3_E5][ROUND2_C3][ROUND1_CNTRL_A1]
+    sed - replace ][ with tabs and ends with empty string to make each line tab-delimited
+    cut - extract every column except the first one
+    wc - count number of lines
+    """
+    input:
+        r1_barcoded = path.join(out_dir, "workup", "identify_barcodes", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz"),
+        r2_barcoded = path.join(out_dir, "workup", "identify_barcodes", "{experiment}_R2.part_{splitid}.barcoded.fastq.gz")
+    output:
+        r1_count = path.join(out_dir, "workup", "count_fully_barcoded_reads", "{experiment}_R1.part_{splitid}.pre_alignment_barcode_count.txt"),
+        r2_count = path.join(out_dir, "workup", "count_fully_barcoded_reads", "{experiment}_R2.part_{splitid}.pre_alignment_barcode_count.txt")
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_barcoded_reads_pre_alignment.log")
+    conda:
+        "envs/coreutils.yaml"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 64000,
+        time = "12:00:00"
+    benchmark:
+        "benchmarks/{experiment}.{splitid}.count_barcoded_reads_pre_alignment.tsv"
+    shell:
+        """
+        (gzip -dc {input.r1_barcoded} \
+            | awk 'NR % 4 == 1' \
+            | grep -oP '::\K(\[[^\]]+\])+' \
+            | sed -E 's/\]\[/\t/g; s/\[|\]//g' \
+            | cut -f 1 --complement \
+            | grep -v 'NOT_FOUND' \
+            | wc -l > {output.r1_count}) &> {log}
+
+        (gzip -dc {input.r2_barcoded} \
+            | awk 'NR % 4 == 1' \
+            | grep -oP '::\K(\[[^\]]+\])+' \
+            | sed -E 's/\]\[/\t/g; s/\[|\]//g' \
+            | cut -f 1 --complement \
+            | grep -v 'NOT_FOUND' \
+            | wc -l > {output.r2_count}) &>> {log}
+        """
+
+
 rule generate_barcode_table:
     input:
         path.join(out_dir, "workup", "identify_barcodes", "{experiment}_R1.part_{splitid}.barcoded.fastq.gz"),
     output:
-        path.join(out_dir, "workup", "qc", "{experiment}.part_{splitid}.barcode_table.tsv.gz"),
+        table = path.join(out_dir, "workup", "qc", "{experiment}.part_{splitid}.barcode_table.tsv.gz"),
+        barcode_qc = path.join(out_dir, "workup", "qc", "{experiment}.part_{splitid}.barcode_qc.txt")
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.generate_barcode_table.log")
     conda:
@@ -268,7 +326,19 @@ rule generate_barcode_table:
             | awk 'NR%4==1' \
             | grep -Eo '(\[[^]]*\])+$' \
             | sed 's/\]\[/\t/g; s/^\[//; s/\]$//'\
-            | gzip > {output})
+            | gzip > {output.table}) &> {log}
+
+        (echo 'Number of fully barcoded reads: ' \
+            $(gzip -dc {output.table} \
+                | cut -f 1 --complement \
+                | grep -v 'NOT_FOUND' \
+                | wc -l) > {output.barcode_qc}) &>> {log}
+
+        (echo 'Number of incompletely barcoded reads: ' \
+            $(gzip -dc {output.table} \
+                | cut -f 1 --complement \
+                | grep 'NOT_FOUND' \
+                | wc -l) > {output.barcode_qc}) &>> {log}
         """
 
 
@@ -413,6 +483,110 @@ rule trim_rpm_reads:
         (fastqc {output.r1}) &>> {log}
         fastqc {output.r2} &>> {log}
         '''
+
+
+rule calculate_cdna_length:
+    """
+    Take the cDNA reads which have been stripped of primers and other stuff and count the length of each cDNA molecule
+    """
+    input:
+        fq1 = path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
+        fq2 = path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz")
+    output:
+        fq1 = path.join(out_dir, "workup", "calculate_cdna_length", "{experiment}_R1.part_{splitid}.txt.gz"),
+        fq2 = path.join(out_dir, "workup", "calculate_cdna_length", "{experiment}_R2.part_{splitid}.txt.gz")
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 16000,
+        time = "00:30:00"
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.calculate_cdna_length.log")
+    benchmark:
+        "benchmarks/{experiment}.part_{splitid}.calculate_cdna_length.tsv"
+    shell:
+        """
+        (gzip -dc {input.fq1} \
+            | awk 'NR % 4 == 2' \
+            | awk '{{print length, $0}}' \
+            | cut -f 1 -d ' ' \
+            | gzip > {output.fq1}) &> {log}
+
+        (gzip -dc {input.fq2} \
+            | awk 'NR % 4 == 2' \
+            | awk '{{print length, $0}}' \
+            | cut -f 1 -d ' ' \
+            | gzip > {output.fq2}) &>> {log}
+        """
+
+
+rule aggregate_cdna_lengths_across_splits:
+    """
+    Combine cDNA lengths calculated per chunk into a single file
+    """
+    input:
+        fq1 = expand(
+            path.join(out_dir, "workup", "calculate_cdna_length", "{{experiment}}_R1.part_{splitid}.txt.gz"),
+            splitid = NUM_CHUNKS
+        ),
+        fq2 = expand(
+            path.join(out_dir, "workup", "calculate_cdna_length", "{{experiment}}_R2.part_{splitid}.txt.gz"),
+            splitid = NUM_CHUNKS
+        )
+    output:
+        fq1 = path.join(out_dir, "workup", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R1.txt.gz"),
+        fq2 = path.join(out_dir, "workup", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R2.txt.gz")
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.aggregate_cdna_lengths_across_splits.log")
+    conda:
+        "envs/coreutils.yaml"
+    threads:
+        1
+    benchmark:
+        "benchmarks/{experiment}.aggregate_cdna_lengths_across_splits.tsv"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 16000,
+        time = "00:30:00"
+    shell:
+        """
+        (zcat -dck {input.fq1} | gzip > {output.fq1}) &> {log}
+        (zcat -dck {input.fq2} | gzip > {output.fq2}) &> {log}
+        """
+
+
+rule plot_cdna_length_histogram:
+    """
+    Plot a histogram of cDNA lengths based on the cDNA lengths across all chunks
+    """
+    input:
+        fq1 = path.join(out_dir, "workup", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R1.txt.gz"),
+        fq2 = path.join(out_dir, "workup", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R2.txt.gz")
+    output:
+        path.join(out_dir, "workup", "plot_cdna_length_histogram", "{experiment}.cdna_histogram.pdf")
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.aggregate_cdna_lengths_across_splits.log")
+    conda:
+        "envs/python.yaml"
+    threads:
+        1
+    benchmark:
+        "benchmarks/{experiment}.aggregate_cdna_lengths_across_splits.tsv"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 16000,
+        time = "00:30:00"
+    shell:
+        """
+        (python scripts/python/plot_cdna_histogram.py \
+            --read1 {input.fq1} \
+            --read2 {input.fq2} \
+            --output {output}) &> {log}
+        """
 
 
 rule trim_bead_oligo_reads:
@@ -690,6 +864,29 @@ rule merge_rna_bams:
         '''
 
 
+rule count_barcoded_reads_post_alignment:
+    input:
+        path.join(out_dir, "workup", "merge_rna_bams", "{experiment}.merged.RPM.bam")
+    output:
+        path.join(out_dir, "workup", "count_barcoded_reads_post_alignment", "{experiment}.post_alignment_barcoded_count.txt")
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.count_barcoded_reads_post_alignment.log")
+    conda:
+        "envs/samtools.yaml"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 4,
+        mem_mb = 16000,
+        time = "00:30:00"
+    shell:
+        """
+        (samtools view --no-header {input} \
+            | awk '{{print $1}}' \
+            | sort -u -T {resources.tmpdir} --parallel {resources.cpus} --buffer-size {resources.mem_mb}M \
+            | wc -l > {output}) &> {log}
+        """
+
+
 rule convert_fastq_to_bam:
     input:
         path.join(out_dir, "workup", "trim_bead_oligo_reads", "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz")
@@ -840,6 +1037,52 @@ rule split_incorrect_clusters:
         '''
 
 
+rule get_bpm_rpm_counts:
+    input:
+        path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.complete.clusters"),
+    output:
+        path.join(out_dir, "workup", "get_bpm_rpm_counts", "{experiment}.bpm_rpm_counts.tsv.gz")
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 16000,
+        time = "00:30:00"
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.get_bpm_rpm_counts.log")
+    benchmark:
+        "benchmarks/{experiment}.get_bpm_rpm_counts.tsv"
+    shell:
+        """
+        python scripts/python/get_bpm_rpm_counts.py --clusters {input} --output {output}
+        """
+
+
+rule count_barcoded_reads_in_clusters:
+    input:
+        path.join(out_dir, "workup", "get_bpm_rpm_counts", "{experiment}.bpm_rpm_counts.tsv.gz")
+    output:
+        path.join(out_dir, "workup", "count_barcoded_reads_in_clusters", "{experiment}.barcoded_reads_assigned_to_clusters.txt")
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir = config["temp_dir"],
+        cpus = 1,
+        mem_mb = 16000,
+        time = "00:30:00"
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.get_bpm_rpm_counts.log")
+    benchmark:
+        "benchmarks/{experiment}.count_barcoded_reads_in_clusters.tsv"
+    shell:
+        """
+        (python scripts/python/count_barcoded_reads_in_clusters.py \
+            --bpm_rpm_counts {input} \
+            --output {output}) &> {log}
+        """
+
+
 rule generate_cluster_statistics:
     input:
         expand(
@@ -975,7 +1218,8 @@ rule thresh_and_split_condition:
         clusters = path.join(out_dir, "workup", "condition-clusters", "{experiment}.{condition}.clusters")
     output:
         bam = path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.bam"),
-        touch = touch(path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done"))
+        touch = touch(path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done")),
+        log = path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_condition.{condition}.log")
     params:
         directory = "workup/splitbams_by_condition",
         max_size = config["max_size"],
@@ -1000,6 +1244,7 @@ rule thresh_and_split_condition:
             -c {input.clusters} \
             -o {output.bam} \
             -d {params.directory} \
+            -l {output.log} \
             --min_oligos {params.min_oligos} \
             --proportion {params.proportion} \
             --max_size {params.max_size} \
@@ -1013,7 +1258,8 @@ rule thresh_and_split_no_condition:
         clusters = path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.complete.clusters")
     output:
         bam = path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.ALL_CONDITIONS.bam"),
-        touch = touch(path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"))
+        touch = touch(path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done")),
+        log = path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_no_condition.ALL_CONDITIONS.log")
     params:
         directory = "workup/splitbams_all_conditions",
         max_size = config["max_size"],
@@ -1038,11 +1284,32 @@ rule thresh_and_split_no_condition:
             -c {input.clusters} \
             -o {output.bam} \
             -d {params.directory} \
+            -l {output.log} \
             --min_oligos {params.min_oligos} \
             --proportion {params.proportion} \
             --max_size {params.max_size} \
             --num_tags {params.num_tags}) &> {log}
         '''
+
+
+rule count_barcoded_reads_in_bams:
+    """
+    TODO: Figure out how to count by condition as well. For now total number of reads is fine.
+    """
+    input:
+        path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"),
+    output:
+        path.join(out_dir, "workup", "count_barcoded_reads_in_bams", "{experiment}.barcoded_reads_assigned_to_bams.txt")
+    params:
+        directory = path.join(out_dir, "workup", "splitbams_all_conditions"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.count_barcoded_reads_in_bams.log")
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        (for bam in {params.directory}/*.bam; do samtools view -c $bam; done | awk '{{sum += $1}} END {{print sum}}' > {output}) &> {log}
+        """
 
 
 rule generate_splitbam_statistics:

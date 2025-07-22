@@ -62,6 +62,14 @@ identify_barcodes:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
+count_barcoded_reads_pre_alignment:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
 split_reads_read1:
     account: "mjlab"
     time: "04:00:00"
@@ -86,6 +94,30 @@ trim_rpm_reads:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
+calculate_cdna_length:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
+aggregate_cdna_lengths_across_splits:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+plot_cdna_length_histogram:
+    account: "mjlab"
+    time: "00:15:00"
+    mem: 16g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 trim_bead_oligo_reads:
     account: "mjlab"
     time: "12:00:00"
@@ -122,6 +154,14 @@ merge_rna_bams:
     account: "mjlab"
     time: "02:00:00"
     mem: 48g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+count_barcoded_reads_post_alignment:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
@@ -170,6 +210,30 @@ merge_clusters:
     account: "mjlab"
     time: "01:00:00"
     mem: 64g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+get_bpm_rpm_counts:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+count_barcoded_reads_in_clusters:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+count_barcoded_reads_in_bams:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
