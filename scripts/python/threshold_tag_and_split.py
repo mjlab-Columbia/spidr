@@ -5,6 +5,7 @@ import os
 from collections import defaultdict, Counter
 from pathlib import Path
 import tqdm
+from pprint import pprint
 
 
 def parse_args():
@@ -36,6 +37,12 @@ def parse_args():
                         action='store',
                         required=True,
                         help='Directory to write split bams')
+    parser.add_argument('-l', '--log',
+                        dest='log',
+                        type=str,
+                        action='store',
+                        required=True,
+                        help='Log file to output qc metrics to')
     parser.add_argument('--min_oligos',
                         action="store",
                         type=int,
@@ -58,7 +65,7 @@ def parse_args():
 def main():
     args = parse_args()
     labels = assign_labels(args.clusters, args.min_oligos, args.proportion, args.max_size)
-    label_bam_file(args.input_bam, args.output_bam, labels, args.num_tags)
+    label_bam_file(args.input_bam, args.output_bam, labels, args.num_tags, args.log)
     split_bam_by_RG(args.output_bam, args.dir)
 
 
@@ -97,7 +104,7 @@ def get_single_label(reads, min_oligos, proportion, max_size):
     return 'malformed'
 
 
-def label_bam_file(input_bam, output_bam, labels, num_tags):
+def label_bam_file(input_bam, output_bam, labels, num_tags, log):
     count, duplicates, skipped = 0, 0, 0
     written = defaultdict(int)
     pattern = re.compile('::' + num_tags * '\\[([a-zA-Z0-9_\\-]+)\\]')
@@ -131,9 +138,17 @@ def label_bam_file(input_bam, output_bam, labels, num_tags):
                 except KeyError:
                     skipped += 1
 
+    with open(log, "w") as logfile:
+        logfile.write(f"Total reads: {count}\n")
+        logfile.write("Reads written:\n")
+        pprint(dict(written), stream=logfile)
+        logfile.write(f"\nDuplicate reads: {duplicates}\n")
+        logfile.write(f"Reads from input bam without matching barcode in clusterfile: {skipped}")
+
     print('Total reads:', count)
-    print('Reads written:', written)
-    print('Duplicate reads:', duplicates)
+    print('Reads written:\n')
+    pprint(dict(written))
+    print('\nDuplicate reads:', duplicates)
     print('Reads from input bam without matching barcode in clusterfile:', skipped)
 
 
