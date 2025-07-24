@@ -510,14 +510,12 @@ rule calculate_cdna_length:
         """
         (gzip -dc {input.fq1} \
             | awk 'NR % 4 == 2' \
-            | awk '{{print length, $0}}' \
-            | cut -f 1 -d ' ' \
+            | awk '{{print length}}' \
             | gzip > {output.fq1}) &> {log}
 
         (gzip -dc {input.fq2} \
             | awk 'NR % 4 == 2' \
-            | awk '{{print length, $0}}' \
-            | cut -f 1 -d ' ' \
+            | awk '{{print length}}' \
             | gzip > {output.fq2}) &>> {log}
         """
 
