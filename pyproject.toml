@@ -1,3 +1,7 @@
+[tool.snakefmt]
+line_length = 120
+include = '\.smk$|^Snakefile'
+
 [tool.autopep8]
 max-line-length = 120
 aggressive = 1
