@@ -7,3 +7,5 @@ dependencies:
     - bioconda::pysam
     - conda-forge::pandas
     - bioconda::samtools
+    - conda-forge::tqdm
+    - conda-forge::click
