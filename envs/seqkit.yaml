@@ -1,6 +1,6 @@
 name: seqkit
 channels:
-  - bioconda
+    - bioconda
 dependencies:
-  - seqkit
-  - coreutils
+    - seqkit
+    - coreutils
