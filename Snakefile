@@ -151,7 +151,7 @@ rule count_total_fastq_reads:
     output:
         path.join(out_dir, "workup", "qc", "count_total_fastq_reads", "{experiment}.total_fastq_reads.txt"),
     log:
-        path.join(out_dir, "workup", "logs", "count_total_fastq_reads", "{experiment}.total_fastq_reads.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.total_fastq_reads.log"),
     conda:
         "envs/coreutils.yaml"
     resources:
@@ -184,7 +184,7 @@ rule split_fastq_read1:
             )
         ),
     log:
-        path.join(out_dir, "workup", "logs", "split_fastq_read1", "{experiment}.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.split_fastq_read1.log"),
     conda:
         "envs/fastqsplitter.yaml"
     resources:
