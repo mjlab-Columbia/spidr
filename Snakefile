@@ -81,9 +81,12 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "split_incorrect_clusters", "RPM_cluster_distribution.pdf"),
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_read_distribution.pdf"),
         path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
+        path.join(out_dir, "workup", "qc", "count_filtered_fastq_reads", "{experiment}.filtered_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "plot_cdna_length_histogram", "{experiment}.cdna_histogram.pdf"),
         path.join(out_dir, "workup", "qc", "cat_ligation_efficiency", "ligation_efficiency.txt"),
         path.join(out_dir, "workup", "qc", "generate_cluster_statistics", "cluster_statistics.txt"),
+        path.join(out_dir, "workup", "qc", "aggregate_bpm_reads_across_chunks", "{experiment}.total_bpm_reads.txt"),
+        path.join(out_dir, "workup", "qc", "aggregate_rpm_reads_across_chunks", "{experiment}.total_rpm_reads.txt"),
         path.join(
             out_dir,
             "workup",
@@ -123,7 +126,9 @@ OUTPUTS = expand(
         ),
         path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_condition.{condition}.log"),
         path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_no_condition.ALL_CONDITIONS.log"),
-        path.join(out_dir, "workup", "qc", "count_total_fastq_reads", "{experiment}.total_fastq_reads.txt"),
+        path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
+        path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
+        path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
     ],
     experiment=ALL_EXPERIMENTS,
     condition=config["conditions"],
@@ -145,13 +150,13 @@ wildcard_constraints:
     experiment="[^\.]+",
 
 
-rule count_total_fastq_reads:
+rule count_raw_fastq_reads:
     input:
         lambda wildcards: FILES[wildcards.experiment]["R1"],
     output:
-        path.join(out_dir, "workup", "qc", "count_total_fastq_reads", "{experiment}.total_fastq_reads.txt"),
+        path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
     log:
-        path.join(out_dir, "workup", "logs", "{experiment}.total_fastq_reads.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.raw_fastq_reads.log"),
     conda:
         "envs/coreutils.yaml"
     resources:
@@ -160,11 +165,49 @@ rule count_total_fastq_reads:
         mem_mb=8000,
         time="01:00:00",
     benchmark:
-        "benchmarks/{experiment}.count_total_fastq_reads.tsv"
+        "benchmarks/{experiment}.count_raw_fastq_reads.tsv"
     shell:
         """
         echo "Total reads in fastq: " >> {output}
         (gzip -dc {input} | wc -l | xargs -I {{}} echo "scale=0; {{}} / 4" | bc > {output}) &> {log}
+        """
+
+
+rule deduplicate_reads:
+    input:
+        r1=lambda wildcards: FILES[wildcards.experiment]["R1"],
+        r2=lambda wildcards: FILES[wildcards.experiment]["R2"],
+    output:
+        r1=path.join(out_dir, "workup", "deduplicate_reads", "{experiment}_R1.dedup.fastq.gz"),
+        r2=path.join(out_dir, "workup", "deduplicate_reads", "{experiment}_R2.dedup.fastq.gz"),
+        html=path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
+        json=path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.deduplicate_reads.log"),
+    conda:
+        "envs/fastp.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=4,
+        mem_mb=32000,
+        time="01:00:00",
+    benchmark:
+        "benchmarks/{experiment}.deduplicate_reads.log"
+    shell:
+        """
+        (fastp \
+          --in1 {input.r1} \
+          --in2 {input.r2} \
+          --out1 {output.r1} \
+          --out2 {output.r2} \
+          --dedup \
+          --verbose \
+          --disable_adapter_trimming \
+          --disable_length_filtering \
+          --disable_quality_filtering \
+          --disable_trim_poly_g \
+          --json {output.json} \
+          --html {output.html}) &> {log}
         """
 
 
@@ -278,6 +321,32 @@ rule trim_sequencing_adapters:
             --fastqc \
             -o {out_dir}workup/trim_sequencing_adapters/ \
             {input}) &> {log}
+        """
+
+
+rule count_filtered_fastq_reads:
+    input:
+        expand(
+            path.join(out_dir, "workup", "trim_sequencing_adapters", "{{experiment}}_R1.part_{splitid}_val_1.fq.gz"),
+            splitid=NUM_CHUNKS,
+        ),
+    output:
+        path.join(out_dir, "workup", "qc", "count_filtered_fastq_reads", "{experiment}.filtered_fastq_reads.txt"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.filtered_fastq_reads.log"),
+    conda:
+        "envs/coreutils.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=8000,
+        time="01:00:00",
+    benchmark:
+        "benchmarks/{experiment}.count_filtered_fastq_reads.tsv"
+    shell:
+        """
+        echo "Filtered reads (Phred score >20) in fastq: " >> {output}
+        (gzip -dc {input} | awk 'NR % 4 == 2' | wc -l > {output}) &> {log}
         """
 
 
@@ -547,6 +616,118 @@ rule split_reads_read2:
             --rpm_output {output.rpm} \
             --bpm_output {output.bpm} \
             --short_output {output.short}) &> {log}
+        """
+
+
+rule count_bpm_reads_per_chunk:
+    """
+    Count the total number of BPM reads across chunks
+    """
+    input:
+        path.join(out_dir, "workup", "split_reads_read1", "{experiment}_R1.part_{splitid}.barcoded_bpm.fastq.gz"),
+    output:
+        path.join(
+            out_dir, "workup", "qc", "count_bpm_reads_per_chunk", "{experiment}.{splitid}.bpm_reads_per_chunk.txt"
+        ),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_bpm_reads_per_chunk.log"),
+    conda:
+        "envs/coreutils.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=32000,
+        time="02:00:00",
+    benchmark:
+        "benchmarks/{experiment}.{splitid}.count_bpm_reads_per_chunk.tsv"
+    shell:
+        """
+        (gzip -dc {input} | wc -l > {output}) &> {log}
+        """
+
+
+rule aggregate_bpm_reads_across_chunks:
+    input:
+        expand(
+            path.join(
+                out_dir,
+                "workup",
+                "qc",
+                "count_bpm_reads_per_chunk",
+                "{{experiment}}.{splitid}.bpm_reads_per_chunk.txt",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+    output:
+        path.join(out_dir, "workup", "qc", "aggregate_bpm_reads_across_chunks", "{experiment}.total_bpm_reads.txt"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.aggregate_bpm_reads_across_chunks.log"),
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=1000,
+        time="00:05:00",
+    benchmark:
+        "benchmarks/{experiment}.aggregate_bpm_reads_across_chunks.tsv"
+    shell:
+        """
+        (cat {input} | awk '{{sum += $1}} END {{print sum}}' > {output}) &> {log}
+        """
+
+
+rule count_rpm_reads_per_chunk:
+    """
+    Count the total number of rpm reads across chunks
+    """
+    input:
+        path.join(out_dir, "workup", "split_reads_read1", "{experiment}_R1.part_{splitid}.barcoded_rpm.fastq.gz"),
+    output:
+        path.join(
+            out_dir, "workup", "qc", "count_rpm_reads_per_chunk", "{experiment}.{splitid}.rpm_reads_per_chunk.txt"
+        ),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_rpm_reads_per_chunk.log"),
+    conda:
+        "envs/coreutils.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=32000,
+        time="02:00:00",
+    benchmark:
+        "benchmarks/{experiment}.{splitid}.count_rpm_reads_per_chunk.tsv"
+    shell:
+        """
+        (gzip -dc {input} | wc -l > {output}) &> {log}
+        """
+
+
+rule aggregate_rpm_reads_across_chunks:
+    input:
+        expand(
+            path.join(
+                out_dir,
+                "workup",
+                "qc",
+                "count_rpm_reads_per_chunk",
+                "{{experiment}}.{splitid}.rpm_reads_per_chunk.txt",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+    output:
+        path.join(out_dir, "workup", "qc", "aggregate_rpm_reads_across_chunks", "{experiment}.total_rpm_reads.txt"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.aggregate_rpm_reads_across_chunks.log"),
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=1000,
+        time="00:05:00",
+    benchmark:
+        "benchmarks/{experiment}.aggregate_rpm_reads_across_chunks.tsv"
+    shell:
+        """
+        (cat {input} | awk '{{sum += $1}} END {{print sum}}' > {output}) &> {log}
         """
 
 
