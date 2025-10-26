@@ -30,6 +30,7 @@ if [[ ${SNAKEMAKE_MAJOR} -lt 8 ]]; then
         --keep-going \
         -j 128 \
         --cluster-config cluster.yaml \
+        --printshellcmds \
         --configfile config.yaml \
         --cluster "sbatch -A {cluster.account} -c {cluster.cpus} -t {cluster.time} -N {cluster.nodes} --mem {cluster.mem} --output {cluster.output} --error {cluster.error}" \
         --cluster-cancel scancel \
