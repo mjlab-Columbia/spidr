@@ -71,6 +71,7 @@ NUM_CHUNKS = [f"{i:03}" for i in range(0, config["num_chunks"])]
 
 OUTPUTS = expand(
     [
+        path.join(out_dir, "workup", "merge_bead_bams", "{experiment}.merged.BPM.bam"),
         path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"),
         path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done"),
         path.join(out_dir, "workup", "condition-clusters", "RPM_read_distribution.pdf"),
@@ -84,6 +85,7 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "qc", "count_filtered_fastq_reads", "{experiment}.filtered_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "plot_cdna_length_histogram", "{experiment}.cdna_histogram.pdf"),
         path.join(out_dir, "workup", "qc", "cat_ligation_efficiency", "ligation_efficiency.txt"),
+        path.join(out_dir, "workup", "qc", "duplication_rate", "{experiment}.bpm_duplication_rate.txt"),
         path.join(out_dir, "workup", "qc", "generate_cluster_statistics", "cluster_statistics.txt"),
         path.join(out_dir, "workup", "qc", "aggregate_bpm_reads_across_chunks", "{experiment}.total_bpm_reads.txt"),
         path.join(out_dir, "workup", "qc", "aggregate_rpm_reads_across_chunks", "{experiment}.total_rpm_reads.txt"),
@@ -1276,6 +1278,60 @@ rule merge_bead_bams:
         """
 
 
+rule calculate_bpm_stats:
+    input:
+        path.join(out_dir, "workup", "merge_bead_bams", "{experiment}.merged.BPM.bam"),
+    output:
+        barcode_umi=temp(path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.barcode_umi.txt.gz")),
+        final=path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.bpm_duplication_stats.txt"),
+    conda:
+        "envs/pysam.yaml"
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.calculate_bpm_stats.log"),
+    threads: 1
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=32000,
+        time="00:45:00",
+    benchmark:
+        "benchmarks/{experiment}.calculate_bpm_stats.tsv"
+    shell:
+        """
+        (samtools view {input} | cut -f 1,12 | sed 's/.*:://' | sed 's/MI:Z://' | gzip > {output.barcode_umi}
+
+        python scripts/python/calculate_bpm_stats.py \
+            --input {output.barcode_umi} \
+            --output {output.final}) &> {log}
+        """
+
+
+rule find_bpm_duplication_rate:
+    """
+    Reports duplication rate as proportion: duplicates UMIs / total BPM reads
+    """
+    input:
+        path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.bpm_duplication_stats.txt"),
+    output:
+        path.join(out_dir, "workup", "qc", "duplication_rate", "{experiment}.bpm_duplication_rate.txt"),
+    conda:
+        "envs/coreutils.yaml"
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.bpm_duplication_rate.log"),
+    threads: 1
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=16000,
+        time="00:15:00",
+    shell:
+        """
+        (awk '{{total += $3; duplicates += $4}} END {{print duplicates " / " total}}' {input} \
+            | bc -l \
+            | cut -c 1-6 > {output}) &> {log}
+        """
+
+
 rule make_clusters:
     input:
         rpm=path.join(
@@ -1685,3 +1741,11 @@ rule generate_splitbam_statistics:
         (for f in {params.all_conditions}/*bam; do echo $f; samtools view -c $f; done > {output.all_conditions}) &> {log}
         (for f in {params.by_condition}/*bam; do echo $f; samtools view -c $f; done > {output.by_condition}) &> {log}
         """
+
+
+# rule final_qc:
+#     input:
+#         raw_read_count=path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
+#         filtered_read_count=
+#     output:
+#         path.join(out_dir, "workup", "qc", "final_qc", "final_qc.txt"),
