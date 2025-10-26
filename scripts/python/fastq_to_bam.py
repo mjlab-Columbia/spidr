@@ -4,6 +4,7 @@ import string
 import pandas as pd
 import re
 import gzip
+from pdb import set_trace
 
 def main():
     args = parse_arguments()
@@ -52,17 +53,23 @@ def convert_reads(args, header):
 
 
 def initialize_alignment(header, query_name, reference_name, query_sequence, tags=None):
-    """Create a `Pysam.AlignedSegment` object.
     """
+    Create a `Pysam.AlignedSegment` object.
+    """
+    # First 8 characters of trimmed read 1 BPM library represent unique molecular identifier (UMI)
+    # Original library: 5' [Common bead oligo seq (11 bp)][Unique bead seq pool (9 bp)][UMI (8 bp)][...] 3'
+    # Trimmed reads: 5' [UMI (8 bp)][...] 3'
+    umi_sequence = query_sequence[0:8]
+    umi_encoded = sequence_to_int(umi_sequence, query_name)
+
     a = pysam.AlignedSegment(header)
     a.query_name = query_name
     a.reference_name = reference_name
-    #a.reference_start = sequence_to_int(query_sequence[10:17]) #convert umi to integer
-    a.reference_start = sequence_to_int(query_sequence[0:7], query_name)
+    a.reference_start = umi_encoded
     a.query_sequence = query_sequence
     a.flag = 0
     a.cigar = ((0, len(query_sequence)),)
-    #a.set_tag('', str(query_sequence[0:8])) # save oligo seqeunce
+    a.set_tag('MI', umi_sequence)
     return a 
 
 def sequence_to_int(seq, query_name):
