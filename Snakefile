@@ -131,6 +131,9 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
     ],
     experiment=ALL_EXPERIMENTS,
     condition=config["conditions"],
@@ -1372,6 +1375,34 @@ rule make_clusters:
             -n {params.num_tags})  &> {log}
 
         (sort -k 1 -T {params.temp_dir} {output.unsorted} > {output.sorted}) &> {log}
+        """
+
+
+rule subsample_clusters:
+    input:
+        expand(
+            path.join(out_dir, "workup", "make_clusters", "{{experiment}}.part_{splitid}.clusters"), splitid=NUM_CHUNKS
+        ),
+    output:
+        stats_by_cluster=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
+        stats_by_reads=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
+        line_plot=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
+    params:
+        output_prefix=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.subsample_clusters.log"),
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=48000,
+        time="03:00:00",
+    benchmark:
+        "benchmarks/{experiment}.subsample_clusters.tsv"
+    shell:
+        """
+        (python scripts/python/cluster_subsampling.py --input {input} --output {params.output_prefix} --plot_data) &> {log}
         """
 
 
