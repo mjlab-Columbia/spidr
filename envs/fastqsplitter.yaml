@@ -2,4 +2,7 @@ name: fastqsplitter
 channels:
     - bioconda
 dependencies:
-    - bioconda::fastqsplitter
+    - python
+    - pip
+    - pip:
+        - fastqsplitter
