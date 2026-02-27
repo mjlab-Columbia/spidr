@@ -374,8 +374,6 @@ rule identify_barcodes:
         read2_start_offset=config["read2_start_offset"],
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log"),
-    conda:
-        "envs/barcoding.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -385,7 +383,7 @@ rule identify_barcodes:
         "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
     shell:
         """
-        (python scripts/python/identify_barcodes.py \
+        (bin/identify_barcode \
             --input_read1 {input.r1} \
             --input_read2 {input.r2} \
             --output_read1 {output.r1_barcoded} \
