@@ -1,6 +1,6 @@
 name: trim_galore
 channels:
-    - bioconda
     - conda-forge
+    - bioconda
 dependencies:
     - trim-galore
