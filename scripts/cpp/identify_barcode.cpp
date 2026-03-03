@@ -165,12 +165,19 @@ static std::vector<ConfigEntry> parse_config(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("Cannot open config: " + path);
 
+    // Strip trailing spaces, tabs, and carriage returns from a string in-place.
+    auto rtrim = [](std::string& s) {
+        while (!s.empty() && (s.back() == ' ' || s.back() == '\t' || s.back() == '\r'))
+            s.pop_back();
+    };
+
     std::vector<ConfigEntry> entries;
     std::string line;
     int line_num = 0;
     while (std::getline(f, line)) {
-        if (++line_num <= 3) continue; // skip READ1, READ2, blank
-        if (line.empty())   continue;
+        rtrim(line);                          // strip trailing whitespace / \r
+        if (++line_num <= 3) continue;        // skip READ1, READ2, blank
+        if (line.empty())    continue;
 
         std::istringstream ss(line);
         ConfigEntry e;
@@ -180,6 +187,10 @@ static std::vector<ConfigEntry> parse_config(const std::string& path) {
             std::getline(ss, e.sequence, '\t') &&
             std::getline(ss, tol_str))
         {
+            rtrim(e.type);
+            rtrim(e.name);
+            rtrim(e.sequence);
+            rtrim(tol_str);
             e.tolerance = std::stoi(tol_str);
             entries.push_back(std::move(e));
         }
