@@ -163,7 +163,7 @@ rule count_raw_fastq_reads:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.raw_fastq_reads.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -340,7 +340,7 @@ rule count_filtered_fastq_reads:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.filtered_fastq_reads.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -433,7 +433,7 @@ rule count_barcoded_reads_pre_alignment:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_barcoded_reads_pre_alignment.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -544,7 +544,7 @@ rule cat_ligation_efficiency:
     log:
         path.join(out_dir, "workup", "logs", "cat_ligation_efficiency.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -635,7 +635,7 @@ rule count_bpm_reads_per_chunk:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_bpm_reads_per_chunk.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -691,7 +691,7 @@ rule count_rpm_reads_per_chunk:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_rpm_reads_per_chunk.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -835,7 +835,7 @@ rule aggregate_cdna_lengths_across_splits:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.aggregate_cdna_lengths_across_splits.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     threads: 1
     benchmark:
         "benchmarks/{experiment}.aggregate_cdna_lengths_across_splits.tsv"
@@ -1316,7 +1316,7 @@ rule find_bpm_duplication_rate:
     output:
         path.join(out_dir, "workup", "qc", "duplication_rate", "{experiment}.bpm_duplication_rate.txt"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.bpm_duplication_rate.log"),
     threads: 1
