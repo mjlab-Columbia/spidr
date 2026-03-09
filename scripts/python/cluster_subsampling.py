@@ -7,6 +7,7 @@ import os
 from tqdm import tqdm
 from collections import Counter
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 
 
 def find_cluster_category(tag_array):
@@ -66,13 +67,15 @@ def compute_chunk_stats(grouped_df):
     rpm_only_cluster = grouped_df[grouped_df["cluster_category"] == "RPM_ONLY"].shape[0] / total_count
     bpm_and_rpm_cluster = grouped_df[grouped_df["cluster_category"] == "BPM_and_RPM"].shape[0] / total_count
 
-    total_reads = grouped_df["tag_count"].apply(nonspecific_counter).sum()
-    bpm_only_read = grouped_df[grouped_df["cluster_category"] == "BPM_ONLY"]["tag_count"].apply(
-        nonspecific_counter).sum() / total_reads
-    rpm_only_read = grouped_df[grouped_df["cluster_category"] == "RPM_ONLY"]["tag_count"].apply(
-        nonspecific_counter).sum() / total_reads
-    bpm_and_rpm_read = grouped_df[grouped_df["cluster_category"] == "BPM_and_RPM"]["tag_count"].apply(
-        nonspecific_counter).sum() / total_reads
+    read_counts = grouped_df["tag_count"].apply(nonspecific_counter)
+    total_reads = read_counts.sum()
+
+    bpm_only_abs = grouped_df[grouped_df["cluster_category"] == "BPM_ONLY"]["tag_count"].apply(
+        nonspecific_counter).sum()
+    rpm_only_abs = grouped_df[grouped_df["cluster_category"] == "RPM_ONLY"]["tag_count"].apply(
+        nonspecific_counter).sum()
+    bpm_and_rpm_abs = grouped_df[grouped_df["cluster_category"] == "BPM_and_RPM"]["tag_count"].apply(
+        nonspecific_counter).sum()
 
     cluster_row = {
         "bpm_only": bpm_only_cluster,
@@ -81,10 +84,14 @@ def compute_chunk_stats(grouped_df):
         "summed": bpm_only_cluster + rpm_only_cluster + bpm_and_rpm_cluster,
     }
     read_row = {
-        "bpm_only": bpm_only_read,
-        "rpm_only": rpm_only_read,
-        "bpm_and_rpm": bpm_and_rpm_read,
-        "summed": bpm_only_read + rpm_only_read + bpm_and_rpm_read,
+        "bpm_only": bpm_only_abs / total_reads,
+        "rpm_only": rpm_only_abs / total_reads,
+        "bpm_and_rpm": bpm_and_rpm_abs / total_reads,
+        "summed": (bpm_only_abs + rpm_only_abs + bpm_and_rpm_abs) / total_reads,
+        "bpm_only_abs": int(bpm_only_abs),
+        "rpm_only_abs": int(rpm_only_abs),
+        "bpm_and_rpm_abs": int(bpm_and_rpm_abs),
+        "total_reads": int(total_reads),
     }
     return cluster_row, read_row
 
@@ -222,34 +229,34 @@ def main():
     print(f"Stats table written to {args.output}")
 
     if args.plot_data:
-        cluster_stats_df = pd.read_csv(cluster_stats_path)
         read_stats_df = pd.read_csv(read_stats_path)
 
-        # Panel plot: left for cluster stats, right for read stats
+        # Panel plot: read proportions | absolute read counts
         fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharex=True)
 
-        # Left panel: cluster stats
-        axs[0].plot(cluster_stats_df.index, cluster_stats_df['bpm_only'], label='BPM only', color='blue', marker='o')
-        axs[0].plot(cluster_stats_df.index, cluster_stats_df['rpm_only'], label='RPM only', color='orange', marker='o')
-        axs[0].plot(
-            cluster_stats_df.index,
-            cluster_stats_df['bpm_and_rpm'],
-            label='BPM and RPM',
-            color='green',
-            marker='o')
+        # Left panel: read proportions
+        axs[0].plot(read_stats_df.index, read_stats_df['bpm_only'], label='BPM only', color='blue', marker='o')
+        axs[0].plot(read_stats_df.index, read_stats_df['rpm_only'], label='RPM only', color='orange', marker='o')
+        axs[0].plot(read_stats_df.index, read_stats_df['bpm_and_rpm'], label='BPM and RPM', color='green', marker='o')
         axs[0].set_xlabel('Number of Cumulative Chunks Aggregated')
         axs[0].set_ylabel('Proportion')
-        axs[0].set_title('Cluster Category Proportion (By Cluster)')
+        axs[0].set_title('Cluster Category Proportion (By Total Reads)')
         axs[0].legend()
         axs[0].grid(True, linestyle='--', alpha=0.5)
 
-        # Right panel: read stats
-        axs[1].plot(read_stats_df.index, read_stats_df['bpm_only'], label='BPM only', color='blue', marker='o')
-        axs[1].plot(read_stats_df.index, read_stats_df['rpm_only'], label='RPM only', color='orange', marker='o')
-        axs[1].plot(read_stats_df.index, read_stats_df['bpm_and_rpm'], label='BPM and RPM', color='green', marker='o')
+        # Right panel: absolute read counts
+        axs[1].plot(read_stats_df.index, read_stats_df['bpm_only_abs'], label='BPM only', color='blue', marker='o')
+        axs[1].plot(read_stats_df.index, read_stats_df['rpm_only_abs'], label='RPM only', color='orange', marker='o')
+        axs[1].plot(
+            read_stats_df.index,
+            read_stats_df['bpm_and_rpm_abs'],
+            label='BPM and RPM',
+            color='green',
+            marker='o')
         axs[1].set_xlabel('Number of Cumulative Chunks Aggregated')
-        axs[1].set_ylabel('Proportion')
-        axs[1].set_title('Cluster Category Proportion (By Total Reads)')
+        axs[1].set_ylabel('Read Count')
+        axs[1].set_title('Absolute Read Counts by Cluster Category')
+        axs[1].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
         axs[1].legend()
         axs[1].grid(True, linestyle='--', alpha=0.5)
 
