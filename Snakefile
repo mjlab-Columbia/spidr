@@ -502,7 +502,7 @@ rule generate_barcode_table:
             $(gzip -dc {output.table} \
                 | cut -f 1 --complement \
                 | grep 'NOT_FOUND' \
-                | wc -l) > {output.barcode_qc}) &>> {log}
+                | wc -l) >> {output.barcode_qc}) &>> {log}
         """
 
 
@@ -1286,7 +1286,7 @@ rule calculate_bpm_stats:
         path.join(out_dir, "workup", "merge_bead_bams", "{experiment}.merged.BPM.bam"),
     output:
         barcode_umi=temp(path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.barcode_umi.txt.gz")),
-        final=path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.bpm_duplication_stats.txt"),
+        final=path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.bpm_duplication_stats.txt.gz"),
     conda:
         "envs/pysam.yaml"
     log:
@@ -1374,7 +1374,7 @@ rule make_clusters:
             -o {output.unsorted} \
             -n {params.num_tags})  &> {log}
 
-        (sort -k 1 -T {params.temp_dir} {output.unsorted} > {output.sorted}) &> {log}
+        (sort -k 1 -T {params.temp_dir} {output.unsorted} | gzip > {output.sorted}) &> {log}
         """
 
 
@@ -1414,7 +1414,7 @@ rule merge_clusters:
         ),
     output:
         mega=temp(path.join(out_dir, "workup", "merge_clusters", "{experiment}.duplicated.clusters")),
-        final=path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters"),
+        final=path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
     params:
         temp_dir=config["temp_dir"],
     conda:
@@ -1430,7 +1430,7 @@ rule merge_clusters:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         """
-        (sort -k 1 -T {params.temp_dir} -m {input} > {output.mega}) &> {log}
+        (sort -k 1 -T {params.temp_dir} -m {input} | gzip > {output.mega}) &> {log}
         (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &>> {log}
         """
 

@@ -4,6 +4,7 @@ from tqdm import tqdm
 from collections import defaultdict
 from pdb import set_trace
 from typing import List
+import gzip
 
 
 @click.command()
@@ -66,8 +67,10 @@ def main(input, output):
         }
         output_entries.append(entry)
 
-
-    with open(output, "w") as file_out:
+    gzip_file = True if file_out.endswith(".gz") else False
+    file_open = gzip.open if gzip_file else open
+    write_method = "wb" if gzip_file else "w"
+    with file_open(output, write_method) as file_out:
         output_progress_bar = tqdm(output_entries, total=len(output_entries), desc="Writing to output")
 
         for entry in output_progress_bar:
