@@ -343,8 +343,12 @@ def merge_clusters(in_file, out_file):
     current_reads = set()
     count = 0
     pattern = re.compile('([a-zA-Z0-9]+)\\[(.*)\\]_(.+):([0-9]+)\\-([0-9]+)')
-    with open(in_file, 'r') as in_clusters, \
-            open(out_file, 'w') as out_clusters:
+
+    output_gzipped = True if out_file.endswith(".gz") else False
+    file_open_write = gzip.open if output_gzipped else open
+    write_method = "wb" if output_gzipped else "w"
+    with file_open(in_file, 'r') as in_clusters, \
+            file_open_write(out_file, write_method) as out_clusters:
         for line in in_clusters:
             barcode, *reads = line.rstrip('\n').split('\t')
             if (barcode != current_barcode):
