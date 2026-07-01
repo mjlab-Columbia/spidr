@@ -216,7 +216,4 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-#!! ERROR: snakemake is undefined. Use list command to see defined gitignore types !!#
-
-# End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks,snakemake
-
+bin/*

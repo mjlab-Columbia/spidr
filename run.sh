@@ -19,7 +19,7 @@ if [[ "$1" == "--dry_run" ]]; then
 fi
 
 # If we're on Snakemake 8 or later, use profiles, otherwise use cluster config
-# Note: 
+# Note:
 # --cluster-config will eventually be deprecated completely so it will (eventually) be completely removed
 # The option to use it is included for backwards compatibility. Occasionally, dependency conflicts between
 # bioconda and conda-forge cause older versions of snakemake to be installed.
@@ -28,7 +28,8 @@ if [[ ${SNAKEMAKE_MAJOR} -lt 8 ]]; then
         --use-conda \
         --rerun-incomplete \
         --keep-going \
-        -j 128 \
+        --scheduler greedy \
+        -j 50 \
         --cluster-config cluster.yaml \
         --printshellcmds \
         --configfile config.yaml \
@@ -44,4 +45,3 @@ elif [[ ${SNAKEMAKE_MAJOR} -ge 8 ]]; then
         ${DRY_RUN} \
         2>&1 | tee spidr.log
 fi
-

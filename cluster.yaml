@@ -100,14 +100,6 @@ calculate_cdna_length:
     mem: 32g
     cpus: 1
     nodes: 1
-    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.out"
-    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
-aggregate_cdna_lengths_across_splits:
-    account: "mjlab"
-    time: "01:00:00"
-    mem: 32g
-    cpus: 1
-    nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 plot_cdna_length_histogram:
@@ -192,9 +184,9 @@ convert_fastq_to_bam:
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
 merge_bead_bams:
     account: "mjlab"
-    time: "24:00:00"
+    time: "02:00:00"
     mem: 48g
-    cpus: 1
+    cpus: 8
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"

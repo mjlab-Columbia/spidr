@@ -1,0 +1,10 @@
+name: gnu_utils
+channels:
+    - conda-forge
+dependencies:
+    - coreutils
+    - grep
+    - sed
+    - bc
+    - awk
+    - gzip

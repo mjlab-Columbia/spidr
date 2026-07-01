@@ -163,7 +163,7 @@ rule count_raw_fastq_reads:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.raw_fastq_reads.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -340,7 +340,7 @@ rule count_filtered_fastq_reads:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.filtered_fastq_reads.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -374,8 +374,6 @@ rule identify_barcodes:
         read2_start_offset=config["read2_start_offset"],
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log"),
-    conda:
-        "envs/barcoding.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -385,7 +383,7 @@ rule identify_barcodes:
         "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
     shell:
         """
-        (python scripts/python/identify_barcodes.py \
+        (bin/identify_barcode \
             --input_read1 {input.r1} \
             --input_read2 {input.r2} \
             --output_read1 {output.r1_barcoded} \
@@ -435,7 +433,7 @@ rule count_barcoded_reads_pre_alignment:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_barcoded_reads_pre_alignment.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -546,7 +544,7 @@ rule cat_ligation_efficiency:
     log:
         path.join(out_dir, "workup", "logs", "cat_ligation_efficiency.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -637,7 +635,7 @@ rule count_bpm_reads_per_chunk:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_bpm_reads_per_chunk.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -693,7 +691,7 @@ rule count_rpm_reads_per_chunk:
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.count_rpm_reads_per_chunk.log"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -780,15 +778,21 @@ rule calculate_cdna_length:
     Take the cDNA reads which have been stripped of primers and other stuff and count the length of each cDNA molecule
     """
     input:
-        fq1=path.join(
-            out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
+        fq1=expand(
+            path.join(
+                out_dir, "workup", "trim_rpm_reads", "{{experiment}}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
+            ),
+            splitid=NUM_CHUNKS,
         ),
-        fq2=path.join(
-            out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
+        fq2=expand(
+            path.join(
+                out_dir, "workup", "trim_rpm_reads", "{{experiment}}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"
+            ),
+            splitid=NUM_CHUNKS,
         ),
     output:
-        fq1=path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{experiment}_R1.part_{splitid}.txt.gz"),
-        fq2=path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{experiment}_R2.part_{splitid}.txt.gz"),
+        fq1=path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{experiment}.cdna_lengths_R1.txt.gz"),
+        fq2=path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{experiment}.cdna_lengths_R2.txt.gz"),
     conda:
         "envs/python.yaml"
     resources:
@@ -797,9 +801,9 @@ rule calculate_cdna_length:
         mem_mb=16000,
         time="00:30:00",
     log:
-        path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.calculate_cdna_length.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.calculate_cdna_length.log"),
     benchmark:
-        "benchmarks/{experiment}.part_{splitid}.calculate_cdna_length.tsv"
+        "benchmarks/{experiment}.calculate_cdna_length.tsv"
     shell:
         """
         (gzip -dc {input.fq1} \
@@ -814,56 +818,13 @@ rule calculate_cdna_length:
         """
 
 
-rule aggregate_cdna_lengths_across_splits:
-    """
-    Combine cDNA lengths calculated per chunk into a single file
-    """
-    input:
-        fq1=expand(
-            path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{{experiment}}_R1.part_{splitid}.txt.gz"),
-            splitid=NUM_CHUNKS,
-        ),
-        fq2=expand(
-            path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{{experiment}}_R2.part_{splitid}.txt.gz"),
-            splitid=NUM_CHUNKS,
-        ),
-    output:
-        fq1=path.join(
-            out_dir, "workup", "qc", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R1.txt.gz"
-        ),
-        fq2=path.join(
-            out_dir, "workup", "qc", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R2.txt.gz"
-        ),
-    log:
-        path.join(out_dir, "workup", "logs", "{experiment}.aggregate_cdna_lengths_across_splits.log"),
-    conda:
-        "envs/coreutils.yaml"
-    threads: 1
-    benchmark:
-        "benchmarks/{experiment}.aggregate_cdna_lengths_across_splits.tsv"
-    resources:
-        tmpdir=config["temp_dir"],
-        cpus=1,
-        mem_mb=16000,
-        time="00:30:00",
-    shell:
-        """
-        (zcat -dck {input.fq1} | gzip > {output.fq1}) &> {log}
-        (zcat -dck {input.fq2} | gzip > {output.fq2}) &> {log}
-        """
-
-
 rule plot_cdna_length_histogram:
     """
     Plot a histogram of cDNA lengths based on the cDNA lengths across all chunks
     """
     input:
-        fq1=path.join(
-            out_dir, "workup", "qc", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R1.txt.gz"
-        ),
-        fq2=path.join(
-            out_dir, "workup", "qc", "aggregate_cdna_lengths_across_splits", "{experiment}.cdna_lengths_R2.txt.gz"
-        ),
+        fq1=path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{experiment}.cdna_lengths_R1.txt.gz"),
+        fq2=path.join(out_dir, "workup", "qc", "calculate_cdna_length", "{experiment}.cdna_lengths_R2.txt.gz"),
     output:
         path.join(out_dir, "workup", "qc", "plot_cdna_length_histogram", "{experiment}.cdna_histogram.pdf"),
     log:
@@ -872,7 +833,7 @@ rule plot_cdna_length_histogram:
         "envs/python.yaml"
     threads: 1
     benchmark:
-        "benchmarks/{experiment}.aggregate_cdna_lengths_across_splits.tsv"
+        "benchmarks/{experiment}.plot_cdna_length_histogram.tsv"
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
@@ -1318,7 +1279,7 @@ rule find_bpm_duplication_rate:
     output:
         path.join(out_dir, "workup", "qc", "duplication_rate", "{experiment}.bpm_duplication_rate.txt"),
     conda:
-        "envs/coreutils.yaml"
+        "envs/gnu_utils.yaml"
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.bpm_duplication_rate.log"),
     threads: 1
@@ -1735,16 +1696,29 @@ rule count_barcoded_reads_in_bams:
             out_dir, "workup", "qc", "count_barcoded_reads_in_bams", "{experiment}.barcoded_reads_assigned_to_bams.txt"
         ),
     params:
-        directory=path.join(out_dir, "workup", "qc", "splitbams_all_conditions"),
+        directory=path.join(out_dir, "workup", "splitbams_all_conditions"),
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.count_barcoded_reads_in_bams.log"),
     conda:
         "envs/samtools.yaml"
     shell:
         """
-        ALL_BAMS=$(ls workup/splitbams_all_conditions/*.bam | grep -E '.*\.ALL_CONDITIONS_.+\.bam' | grep -v -E 'ambiguous|none|uncertain')
+        (
+            # 1. Use the explicit params.directory path
+            # 2. Add -s 0 to find to ignore 0-byte (corrupted/empty) files if they exist
+            ALL_BAMS=$(find "{params.directory}" -maxdepth 1 -name "*.bam" -size +0c | \
+                       grep -E '{wildcards.experiment}\.ALL_CONDITIONS_.*\.bam' | \
+                       grep -v -E 'ambiguous|none|uncertain')
 
-        (for bam in $ALL_BAMS; do samtools view -c $bam; done | awk '{{sum += $1}} END {{print sum}}' > {output}) &> {log}
+            # Check if any BAM files were actually found to avoid errors down the line
+            if [ -z "$ALL_BAMS" ]; then
+                echo "0" > {output}
+            else
+                (for bam in $ALL_BAMS; do 
+                    samtools view -c "$bam"
+                 done | awk '{{sum += $1}} END {{print sum}}') > {output} 2> {log}
+            fi
+        ) &> {log}
         """
 
 
