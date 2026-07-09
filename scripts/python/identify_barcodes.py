@@ -1,10 +1,11 @@
 from click import command, option, Path
 import pandas as pd
 import os
-from typing import Tuple, Dict, List, Set
+from typing import Tuple, Dict, List, Set, Union
 from tqdm import tqdm
 import gzip
 from collections import deque
+from pdb import set_trace
 
 # Number of bases between barcodes (equivalent to the length of odd overhang or even overhang)
 # TODO: Move this into CLI options or config
@@ -142,7 +143,8 @@ def find_terminal_barcode(read: str,
 def find_nonterminal_barcode(read: str,
                              barcode_hashmap: Dict[str, Set[str]],
                              start: int,
-                             possible_lengths: List[int] = [15]) -> Tuple[str, int]:
+                             possible_lengths: Set[int] = {15},
+                             barcoding_round_num: Union[int, None] = None):
     """
     Find non-terminal barcodes in read 2
 
@@ -158,6 +160,13 @@ def find_nonterminal_barcode(read: str,
     # To account for barcodes of different lengths, we need to search for each possible barcode size
     possible_bc_sizes = sorted(possible_lengths)
     max_bc_size = max(possible_bc_sizes)
+
+    # If the round of barcoding is considered, limit the ODD or EVEN barcodes to those within this round
+    # e.g. If round 2 and round 4 are both EVEN rounds and barcoding_round_num is 2, only EVEN barcodes from round 2
+    # will be available for deciding the barcode label
+    if barcoding_round_num is not None:
+        barcode_hashmap = {bc: seq for bc, seq in barcode_hashmap.items(
+        ) if bc.startswith(f"ROUND{barcoding_round_num}")}
 
     # Barcodes can be offset within the range [0, LAXITY]
     for offset in range(0, LAXITY + 1):
@@ -192,7 +201,8 @@ def find_barcodes(read: str,
                   read2_start_offset: int,
                   possible_term_barcode_lengths: Set[int],
                   possible_odd_barcode_lengths: Set[int],
-                  possible_even_barcode_lengths: Set[int]) -> List[str]:
+                  possible_even_barcode_lengths: Set[int],
+                  use_barcoding_round: bool) -> List[str]:
     """
     Find all barcode sequences in read 2
 
@@ -211,23 +221,39 @@ def find_barcodes(read: str,
     layout = read2_format.copy() + ["END"]
     barcode_type = layout.pop(0)
 
+    # If specified by the user, keep track of which barcoding round is being parsed
+    if use_barcoding_round:
+        combinatorial_barcode_format = [sequence_type for sequence_type in read2_format.copy() if sequence_type not in {
+            'SPACER', 'END'}]
+        barcoding_round = len(combinatorial_barcode_format)
+    else:
+        barcoding_round = None
+
+    def update_barcoding_round(round: Union[int, None]) -> Union[int, None]:
+        return round if round is None else round - 1
+
     while len(layout) > 0:
         if barcode_type == "Y":
             bc, new_start = find_terminal_barcode(read, term_hashmap, start, possible_term_barcode_lengths)
             barcodes.append(bc)
             start = new_start
+            barcoding_round = update_barcoding_round(barcoding_round)
         elif barcode_type == "SPACER":
             start += SPACER
         elif barcode_type == "END":
             break
         elif barcode_type == "ODD":
-            bc, new_start = find_nonterminal_barcode(read, odd_hashmap, start, possible_odd_barcode_lengths)
+            bc, new_start = find_nonterminal_barcode(
+                read, odd_hashmap, start, possible_odd_barcode_lengths, barcoding_round)
             barcodes.append(bc)
             start = new_start
+            barcoding_round = update_barcoding_round(barcoding_round)
         elif barcode_type == "EVEN":
-            bc, new_start = find_nonterminal_barcode(read, even_hashmap, start, possible_even_barcode_lengths)
+            bc, new_start = find_nonterminal_barcode(
+                read, even_hashmap, start, possible_even_barcode_lengths, barcoding_round)
             barcodes.append(bc)
             start = new_start
+            barcoding_round = update_barcoding_round(barcoding_round)
         else:
             raise Exception("Invalid barcode type")
 
@@ -271,6 +297,7 @@ def pad_barcodes(barcodes: List[str], expected_length: int) -> List[str]:
         help="Skip this many bases from 5' end on read1 before bead oligo search", default=0, show_default=True)
 @option('--read2_start_offset', type=int,
         help="Skip this many bases from 5' on read2 before terminal barcode search", default=0, show_default=True)
+@option('--use_barcoding_round', type=bool, default=False, is_flag=True, show_default=True)
 @option('--config', type=Path(exists=True), help='Config file contains bead sequences')
 @option('--show_progress_bar', type=bool, help='Whether or not to show a tqdm progress bar', default=False)
 def main(input_read1: os.PathLike,
@@ -281,6 +308,7 @@ def main(input_read1: os.PathLike,
          read2_format: str,
          read1_start_offset: str,
          read2_start_offset: str,
+         use_barcoding_round: bool,
          config: os.PathLike,
          show_progress_bar: bool) -> None:
     """
@@ -378,7 +406,8 @@ def main(input_read1: os.PathLike,
                                      read2_start_offset=read2_start_offset,
                                      possible_term_barcode_lengths=term_barcode_lengths,
                                      possible_odd_barcode_lengths=odd_barcode_lengths,
-                                     possible_even_barcode_lengths=even_barcode_lengths)
+                                     possible_even_barcode_lengths=even_barcode_lengths,
+                                     use_barcoding_round=use_barcoding_round)
 
             # Concatenate bead id and barcodes and pad with ["NOT_FOUND"] if necessary
             final_barcodes = [bead_id] + barcodes
