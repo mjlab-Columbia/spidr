@@ -298,6 +298,14 @@ def file_open(filename):
         return f
 
 
+def open_auto(filename, mode='rt', *args, **kwargs):
+    with open(filename, 'rb') as f:
+        is_gzip = f.read(2) == b'\x1f\x8b'
+
+    opener = gzip.open if is_gzip else open
+    return opener(filename, mode, *args, **kwargs)
+
+
 def parse_clusters(c_file, labeled=False):
     '''
     Parse cluster file
@@ -344,11 +352,8 @@ def merge_clusters(in_file, out_file):
     count = 0
     pattern = re.compile('([a-zA-Z0-9]+)\\[(.*)\\]_(.+):([0-9]+)\\-([0-9]+)')
 
-    output_gzipped = True if out_file.endswith(".gz") else False
-    file_open_write = gzip.open if output_gzipped else open
-    write_method = "wb" if output_gzipped else "w"
-    with file_open(in_file, 'r') as in_clusters, \
-            file_open_write(out_file, write_method) as out_clusters:
+    with open_auto(in_file, "rt") as in_clusters, \
+            open_auto(out_file, "wt") as out_clusters:
         for line in in_clusters:
             barcode, *reads = line.rstrip('\n').split('\t')
             if (barcode != current_barcode):

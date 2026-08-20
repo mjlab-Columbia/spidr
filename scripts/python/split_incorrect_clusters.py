@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from collections import defaultdict
+import gzip
 
 
 def main():
@@ -18,19 +19,19 @@ def main():
     print(incomplete_out_path)
 
     line_count = 0
-    with open(read_path, 'r') as clusters:
+    with open_auto(read_path) as clusters:
         for line in clusters:
             line_count += 1
 
     # TODO: Vectorize this code with pandas
-    with open(read_path, 'r') as clusters, \
+    with open_auto(read_path) as clusters, \
             open(complete_out_path, 'wt') as complete_out, \
             open(incomplete_out_path, 'wt') as incomplete_out:
         for line in tqdm(clusters, total=line_count):
             cluster_barcode = line.strip('\n').split('\t', 1)[0]
             barcodes = cluster_barcode.split('.')[:-1]
             tags = np.array(barcodes)
-            indexed = [i for i, t in enumerate(tags) if not i in formatdict[t]]
+            indexed = [i for i, t in enumerate(tags) if i not in formatdict[t]]
 
             if len(indexed) != 0:
                 incomplete += 1
@@ -42,6 +43,14 @@ def main():
     print('Total clusters: ', complete + incomplete)
     print('Clusters with incorrect barcodes: ', incomplete)
     print('Clusters with correct barcodes:', complete)
+
+
+def open_auto(filename, mode='rt', *args, **kwargs):
+    with open(filename, 'rb') as f:
+        is_gzip = f.read(2) == b'\x1f\x8b'
+
+    opener = gzip.open if is_gzip else open
+    return opener(filename, mode, *args, **kwargs)
 
 
 def parse_args():

@@ -5,6 +5,7 @@ import matplotlib as mpl
 import glob
 import argparse
 import os
+import gzip
 
 mpl.use("Agg")
 
@@ -42,8 +43,8 @@ def max_representation_ecdf(clusterfile, ax):
         ax(obj): axis to plot on
     """
     results = []
-    clustername = clusterfile.replace(".clusters", "")
-    with open(clusterfile, "r") as clusters:
+    clustername = clusterfile.replace(".clusters.gz", "")
+    with open_auto(clusterfile) as clusters:
         for line in clusters:
             barcode, *reads = line.rstrip("\n").split("\t")
             bead_reads = [read for read in reads if read.startswith("BPM")]
@@ -73,8 +74,8 @@ def max_representation_ecdf_counts(clusterfile, ax, xlimit):
         xlimit(int): maximum x value to show in plot
     """
     results = []
-    clustername = clusterfile.replace(".clusters", "")
-    with open(clusterfile, "r") as clusters:
+    clustername = clusterfile.replace(".clusters.gz", "")
+    with open_auto(clusterfile) as clusters:
         for line in clusters:
             barcode, *reads = line.rstrip("\n").split("\t")
             bead_reads = [read for read in reads if read.startswith("BPM")]
@@ -91,6 +92,14 @@ def max_representation_ecdf_counts(clusterfile, ax, xlimit):
     ax.set(xlim=(0, int(xlimit)))
     ax.legend()
     return ax
+
+
+def open_auto(filename, mode='rt', *args, **kwargs):
+    with open(filename, 'rb') as f:
+        is_gzip = f.read(2) == b'\x1f\x8b'
+
+    opener = gzip.open if is_gzip else open
+    return opener(filename, mode, *args, **kwargs)
 
 
 def parse_arguments():
