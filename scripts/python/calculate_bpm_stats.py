@@ -8,7 +8,8 @@ import gzip
 
 
 @click.command()
-@click.option("--input", "-i", type=click.Path(exists=True), help="Tab-separated file with 2 cols. Col 1: barcode, Col 2: UMI sequence")
+@click.option("--input", "-i", type=click.Path(exists=True),
+              help="Tab-separated file with 2 cols. Col 1: barcode, Col 2: UMI sequence")
 @click.option("--output", "-o", type=click.Path(), help="Output file containing duplication rate per cluster")
 def main(input, output):
     """
@@ -27,7 +28,14 @@ def main(input, output):
 
     print("Loading barcodes and UMIs")
     if input.endswith("gz"):
-        df = pd.read_csv(input, sep="\t", header=None, names=["barcode", "umi"], compression="gzip").set_index("barcode")
+        df = pd.read_csv(
+            input,
+            sep="\t",
+            header=None,
+            names=[
+                "barcode",
+                "umi"],
+            compression="gzip").set_index("barcode")
     else:
         df = pd.read_csv(input, sep="\t", header=None, names=["barcode", "umi"]).set_index("barcode")
 
@@ -67,17 +75,26 @@ def main(input, output):
         }
         output_entries.append(entry)
 
-    gzip_file = True if file_out.endswith(".gz") else False
-    file_open = gzip.open if gzip_file else open
-    write_method = "wb" if gzip_file else "w"
-    with file_open(output, write_method) as file_out:
-        output_progress_bar = tqdm(output_entries, total=len(output_entries), desc="Writing to output")
+    gzip_file = True if output.endswith(".gz") else False
 
-        for entry in output_progress_bar:
-            entry_string_cast = [str(item) if type(item) is not str else item for item in entry.values()]
-            line_to_write = "\t".join(entry_string_cast) + "\n"
-            file_out.write(line_to_write)
+    # TODO: Find out how to set variable as gzip.open with some kwargs (but no input) set
+    # This pattern has lots of redundant lines and should be simplified later.
+    if gzip_file:
+        with gzip.open(output, "wt", encoding="utf-8") as file_out:
+            output_progress_bar = tqdm(output_entries, total=len(output_entries), desc="Writing to output")
 
+            for entry in output_progress_bar:
+                entry_string_cast = [str(item) if type(item) is not str else item for item in entry.values()]
+                line_to_write = "\t".join(entry_string_cast) + "\n"
+                file_out.write(line_to_write)
+    else:
+        with open(output, "w") as file_out:
+            output_progress_bar = tqdm(output_entries, total=len(output_entries), desc="Writing to output")
+
+            for entry in output_progress_bar:
+                entry_string_cast = [str(item) if type(item) is not str else item for item in entry.values()]
+                line_to_write = "\t".join(entry_string_cast) + "\n"
+                file_out.write(line_to_write)
 
     return
 
