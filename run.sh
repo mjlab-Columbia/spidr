@@ -29,14 +29,14 @@ if [[ ${SNAKEMAKE_MAJOR} -lt 8 ]]; then
         --rerun-incomplete \
         --keep-going \
         --scheduler greedy \
+        --conda-frontend conda \
         -j 50 \
         --cluster-config cluster.yaml \
         --printshellcmds \
         --configfile config.yaml \
         --cluster "sbatch -A {cluster.account} -c {cluster.cpus} -t {cluster.time} -N {cluster.nodes} --mem {cluster.mem} --output {cluster.output} --error {cluster.error}" \
         --cluster-cancel scancel \
-        ${DRY_RUN} \
-        2>&1 | tee spidr.log
+        ${DRY_RUN}
 elif [[ ${SNAKEMAKE_MAJOR} -ge 8 ]]; then
     snakemake \
         --profile profiles/linux_hpc \
