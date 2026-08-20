@@ -1275,7 +1275,7 @@ rule find_bpm_duplication_rate:
     Reports duplication rate as proportion: duplicates UMIs / total BPM reads
     """
     input:
-        path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.bpm_duplication_stats.txt"),
+        path.join(out_dir, "workup", "qc", "calculate_bpm_stats", "{experiment}.bpm_duplication_stats.txt.gz"),
     output:
         path.join(out_dir, "workup", "qc", "duplication_rate", "{experiment}.bpm_duplication_rate.txt"),
     conda:
@@ -1290,7 +1290,8 @@ rule find_bpm_duplication_rate:
         time="00:15:00",
     shell:
         """
-        (awk '{{total += $3; duplicates += $4}} END {{print duplicates " / " total}}' {input} \
+        (gzip -d {input} \
+            | awk '{{total += $3; duplicates += $4}} END {{print duplicates " / " total}}' \
             | bc -l \
             | cut -c 1-6 > {output}) &> {log}
         """
@@ -1313,7 +1314,7 @@ rule make_clusters:
         ),
     output:
         unsorted=temp(path.join(out_dir, "workup", "make_clusters", "{experiment}.part_{splitid}.unsorted.clusters")),
-        sorted=path.join(out_dir, "workup", "make_clusters", "{experiment}.part_{splitid}.clusters"),
+        sorted=path.join(out_dir, "workup", "make_clusters", "{experiment}.part_{splitid}.clusters.gz"),
     params:
         temp_dir=config["temp_dir"],
         num_tags=config["num_tags"],
@@ -1371,10 +1372,11 @@ rule make_clusters:
 rule merge_clusters:
     input:
         expand(
-            path.join(out_dir, "workup", "make_clusters", "{{experiment}}.part_{splitid}.clusters"), splitid=NUM_CHUNKS
+            path.join(out_dir, "workup", "make_clusters", "{{experiment}}.part_{splitid}.clusters.gz"),
+            splitid=NUM_CHUNKS,
         ),
     output:
-        mega=temp(path.join(out_dir, "workup", "merge_clusters", "{experiment}.duplicated.clusters")),
+        mega=temp(path.join(out_dir, "workup", "merge_clusters", "{experiment}.duplicated.clusters.gz")),
         final=path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
     params:
         temp_dir=config["temp_dir"],
@@ -1391,14 +1393,14 @@ rule merge_clusters:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         """
-        (sort -k 1 -T {params.temp_dir} -m {input} | gzip > {output.mega}) &> {log}
+        (zcat {input} | sort -k 1 -T {params.temp_dir} -m | gzip > {output.mega}) &> {log}
         (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &>> {log}
         """
 
 
 rule split_incorrect_clusters:
     input:
-        clusters=path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters"),
+        clusters=path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
     output:
         complete_clusters=path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.complete.clusters"),
         incomplete_clusters=path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.incomplete.clusters"),
@@ -1506,7 +1508,7 @@ rule generate_cluster_statistics:
 
 rule generate_cluster_ecdfs:
     input:
-        expand(path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters"), experiment=ALL_EXPERIMENTS),
+        expand(path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"), experiment=ALL_EXPERIMENTS),
     output:
         ecdf=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
         counts=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
@@ -1527,7 +1529,7 @@ rule generate_cluster_ecdfs:
         (python scripts/python/max_representation_ecdfs_perlib.py \
             --input_directory {params.input_dir} \
             --output_directory {params.output_dir} \
-            --pattern .clusters \
+            --pattern .clusters.gz \
             --xlim 30) &> {log}
         """
 
