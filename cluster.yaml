@@ -202,7 +202,7 @@ merge_clusters:
     account: "mjlab"
     time: "01:00:00"
     mem: 64g
-    cpus: 1
+    cpus: 8
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"

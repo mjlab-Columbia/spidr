@@ -1,16 +1,42 @@
-import pandas as pd
+import csv
+import gzip
+from collections import Counter, defaultdict
+
 import click
 from tqdm import tqdm
-from collections import defaultdict
-from pdb import set_trace
-from typing import List
-import gzip
+
+
+def open_text(path, mode="r"):
+    if path.endswith(".gz"):
+        if "w" in mode:
+            return gzip.open(path, "wt", encoding="utf-8", newline="")
+        return gzip.open(path, "rt", encoding="utf-8", newline="")
+    return open(path, mode, encoding="utf-8", newline="")
+
+
+def format_output_line(barcode, umi_counts):
+    num_umi = len(umi_counts)
+    total_bpm = sum(umi_counts.values())
+    num_duplicates = total_bpm - num_umi
+    raw_counts = "\t".join(f"{umi}_{count}" for umi, count in umi_counts.items())
+    return "\t".join(
+        [barcode, str(num_umi), str(total_bpm), str(num_duplicates), raw_counts]
+    )
 
 
 @click.command()
-@click.option("--input", "-i", type=click.Path(exists=True),
-              help="Tab-separated file with 2 cols. Col 1: barcode, Col 2: UMI sequence")
-@click.option("--output", "-o", type=click.Path(), help="Output file containing duplication rate per cluster")
+@click.option(
+    "--input",
+    "-i",
+    type=click.Path(exists=True),
+    help="Tab-separated file with 2 cols. Col 1: barcode, Col 2: UMI sequence",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    help="Output file containing duplication rate per cluster",
+)
 def main(input, output):
     """
     Script for gathering duplication rate from a 2 column file containing full barcodes and their UMI sequences
@@ -27,76 +53,22 @@ def main(input, output):
     """
 
     print("Loading barcodes and UMIs")
-    if input.endswith("gz"):
-        df = pd.read_csv(
-            input,
-            sep="\t",
-            header=None,
-            names=[
-                "barcode",
-                "umi"],
-            compression="gzip").set_index("barcode")
-    else:
-        df = pd.read_csv(input, sep="\t", header=None, names=["barcode", "umi"]).set_index("barcode")
+    barcode_umis = defaultdict(Counter)
 
-    print("Sorting barcodes to speed up UMI search")
-    df.sort_index(inplace=True)
-    unique_barcodes = df.index.unique().tolist()
-    input_progress_bar = tqdm(unique_barcodes, total=len(unique_barcodes), desc="Counting UMIs per barcode")
-    barcode_dict = dict()
-    output_entries = []
+    with open_text(input) as file_in:
+        reader = csv.reader(file_in, delimiter="\t")
+        for row in tqdm(reader, desc="Counting UMIs per barcode", unit=" reads"):
+            if len(row) < 2:
+                continue
+            barcode_umis[row[0]][row[1]] += 1
 
-    for barcode in input_progress_bar:
-        umis_array = df.loc[barcode].values
-
-        # Ensure numpy array properly flattens depending on number of items returned
-        if len(umis_array.shape) > 1:
-            umis: List[str] = umis_array.squeeze().tolist()
-        else:
-            umis: List[str] = umis_array.tolist()
-
-        umi_dict = defaultdict(int)
-
-        for umi in umis:
-            umi_dict[umi] += 1
-
-        # We want to keep track of the overall duplication rate, but also report the details per cluster
-        barcode_dict[barcode] = dict(umi_dict)
-        num_umi = len(umi_dict.keys())
-        total_bpm = sum(umi_dict.values())
-        raw_counts = "\t".join([f"{umi}_{count}" for umi, count in umi_dict.items()])
-
-        entry = {
-            "barcode": barcode,
-            "num_umi": num_umi,
-            "total_bpm": total_bpm,
-            "num_duplicates": total_bpm - num_umi,
-            "raw_counts": raw_counts
-        }
-        output_entries.append(entry)
-
-    gzip_file = True if output.endswith(".gz") else False
-
-    # TODO: Find out how to set variable as gzip.open with some kwargs (but no input) set
-    # This pattern has lots of redundant lines and should be simplified later.
-    if gzip_file:
-        with gzip.open(output, "wt", encoding="utf-8") as file_out:
-            output_progress_bar = tqdm(output_entries, total=len(output_entries), desc="Writing to output")
-
-            for entry in output_progress_bar:
-                entry_string_cast = [str(item) if type(item) is not str else item for item in entry.values()]
-                line_to_write = "\t".join(entry_string_cast) + "\n"
-                file_out.write(line_to_write)
-    else:
-        with open(output, "w") as file_out:
-            output_progress_bar = tqdm(output_entries, total=len(output_entries), desc="Writing to output")
-
-            for entry in output_progress_bar:
-                entry_string_cast = [str(item) if type(item) is not str else item for item in entry.values()]
-                line_to_write = "\t".join(entry_string_cast) + "\n"
-                file_out.write(line_to_write)
-
-    return
+    with open_text(output, "w") as file_out:
+        for barcode in tqdm(
+            sorted(barcode_umis),
+            total=len(barcode_umis),
+            desc="Writing to output",
+        ):
+            file_out.write(format_output_line(barcode, barcode_umis[barcode]) + "\n")
 
 
 if __name__ == "__main__":

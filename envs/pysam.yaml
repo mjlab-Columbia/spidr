@@ -9,3 +9,4 @@ dependencies:
     - bioconda::samtools
     - conda-forge::tqdm
     - conda-forge::click
+    - conda-forge::pigz

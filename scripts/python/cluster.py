@@ -299,6 +299,9 @@ def file_open(filename):
 
 
 def open_auto_read(filename, mode='rt', *args, **kwargs):
+    if filename in ('-', '/dev/stdin'):
+        return sys.stdin
+
     with open(filename, 'rb') as f:
         is_gzip = f.read(2) == b'\x1f\x8b'
 
@@ -351,17 +354,32 @@ def write_single_cluster(barcode, reads, out):
     out.write('\n')
 
 
+def parse_position_string(read):
+    """Parse a position string of the form TYPE[feature]_chrom:start-end."""
+    bracket = read.index('[')
+    close_bracket = read.index(']', bracket + 1)
+    underscore = read.index('_', close_bracket + 1)
+    colon = read.index(':', underscore + 1)
+    dash = read.index('-', colon + 1)
+    return Position(
+        read[:bracket],
+        read[bracket + 1:close_bracket],
+        read[underscore + 1:colon],
+        read[colon + 1:dash],
+        read[dash + 1:],
+    )
+
+
 def merge_clusters(in_file, out_file):
     current_barcode = ""
     current_reads = set()
     count = 0
-    pattern = re.compile('([a-zA-Z0-9]+)\\[(.*)\\]_(.+):([0-9]+)\\-([0-9]+)')
 
     with open_auto_read(in_file, "rt") as in_clusters, \
             open_auto_write(out_file, "wt") as out_clusters:
         for line in in_clusters:
             barcode, *reads = line.rstrip('\n').split('\t')
-            if (barcode != current_barcode):
+            if barcode != current_barcode:
                 if current_barcode != "":
                     write_single_cluster(current_barcode, current_reads, out_clusters)
                     count += 1
@@ -369,11 +387,8 @@ def merge_clusters(in_file, out_file):
                 current_reads = set()
             for read in reads:
                 try:
-                    match = pattern.search(read)
-                    read_type, feature, chrom, start, end = match.groups()
-                    position = Position(read_type, feature, chrom, start, end)
-                    current_reads.add(position)
-                except BaseException:
+                    current_reads.add(parse_position_string(read))
+                except (ValueError, IndexError):
                     print(read)
                     raise Exception('Pattern did not match above printed string')
         write_single_cluster(current_barcode, current_reads, out_clusters)

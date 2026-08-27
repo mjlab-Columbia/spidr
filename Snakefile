@@ -1290,7 +1290,7 @@ rule find_bpm_duplication_rate:
         time="00:15:00",
     shell:
         """
-        (gzip -d {input} \
+        (gzip -dc {input} \
             | awk '{{total += $3; duplicates += $4}} END {{print duplicates " / " total}}' \
             | bc -l \
             | cut -c 1-6 > {output}) &> {log}
@@ -1376,25 +1376,26 @@ rule merge_clusters:
             splitid=NUM_CHUNKS,
         ),
     output:
-        mega=temp(path.join(out_dir, "workup", "merge_clusters", "{experiment}.duplicated.clusters.gz")),
-        final=path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
+        path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
     params:
         temp_dir=config["temp_dir"],
     conda:
         "envs/pysam.yaml"
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.merge_clusters.log"),
+    threads: 8
     resources:
         tmpdir=config["temp_dir"],
-        cpus=1,
+        cpus=8,
         mem_mb=64000,
         time="01:00:00",
     benchmark:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         """
-        (zcat {input} | sort -k 1 -T {params.temp_dir} -m | gzip > {output.mega}) &> {log}
-        (python scripts/python/merge_clusters.py -i {output.mega} -o {output.final}) &>> {log}
+        (LC_ALL=C pigz -dc {input} \
+            | sort -k 1 -T {params.temp_dir} -m --parallel={threads} \
+            | python scripts/python/merge_clusters.py -i /dev/stdin -o {output}) &> {log}
         """
 
 
@@ -1445,7 +1446,7 @@ rule get_bpm_rpm_counts:
         "benchmarks/{experiment}.get_bpm_rpm_counts.tsv"
     shell:
         """
-        python scripts/python/get_bpm_rpm_counts.py --clusters {input} --output {output}
+        (python scripts/python/get_bpm_rpm_counts.py --clusters {input} --output {output}) &> {log}
         """
 
 

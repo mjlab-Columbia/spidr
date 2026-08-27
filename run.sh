@@ -30,7 +30,7 @@ if [[ ${SNAKEMAKE_MAJOR} -lt 8 ]]; then
         --keep-going \
         --scheduler greedy \
         --conda-frontend conda \
-        -j 50 \
+        -j 200 \
         --cluster-config cluster.yaml \
         --printshellcmds \
         --configfile config.yaml \
