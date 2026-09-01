@@ -1,28 +1,32 @@
+import os
 import pandas as pd
 import numpy as np
 import argparse
-import glob
-import tqdm
+from tqdm import tqdm
 from collections import defaultdict
 from matplotlib import colormaps
 
 
 def main():
     args = parse_arguments()
-    pattern = args.directory + "/*" + args.pattern
-    files = glob.glob(pattern)
     cluster_counts = []
     read_counts = []
-    for f in files:
+    for f in tqdm(args.files, desc="Processing cluster files", unit="file"):
         df1, df2 = count_statistics(f, args.readtype)
         cluster_counts.append(df1)
         read_counts.append(df2)
     cluster_df = pd.concat(cluster_counts, axis=1).transpose()
     read_df = pd.concat(read_counts, axis=1).transpose()
     cluster_fig = plot_profile(cluster_df)
-    cluster_fig.savefig(args.directory + '/' + args.readtype + '_cluster_distribution.pdf', bbox_inches='tight')
+    cluster_fig.savefig(
+        os.path.join(args.output_dir, args.prefix + args.readtype + '_cluster_distribution.pdf'),
+        bbox_inches='tight',
+    )
     read_fig = plot_profile(read_df)
-    read_fig.savefig(args.directory + '/' + args.readtype + '_read_distribution.pdf', bbox_inches='tight')
+    read_fig.savefig(
+        os.path.join(args.output_dir, args.prefix + args.readtype + '_read_distribution.pdf'),
+        bbox_inches='tight',
+    )
 
 
 def count_statistics(filename, readtype):
@@ -33,7 +37,9 @@ def count_statistics(filename, readtype):
         cluster_counts[bin] = 0
         read_counts[bin] = 0
     with open(filename, 'r') as f:
-        for line in tqdm.tqdm(f):
+        line_count = sum(1 for _ in f)
+    with open(filename, 'r') as f:
+        for line in tqdm(f, total=line_count, desc=os.path.basename(filename), unit="cluster"):
             if readtype in line:
                 reads = line.split('\t', 1)[1]
                 counts = reads.count(readtype)
@@ -61,16 +67,21 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description='Generate the cluster size distribution plot.')
 
-    parser.add_argument('--directory',
+    parser.add_argument('--files',
+                        nargs='+',
                         metavar="FILE",
-                        action="store",
-                        help="The directory with SPRITE clusters")
-    parser.add_argument('--pattern',
-                        metavar="FILE",
-                        action="store",
-                        help="The pattern for file names")
+                        required=True,
+                        help="Cluster files for a single experiment")
+    parser.add_argument('--output_dir',
+                        metavar="DIR",
+                        required=True,
+                        help="Directory to write distribution plots")
+    parser.add_argument('--prefix',
+                        metavar="PREFIX",
+                        default="",
+                        help="Filename prefix for output plots (e.g. experiment name)")
     parser.add_argument('--readtype',
-                        action="store",
+                        required=True,
                         help="The read type to count")
     return parser.parse_args()
 

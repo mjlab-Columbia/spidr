@@ -72,16 +72,11 @@ NUM_CHUNKS = [f"{i:03}" for i in range(0, config["num_chunks"])]
 OUTPUTS = expand(
     [
         path.join(out_dir, "workup", "merge_bead_bams", "{experiment}.merged.BPM.bam"),
-        path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"),
         path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done"),
-        path.join(out_dir, "workup", "condition-clusters", "RPM_read_distribution.pdf"),
-        path.join(out_dir, "workup", "condition-clusters", "RPM_cluster_distribution.pdf"),
-        path.join(out_dir, "workup", "condition-clusters", "BPM_read_distribution.pdf"),
-        path.join(out_dir, "workup", "condition-clusters", "BPM_cluster_distribution.pdf"),
-        path.join(out_dir, "workup", "split_incorrect_clusters", "RPM_read_distribution.pdf"),
-        path.join(out_dir, "workup", "split_incorrect_clusters", "RPM_cluster_distribution.pdf"),
-        path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_read_distribution.pdf"),
-        path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
+        path.join(out_dir, "workup", "condition-clusters", "{experiment}.RPM_read_distribution.pdf"),
+        path.join(out_dir, "workup", "condition-clusters", "{experiment}.RPM_cluster_distribution.pdf"),
+        path.join(out_dir, "workup", "condition-clusters", "{experiment}.BPM_read_distribution.pdf"),
+        path.join(out_dir, "workup", "condition-clusters", "{experiment}.BPM_cluster_distribution.pdf"),
         path.join(out_dir, "workup", "qc", "count_filtered_fastq_reads", "{experiment}.filtered_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "plot_cdna_length_histogram", "{experiment}.cdna_histogram.pdf"),
         path.join(out_dir, "workup", "qc", "cat_ligation_efficiency", "ligation_efficiency.txt"),
@@ -118,7 +113,11 @@ OUTPUTS = expand(
             "{experiment}.barcoded_reads_assigned_to_clusters.txt",
         ),
         path.join(
-            out_dir, "workup", "qc", "count_barcoded_reads_in_bams", "{experiment}.barcoded_reads_assigned_to_bams.txt"
+            out_dir,
+            "workup",
+            "qc",
+            "count_barcoded_reads_in_bams",
+            "{experiment}.{condition}.barcoded_reads_assigned_to_bams.txt",
         ),
         path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
         path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
@@ -127,7 +126,6 @@ OUTPUTS = expand(
             out_dir, "workup", "qc", "generate_barcode_table", "{experiment}.part_{splitid}.barcode_table.tsv.gz"
         ),
         path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_condition.{condition}.log"),
-        path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_no_condition.ALL_CONDITIONS.log"),
         path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
@@ -1563,31 +1561,19 @@ rule split_on_first_tag:
 
 
 # Profile size distribution of clusters
-rule get_size_distribution:
+rule get_size_distribution_rpm:
     input:
         expand(
-            path.join(out_dir, "workup", "condition-clusters", "{experiment}.{condition}.clusters"),
-            experiment=ALL_EXPERIMENTS,
+            path.join(out_dir, "workup", "condition-clusters", "{{experiment}}.{condition}.clusters"),
             condition=config["conditions"],
         ),
-        expand(
-            path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.complete.clusters"),
-            experiment=ALL_EXPERIMENTS,
-        ),
     output:
-        rpm=path.join(out_dir, "workup", "condition-clusters", "RPM_read_distribution.pdf"),
-        rpm2=path.join(out_dir, "workup", "condition-clusters", "RPM_cluster_distribution.pdf"),
-        bpm=path.join(out_dir, "workup", "condition-clusters", "BPM_read_distribution.pdf"),
-        bpm2=path.join(out_dir, "workup", "condition-clusters", "BPM_cluster_distribution.pdf"),
-        no_condition_rpm=path.join(out_dir, "workup", "split_incorrect_clusters", "RPM_read_distribution.pdf"),
-        no_condition_rpm2=path.join(out_dir, "workup", "split_incorrect_clusters", "RPM_cluster_distribution.pdf"),
-        no_condition_bpm=path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_read_distribution.pdf"),
-        no_condition_bpm2=path.join(out_dir, "workup", "split_incorrect_clusters", "BPM_cluster_distribution.pdf"),
+        rpm=path.join(out_dir, "workup", "condition-clusters", "{experiment}.RPM_read_distribution.pdf"),
+        rpm2=path.join(out_dir, "workup", "condition-clusters", "{experiment}.RPM_cluster_distribution.pdf"),
     params:
-        condition_dir=path.join(out_dir, "workup", "condition-clusters"),
-        no_condition_dir=path.join("workup", "split_incorrect_clusters"),
+        output_dir=path.join(out_dir, "workup", "condition-clusters"),
     log:
-        path.join(out_dir, "workup", "logs", "get_size_distribution.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.get_size_distribution_rpm.log"),
     conda:
         "envs/python.yaml"
     resources:
@@ -1597,11 +1583,41 @@ rule get_size_distribution:
         time="12:00:00",
     shell:
         """
-        (python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype BPM) &> {log}
-        (python scripts/python/get_bead_size_distribution.py --directory {params.no_condition_dir} --pattern .clusters --readtype RPM) &>> {log}
+        (python scripts/python/get_bead_size_distribution.py \
+            --files {input} \
+            --output_dir {params.output_dir} \
+            --prefix {wildcards.experiment}. \
+            --readtype RPM) &>> {log}
+        """
 
-        (python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype BPM) &>> {log}
-        (python scripts/python/get_bead_size_distribution.py --directory {params.condition_dir} --pattern .clusters --readtype RPM) &>> {log}
+
+rule get_size_distribution_bpm:
+    input:
+        expand(
+            path.join(out_dir, "workup", "condition-clusters", "{{experiment}}.{condition}.clusters"),
+            condition=config["conditions"],
+        ),
+    output:
+        bpm=path.join(out_dir, "workup", "condition-clusters", "{experiment}.BPM_read_distribution.pdf"),
+        bpm2=path.join(out_dir, "workup", "condition-clusters", "{experiment}.BPM_cluster_distribution.pdf"),
+    params:
+        output_dir=path.join(out_dir, "workup", "condition-clusters"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.get_size_distribution_bpm.log"),
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=50000,
+        time="12:00:00",
+    shell:
+        """
+        (python scripts/python/get_bead_size_distribution.py \
+            --files {input} \
+            --output_dir {params.output_dir} \
+            --prefix {wildcards.experiment}. \
+            --readtype BPM) &>> {log}
         """
 
 
@@ -1646,46 +1662,6 @@ rule thresh_and_split_condition:
         """
 
 
-rule thresh_and_split_no_condition:
-    input:
-        bam=path.join(out_dir, "workup", "merge_rna_bams", "{experiment}.merged.RPM.bam"),
-        clusters=path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.complete.clusters"),
-    output:
-        bam=path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.ALL_CONDITIONS.bam"),
-        touch=touch(path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done")),
-        log=path.join(out_dir, "workup", "qc", "{experiment}.thresh_and_split_no_condition.ALL_CONDITIONS.log"),
-    params:
-        directory="workup/splitbams_all_conditions",
-        max_size=config["max_size"],
-        proportion=config["proportion"],
-        min_oligos=config["min_oligos"],
-        num_tags=config["num_tags"],
-    conda:
-        "envs/pysam.yaml"
-    resources:
-        tmpdir=config["temp_dir"],
-        cpus=1,
-        mem_mb=32000,
-        time="00:15:00",
-    log:
-        path.join("workup", "logs", "{experiment}.merged.splitbams.log"),
-    benchmark:
-        path.join("benchmarks", "{experiment}.merged.thresh_and_split_control.tsv")
-    shell:
-        """
-        (python scripts/python/threshold_tag_and_split.py \
-            -i {input.bam} \
-            -c {input.clusters} \
-            -o {output.bam} \
-            -d {params.directory} \
-            -l {output.log} \
-            --min_oligos {params.min_oligos} \
-            --proportion {params.proportion} \
-            --max_size {params.max_size} \
-            --num_tags {params.num_tags}) &> {log}
-        """
-
-
 rule count_barcoded_reads_in_bams:
     """
     Count all reads across all bams that are not from ambiguous.bam, none.bam, uncertain.bam, 
@@ -1693,15 +1669,19 @@ rule count_barcoded_reads_in_bams:
     of all 
     """
     input:
-        path.join(out_dir, "workup", "splitbams_all_conditions", "{experiment}.done"),
+        path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done"),
     output:
         path.join(
-            out_dir, "workup", "qc", "count_barcoded_reads_in_bams", "{experiment}.barcoded_reads_assigned_to_bams.txt"
+            out_dir,
+            "workup",
+            "qc",
+            "count_barcoded_reads_in_bams",
+            "{experiment}.{condition}.barcoded_reads_assigned_to_bams.txt",
         ),
     params:
-        directory=path.join(out_dir, "workup", "splitbams_all_conditions"),
+        directory=path.join(out_dir, "workup", "splitbams_by_condition"),
     log:
-        path.join(out_dir, "workup", "logs", "{experiment}.count_barcoded_reads_in_bams.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.{condition}.count_barcoded_reads_in_bams.log"),
     conda:
         "envs/samtools.yaml"
     shell:
@@ -1710,7 +1690,7 @@ rule count_barcoded_reads_in_bams:
             # 1. Use the explicit params.directory path
             # 2. Add -s 0 to find to ignore 0-byte (corrupted/empty) files if they exist
             ALL_BAMS=$(find "{params.directory}" -maxdepth 1 -name "*.bam" -size +0c | \
-                       grep -E '{wildcards.experiment}\.ALL_CONDITIONS_.*\.bam' | \
+                       grep -E '{wildcards.experiment}.*\.bam' | \
                        grep -v -E 'ambiguous|none|uncertain')
 
             # Check if any BAM files were actually found to avoid errors down the line

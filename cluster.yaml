@@ -190,6 +190,22 @@ merge_bead_bams:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+calculate_bpm_stats:
+    account: "mjlab"
+    time: "02:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+find_bpm_duplication_rate:
+    account: "mjlab"
+    time: "02:00:00"
+    mem: 32g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 make_clusters:
     account: "mjlab"
     time: "01:00:00"
@@ -200,7 +216,7 @@ make_clusters:
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.{wildcards.splitid}.err"
 merge_clusters:
     account: "mjlab"
-    time: "01:00:00"
+    time: "02:00:00"
     mem: 64g
     cpus: 8
     nodes: 1
@@ -208,7 +224,7 @@ merge_clusters:
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 get_bpm_rpm_counts:
     account: "mjlab"
-    time: "01:00:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1
@@ -216,7 +232,7 @@ get_bpm_rpm_counts:
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 count_barcoded_reads_in_clusters:
     account: "mjlab"
-    time: "01:00:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1
@@ -224,7 +240,7 @@ count_barcoded_reads_in_clusters:
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 count_barcoded_reads_in_bams:
     account: "mjlab"
-    time: "01:00:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1
@@ -252,7 +268,14 @@ generate_cluster_ecdfs:
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
-get_size_distribution:
+get_size_distribution_rpm:
+    time: "12:00:00"
+    mem: 50g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
+get_size_distribution_bpm:
     time: "12:00:00"
     mem: 50g
     cpus: 1
@@ -260,28 +283,28 @@ get_size_distribution:
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
 split_incorrect_clusters:
-    time: "00:15:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
 split_on_first_tag:
-    time: "00:15:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
 thresh_and_split_condition:
-    time: "01:00:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
 thresh_and_split_no_condition:
-    time: "01:00:00"
+    time: "02:00:00"
     mem: 32g
     cpus: 1
     nodes: 1

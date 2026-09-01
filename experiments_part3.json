@@ -1,0 +1,74 @@
+{
+    "K562B_Rep10": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep10_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep10_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep11": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep11_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep11_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep12": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep12_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep12_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep13": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep13_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep13_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep14": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep14_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep14_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep15": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep15_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep15_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep16": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep16_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep16_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep17": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep17_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep17_R2.fastq.gz"
+        ]
+    },
+    "K562B_Rep18": {
+        "R1": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep18_R1.fastq.gz"
+        ],
+        "R2": [
+            "/burg/mjlab/projects/sequencing-runs/spidr_K562/K562B_Rep18_R2.fastq.gz"
+        ]
+    }
+}
