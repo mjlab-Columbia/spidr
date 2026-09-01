@@ -266,8 +266,8 @@ generate_cluster_ecdfs:
     mem: 50g
     cpus: 1
     nodes: 1
-    output: "workup/logs/cluster/{rule}.out"
-    error: "workup/logs/cluster/{rule}.err"
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 get_size_distribution_rpm:
     time: "12:00:00"
     mem: 50g

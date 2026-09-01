@@ -119,8 +119,8 @@ OUTPUTS = expand(
             "count_barcoded_reads_in_bams",
             "{experiment}.{condition}.barcoded_reads_assigned_to_bams.txt",
         ),
-        path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
-        path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
+        path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_ecdf.pdf"),
+        path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_counts.pdf"),
         path.join(out_dir, "workup", "qc", "collate_bowtie2_qc", "{experiment}.bowtie2_qc.log"),
         path.join(
             out_dir, "workup", "qc", "generate_barcode_table", "{experiment}.part_{splitid}.barcode_table.tsv.gz"
@@ -1507,13 +1507,12 @@ rule generate_cluster_statistics:
 
 rule generate_cluster_ecdfs:
     input:
-        expand(path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"), experiment=ALL_EXPERIMENTS),
+        path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
     output:
-        ecdf=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_ecdf.pdf"),
-        counts=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "Max_representation_counts.pdf"),
+        ecdf=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_ecdf.pdf"),
+        counts=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_counts.pdf"),
     params:
-        input_dir=path.join(out_dir, "workup", "merge_clusters"),
-        output_dir=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs"),
+        xlim=30,
     conda:
         "envs/plotting.yaml"
     resources:
@@ -1522,14 +1521,14 @@ rule generate_cluster_ecdfs:
         mem_mb=50000,
         time="12:00:00",
     log:
-        path.join(out_dir, "workup", "logs", "generate_cluster_ecdfs.log"),
+        path.join(out_dir, "workup", "logs", "{experiment}.generate_cluster_ecdfs.log"),
     shell:
         """
         (python scripts/python/max_representation_ecdfs_perlib.py \
-            --input_directory {params.input_dir} \
-            --output_directory {params.output_dir} \
-            --pattern .clusters.gz \
-            --xlim 30) &> {log}
+            --clusterfile {input} \
+            --output_ecdf {output.ecdf} \
+            --output_counts {output.counts} \
+            --xlim {params.xlim}) &> {log}
         """
 
 

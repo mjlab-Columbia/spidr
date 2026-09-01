@@ -2,7 +2,6 @@ from collections import Counter
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import glob
 import argparse
 import os
 import gzip
@@ -16,22 +15,14 @@ Generate maximum representation ecdfs for bead type representation within cluste
 
 def main():
     args = parse_arguments()
-    search = args.input_directory + "/*" + args.pattern
-    files = glob.glob(search)
 
-    ecdf_plot_ax = "None"
-    for f in files:
-        ecdf_plot_ax = max_representation_ecdf(f, ecdf_plot_ax)
+    ecdf_plot_ax = max_representation_ecdf(args.clusterfile, "None")
     ecdf_plot_fig = ecdf_plot_ax.get_figure()
-    ecdf_savepath = os.path.join(args.output_directory, "Max_representation_ecdf.pdf")
-    ecdf_plot_fig.savefig(ecdf_savepath, bbox_inches="tight")
+    ecdf_plot_fig.savefig(args.output_ecdf, bbox_inches="tight")
 
-    ecdf_counts_ax = "None"
-    for f in files:
-        ecdf_counts_ax = max_representation_ecdf_counts(f, ecdf_counts_ax, args.xlim)
+    ecdf_counts_ax = max_representation_ecdf_counts(args.clusterfile, "None", args.xlim)
     ecdf_counts_fig = ecdf_counts_ax.get_figure()
-    counts_savepath = os.path.join(args.output_directory, "Max_representation_counts.pdf")
-    ecdf_counts_fig.savefig(counts_savepath, bbox_inches="tight")
+    ecdf_counts_fig.savefig(args.output_counts, bbox_inches="tight")
 
 
 def max_representation_ecdf(clusterfile, ax):
@@ -43,7 +34,7 @@ def max_representation_ecdf(clusterfile, ax):
         ax(obj): axis to plot on
     """
     results = []
-    clustername = clusterfile.replace(".clusters.gz", "")
+    clustername = os.path.basename(clusterfile).replace(".clusters.gz", "")
     with open_auto(clusterfile) as clusters:
         for line in clusters:
             barcode, *reads = line.rstrip("\n").split("\t")
@@ -74,7 +65,7 @@ def max_representation_ecdf_counts(clusterfile, ax, xlimit):
         xlimit(int): maximum x value to show in plot
     """
     results = []
-    clustername = clusterfile.replace(".clusters.gz", "")
+    clustername = os.path.basename(clusterfile).replace(".clusters.gz", "")
     with open_auto(clusterfile) as clusters:
         for line in clusters:
             barcode, *reads = line.rstrip("\n").split("\t")
@@ -107,24 +98,25 @@ def parse_arguments():
         description="Generate the maximum representation ecdf plots to check for bead type uniqueness within clusters."
     )
     parser.add_argument(
-        "--input_directory",
+        "--clusterfile",
         metavar="FILE",
         action="store",
         required=True,
-        help="The directory of clusters file",
+        help="Path to a single clusters file",
     )
     parser.add_argument(
-        "--output_directory",
+        "--output_ecdf",
         metavar="FILE",
         action="store",
         required=True,
-        help="The directory of clusters file",
+        help="Output path for the maximum representation ECDF plot",
     )
     parser.add_argument(
-        "--pattern",
+        "--output_counts",
+        metavar="FILE",
         action="store",
         required=True,
-        help="The pattern of cluster file names",
+        help="Output path for the maximum representation counts plot",
     )
     parser.add_argument(
         "--xlim",
