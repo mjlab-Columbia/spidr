@@ -310,3 +310,11 @@ thresh_and_split_no_condition:
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
+generate_qc_summary:
+    account: "mjlab"
+    time: "00:15:00"
+    mem: 4g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"

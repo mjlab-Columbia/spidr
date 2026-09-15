@@ -53,6 +53,7 @@ makedirs(path.join(out_dir, "workup", "logs", "cluster"), exist_ok=True)
 
 # Create directory for benchmark tsv files to be stored
 makedirs(path.join("benchmarks"), exist_ok=True)
+makedirs(path.join(out_dir, "workup", "qc", "summary"), exist_ok=True)
 
 ################################################################################
 # Get experiment files
@@ -129,6 +130,7 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
+        path.join(out_dir, "workup", "qc", "summary", "{experiment}.qc_summary.tsv"),
         # path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
         # path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
         # path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
@@ -996,6 +998,7 @@ rule align_star:
         index=path.join(
             out_dir, "workup", "align_star", "{experiment}.part_{splitid}.Aligned.sortedByCoord.out.bam.bai"
         ),
+        star_log=path.join(out_dir, "workup", "align_star", "{experiment}.part_{splitid}.Log.final.out"),
     params:
         STAR_OPTIONS=" ".join(
             [
@@ -1341,7 +1344,7 @@ rule make_clusters:
 # rule subsample_clusters:
 #     input:
 #         expand(
-#             path.join(out_dir, "workup", "make_clusters", "{{experiment}}.part_{splitid}.clusters"), splitid=NUM_CHUNKS
+#             path.join(out_dir, "workup", "make_clusters", "{{experiment}}.part_{splitid}.clusters.gz"), splitid=NUM_CHUNKS
 #         ),
 #     output:
 #         stats_by_cluster=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
@@ -1731,9 +1734,104 @@ rule generate_splitbam_statistics:
         """
 
 
-# rule final_qc:
-#     input:
-#         raw_read_count=path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
-#         filtered_read_count=
-#     output:
-#         path.join(out_dir, "workup", "qc", "final_qc", "final_qc.txt"),
+def qc_summary_inputs(wildcards):
+    return {
+        "raw_reads": path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", f"{wildcards.experiment}.raw_fastq_reads.txt"),
+        "fastp_json": path.join(out_dir, "workup", "qc", "deduplicate_reads", f"{wildcards.experiment}.fastp.json"),
+        "filtered_reads": path.join(
+            out_dir, "workup", "qc", "count_filtered_fastq_reads", f"{wildcards.experiment}.filtered_fastq_reads.txt"
+        ),
+        "total_bpm_reads": path.join(
+            out_dir, "workup", "qc", "aggregate_bpm_reads_across_chunks", f"{wildcards.experiment}.total_bpm_reads.txt"
+        ),
+        "total_rpm_reads": path.join(
+            out_dir, "workup", "qc", "aggregate_rpm_reads_across_chunks", f"{wildcards.experiment}.total_rpm_reads.txt"
+        ),
+        "bowtie2_qc_log": path.join(out_dir, "workup", "qc", "collate_bowtie2_qc", f"{wildcards.experiment}.bowtie2_qc.log"),
+        "post_alignment_barcoded_count": path.join(
+            out_dir,
+            "workup",
+            "qc",
+            "count_barcoded_reads_post_alignment",
+            f"{wildcards.experiment}.post_alignment_barcoded_count.txt",
+        ),
+        "bpm_duplication_rate": path.join(
+            out_dir, "workup", "qc", "duplication_rate", f"{wildcards.experiment}.bpm_duplication_rate.txt"
+        ),
+        "barcoded_reads_in_clusters": path.join(
+            out_dir,
+            "workup",
+            "qc",
+            "count_barcoded_reads_in_clusters",
+            f"{wildcards.experiment}.barcoded_reads_assigned_to_clusters.txt",
+        ),
+        "pre_alignment_barcoded_count": expand(
+            path.join(
+                out_dir,
+                "workup",
+                "qc",
+                "count_fully_barcoded_reads",
+                "{{experiment}}_R1.part_{splitid}.pre_alignment_barcode_count.txt",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+        "star_logs": expand(
+            path.join(out_dir, "workup", "align_star", "{{experiment}}.part_{splitid}.Log.final.out"),
+            splitid=NUM_CHUNKS,
+        ),
+        "barcoded_in_bams": expand(
+            path.join(
+                out_dir,
+                "workup",
+                "qc",
+                "count_barcoded_reads_in_bams",
+                "{{experiment}}.{condition}.barcoded_reads_assigned_to_bams.txt",
+            ),
+            condition=config["conditions"],
+        ),
+        "thresh_split_logs": expand(
+            path.join(out_dir, "workup", "qc", "{{experiment}}.thresh_and_split_condition.{condition}.log"),
+            condition=config["conditions"],
+        ),
+    }
+
+
+rule generate_qc_summary:
+    """
+    Aggregate high-level QC metrics for one library into a single TSV row.
+    """
+    input:
+        unpack(qc_summary_inputs),
+    output:
+        path.join(out_dir, "workup", "qc", "summary", "{experiment}.qc_summary.tsv"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.generate_qc_summary.log"),
+    conda:
+        "envs/python.yaml"
+    threads: 1
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=4000,
+        time="00:15:00",
+    benchmark:
+        "benchmarks/{experiment}.generate_qc_summary.tsv"
+    shell:
+        """
+        (python scripts/python/generate_qc_summary.py \
+            --experiment {wildcards.experiment} \
+            --output {output} \
+            --raw-reads {input.raw_reads} \
+            --fastp-json {input.fastp_json} \
+            --filtered-reads {input.filtered_reads} \
+            --total-bpm-reads {input.total_bpm_reads} \
+            --total-rpm-reads {input.total_rpm_reads} \
+            --bowtie2-qc-log {input.bowtie2_qc_log} \
+            --post-alignment-barcoded-count {input.post_alignment_barcoded_count} \
+            --bpm-duplication-rate {input.bpm_duplication_rate} \
+            --barcoded-reads-in-clusters {input.barcoded_reads_in_clusters} \
+            $(for f in {input.pre_alignment_barcoded_count}; do echo --pre-alignment-barcoded-count "$f"; done) \
+            $(for f in {input.star_logs}; do echo --star-log "$f"; done) \
+            $(for f in {input.barcoded_in_bams}; do echo --barcoded-in-bams "$f"; done) \
+            $(for f in {input.thresh_split_logs}; do echo --thresh-split-log "$f"; done)) &> {log}
+        """
