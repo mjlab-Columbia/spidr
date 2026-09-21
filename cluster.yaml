@@ -310,6 +310,14 @@ thresh_and_split_no_condition:
     nodes: 1
     output: "workup/logs/cluster/{rule}.out"
     error: "workup/logs/cluster/{rule}.err"
+count_bowtie2_mapped_reads:
+    account: "mjlab"
+    time: "00:30:00"
+    mem: 16g
+    cpus: 4
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
 generate_qc_summary:
     account: "mjlab"
     time: "00:15:00"

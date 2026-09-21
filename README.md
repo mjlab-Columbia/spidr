@@ -106,6 +106,7 @@ bash scripts/bash/merge_summary_tables.sh \
 | `total_rpm_reads` | Total RNA-processing-module (RPM) reads across all chunks. |
 | `bowtie2_total_reads` | Total read pairs aligned to the ncRNA Bowtie2 index across all chunks. |
 | `bowtie2_overall_alignment_rate_pct` | Read-weighted overall Bowtie2 concordant alignment rate (%). |
+| `bowtie2_unique_mapped_reads` | Unique read names with at least one mapped alignment in the Bowtie2 mapped BAMs (summed across chunks). |
 | `star_input_reads` | Total read pairs sent to STAR genome alignment across all chunks. |
 | `star_uniquely_mapped_reads` | Total reads uniquely mapped by STAR across all chunks. |
 | `star_mapped_multiple_loci` | STAR reads mapped to multiple loci across all chunks. |

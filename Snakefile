@@ -1771,6 +1771,46 @@ rule generate_splitbam_statistics:
         """
 
 
+rule count_bowtie2_mapped_reads:
+    input:
+        expand(
+            path.join(
+                out_dir,
+                "workup",
+                "add_chromosome_info_bowtie2",
+                "{{experiment}}.part_{splitid}.bowtie2.sorted.mapped.chr.bam",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+    output:
+        path.join(
+            out_dir,
+            "workup",
+            "qc",
+            "count_bowtie2_mapped_reads",
+            "{experiment}.bowtie2_unique_mapped_reads.txt",
+        ),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.count_bowtie2_mapped_reads.log"),
+    conda:
+        "envs/samtools.yaml"
+    threads: 4
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=4,
+        mem_mb=16000,
+        time="00:30:00",
+    benchmark:
+        "benchmarks/{experiment}.count_bowtie2_mapped_reads.tsv"
+    shell:
+        """
+        (for bam in {input}; do
+            samtools view --no-header "$bam" | awk '{{print $1}}'
+         done | sort -u -T {resources.tmpdir} --parallel {resources.cpus} --buffer-size {resources.mem_mb}M \
+         | wc -l > {output}) &> {log}
+        """
+
+
 def qc_summary_inputs(wildcards):
     return {
         "raw_reads": path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", f"{wildcards.experiment}.raw_fastq_reads.txt"),
@@ -1794,6 +1834,13 @@ def qc_summary_inputs(wildcards):
             splitid=NUM_CHUNKS,
         ),
         "bowtie2_qc_log": path.join(out_dir, "workup", "qc", "collate_bowtie2_qc", f"{wildcards.experiment}.bowtie2_qc.log"),
+        "bowtie2_unique_mapped_reads": path.join(
+            out_dir,
+            "workup",
+            "qc",
+            "count_bowtie2_mapped_reads",
+            f"{wildcards.experiment}.bowtie2_unique_mapped_reads.txt",
+        ),
         "post_alignment_barcoded_count": path.join(
             out_dir,
             "workup",
@@ -1873,6 +1920,7 @@ rule generate_qc_summary:
             --total-bpm-reads {input.total_bpm_reads} \
             --total-rpm-reads {input.total_rpm_reads} \
             --bowtie2-qc-log {input.bowtie2_qc_log} \
+            --bowtie2-unique-mapped-reads {input.bowtie2_unique_mapped_reads} \
             --post-alignment-barcoded-count {input.post_alignment_barcoded_count} \
             --bpm-duplication-rate {input.bpm_duplication_rate} \
             --barcoded-reads-in-clusters {input.barcoded_reads_in_clusters} \

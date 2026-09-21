@@ -25,6 +25,7 @@ COUNT_METRICS = {
     "rpm_reads_pre_rna_adapter_trim",
     "rpm_reads_post_rna_adapter_trim",
     "bowtie2_total_reads",
+    "bowtie2_unique_mapped_reads",
     "star_input_reads",
     "star_uniquely_mapped_reads",
     "star_mapped_multiple_loci",
@@ -248,6 +249,7 @@ def parse_thresh_split_log(path: Path) -> tuple[str, int]:
 @click.option("--total-bpm-reads", required=True, type=click.Path(exists=True))
 @click.option("--total-rpm-reads", required=True, type=click.Path(exists=True))
 @click.option("--bowtie2-qc-log", required=True, type=click.Path(exists=True))
+@click.option("--bowtie2-unique-mapped-reads", required=True, type=click.Path(exists=True))
 @click.option("--post-alignment-barcoded-count", required=True, type=click.Path(exists=True))
 @click.option("--bpm-duplication-rate", required=True, type=click.Path(exists=True))
 @click.option("--barcoded-reads-in-clusters", required=True, type=click.Path(exists=True))
@@ -293,6 +295,7 @@ def main(
     total_bpm_reads,
     total_rpm_reads,
     bowtie2_qc_log,
+    bowtie2_unique_mapped_reads,
     post_alignment_barcoded_count,
     bpm_duplication_rate,
     barcoded_reads_in_clusters,
@@ -314,6 +317,7 @@ def main(
     metrics["total_rpm_reads"] = read_integer(Path(total_rpm_reads))
     metrics.update(aggregate_rna_adapter_trim_qc([Path(path) for path in rna_adapter_trim_qc_logs]))
     metrics.update(parse_bowtie2_qc(Path(bowtie2_qc_log)))
+    metrics["bowtie2_unique_mapped_reads"] = read_integer(Path(bowtie2_unique_mapped_reads))
     metrics.update(aggregate_star_logs([Path(path) for path in star_logs]))
     metrics["post_alignment_unique_rpm_reads"] = read_integer(Path(post_alignment_barcoded_count))
     metrics["bpm_duplication_rate"] = read_float(Path(bpm_duplication_rate))
