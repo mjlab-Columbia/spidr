@@ -5,7 +5,6 @@ from typing import Tuple, Dict, List, Set, Union
 from tqdm import tqdm
 import gzip
 from collections import deque
-from pdb import set_trace
 
 # Number of bases between barcodes (equivalent to the length of odd overhang or even overhang)
 # TODO: Move this into CLI options or config
