@@ -29,7 +29,7 @@ required_config_keys = [
     "read2_start_offset",
 ]
 
-optional_config_keys = ["cutadapt_oligos"]
+optional_config_keys = ["cutadapt_oligos", "minimum_cdna_length", "maximum_cdna_length"]
 
 # Check that all the required yaml fields are present
 try:
@@ -47,6 +47,12 @@ if "cutadapt_oligos" not in config.keys():
     config["cutadapt_oligos"] = "-g GGTGGTCTTT -g GCCTCTTGTT"
 else:
     config["cutadapt_oligos"] = "-g file:" + config["cutadapt_oligos"]
+
+if "minimum_cdna_length" not in config.keys():
+    config["minimum_cdna_length"] = 10
+
+if "maximum_cdna_length" not in config.keys():
+    config["maximum_cdna_length"] = 70
 
 # Create cluster subdirectory within logs/ directory manually
 makedirs(path.join(out_dir, "workup", "logs", "cluster"), exist_ok=True)
@@ -645,7 +651,7 @@ rule count_bpm_reads_per_chunk:
         "benchmarks/{experiment}.{splitid}.count_bpm_reads_per_chunk.tsv"
     shell:
         """
-        (gzip -dc {input} | wc -l > {output}) &> {log}
+        (gzip -dc {input} | wc -l | xargs -I {{}} echo "scale=0; {{}} / 4" | bc > {output}) &> {log}
         """
 
 
@@ -701,7 +707,7 @@ rule count_rpm_reads_per_chunk:
         "benchmarks/{experiment}.{splitid}.count_rpm_reads_per_chunk.tsv"
     shell:
         """
-        (gzip -dc {input} | wc -l > {output}) &> {log}
+        (gzip -dc {input} | wc -l | xargs -I {{}} echo "scale=0; {{}} / 4" | bc > {output}) &> {log}
         """
 
 
@@ -741,11 +747,29 @@ rule trim_rpm_reads:
     output:
         r1=path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
         r2=path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
+        too_short_r1=path.join(
+            out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz"
+        ),
+        too_short_r2=path.join(
+            out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz"
+        ),
+        too_long_r1=path.join(
+            out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_long.fastq.gz"
+        ),
+        too_long_r2=path.join(
+            out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.too_long.fastq.gz"
+        ),
+        untrimmed_r1=path.join(
+            out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz"
+        ),
+        untrimmed_r2=path.join(
+            out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz"
+        ),
         qc=path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt"),
     params:
         adapters_r1="-a ATCAGCACTTAGCGTCAG",
         adapters_r2="-G CTGACGCTAAGTGCTGAT",
-        others="--minimum-length 20",
+        others=f"--minimum-length {config['minimum_cdna_length']} --maximum-length {config['maximum_cdna_length']}",
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.trim_rpm_reads.log"),
     conda:
@@ -763,11 +787,17 @@ rule trim_rpm_reads:
             {params.adapters_r1} \
             {params.adapters_r2} \
             {params.others} \
+            --too-short-output {output.too_short_r1} \
+            --too-short-paired-output {output.too_short_r2} \
+            --too-long-output {output.too_long_r1} \
+            --too-long-paired-output {output.too_long_r2} \
+            --untrimmed-output {output.untrimmed_r1} \
+            --untrimmed-paired-output {output.untrimmed_r2} \
             -o {output.r1} \
             -p {output.r2} \
             -j 0 \
             {input.read1} {input.read2} > {output.qc}) &> {log}
-        
+
         (fastqc {output.r1}) &>> {log}
         fastqc {output.r2} &>> {log}
         """
@@ -858,6 +888,12 @@ rule trim_bead_oligo_reads:
         fastq=path.join(
             out_dir, "workup", "trim_bead_oligo_reads", "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.fastq.gz"
         ),
+        untrimmed=path.join(
+            out_dir,
+            "workup",
+            "trim_bead_oligo_reads",
+            "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.untrimmed.fastq.gz",
+        ),
         qc=path.join(
             out_dir, "workup", "trim_bead_oligo_reads", "{experiment}_R1.part_{splitid}.barcoded_bpm.RDtrim.qc.txt"
         ),
@@ -879,6 +915,7 @@ rule trim_bead_oligo_reads:
         """
         (cutadapt \
             {params.adapters_r1} \
+            --untrimmed-output {output.untrimmed} \
             -o {output.fastq} \
             -j 0 \
             {input} > {output.qc}) &> {log}
@@ -1747,6 +1784,15 @@ def qc_summary_inputs(wildcards):
         "total_rpm_reads": path.join(
             out_dir, "workup", "qc", "aggregate_rpm_reads_across_chunks", f"{wildcards.experiment}.total_rpm_reads.txt"
         ),
+        "rna_adapter_trim_qc_logs": expand(
+            path.join(
+                out_dir,
+                "workup",
+                "trim_rpm_reads",
+                "{{experiment}}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
         "bowtie2_qc_log": path.join(out_dir, "workup", "qc", "collate_bowtie2_qc", f"{wildcards.experiment}.bowtie2_qc.log"),
         "post_alignment_barcoded_count": path.join(
             out_dir,
@@ -1833,5 +1879,6 @@ rule generate_qc_summary:
             $(for f in {input.pre_alignment_barcoded_count}; do echo --pre-alignment-barcoded-count "$f"; done) \
             $(for f in {input.star_logs}; do echo --star-log "$f"; done) \
             $(for f in {input.barcoded_in_bams}; do echo --barcoded-in-bams "$f"; done) \
-            $(for f in {input.thresh_split_logs}; do echo --thresh-split-log "$f"; done)) &> {log}
+            $(for f in {input.thresh_split_logs}; do echo --thresh-split-log "$f"; done) \
+            $(for f in {input.rna_adapter_trim_qc_logs}; do echo --rna-adapter-trim-qc "$f"; done)) &> {log}
         """

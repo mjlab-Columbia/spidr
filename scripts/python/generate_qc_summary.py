@@ -22,6 +22,8 @@ COUNT_METRICS = {
     "pre_alignment_fully_barcoded_reads_r1",
     "total_bpm_reads",
     "total_rpm_reads",
+    "rpm_reads_pre_rna_adapter_trim",
+    "rpm_reads_post_rna_adapter_trim",
     "bowtie2_total_reads",
     "star_input_reads",
     "star_uniquely_mapped_reads",
@@ -126,6 +128,40 @@ def parse_fastp_json(path: Path) -> dict:
         "fastp_q20_rate_after_filtering": after_rates["q20_rate"],
         "fastp_q30_rate_after_filtering": after_rates["q30_rate"],
         "fastp_gc_content_after_filtering": data["summary"]["after_filtering"]["gc_content"],
+    }
+
+
+def parse_cutadapt_qc(path: Path) -> tuple[int, int]:
+    """Return (read pairs processed, read pairs written) from a cutadapt RNA-adapter-trim report."""
+    processed = None
+    written = None
+    with path.open() as handle:
+        for line in handle:
+            processed_match = re.match(r"^Total read pairs processed:\s*([\d,]+)", line.strip())
+            if processed_match:
+                processed = int(processed_match.group(1).replace(",", ""))
+                continue
+
+            written_match = re.match(r"^Pairs written \(passing filters\):\s*([\d,]+)", line.strip())
+            if written_match:
+                written = int(written_match.group(1).replace(",", ""))
+
+    if processed is None or written is None:
+        raise ValueError(f"Could not parse cutadapt read pair counts from {path}")
+    return processed, written
+
+
+def aggregate_rna_adapter_trim_qc(paths: list[Path]) -> dict:
+    total_processed = 0
+    total_written = 0
+    for path in paths:
+        processed, written = parse_cutadapt_qc(path)
+        total_processed += processed
+        total_written += written
+
+    return {
+        "rpm_reads_pre_rna_adapter_trim": total_processed,
+        "rpm_reads_post_rna_adapter_trim": total_written,
     }
 
 
@@ -241,6 +277,13 @@ def parse_thresh_split_log(path: Path) -> tuple[str, int]:
     type=click.Path(exists=True),
     help="Per-condition threshold-and-split QC logs",
 )
+@click.option(
+    "--rna-adapter-trim-qc",
+    "rna_adapter_trim_qc_logs",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Per-chunk cutadapt RNA-adapter-trim QC reports (trim_rpm_reads RDtrim.qc.txt)",
+)
 def main(
     experiment,
     output,
@@ -257,6 +300,7 @@ def main(
     star_logs,
     barcoded_in_bams,
     thresh_split_logs,
+    rna_adapter_trim_qc_logs,
 ):
     metrics = {}
 
@@ -268,6 +312,7 @@ def main(
     )
     metrics["total_bpm_reads"] = read_integer(Path(total_bpm_reads))
     metrics["total_rpm_reads"] = read_integer(Path(total_rpm_reads))
+    metrics.update(aggregate_rna_adapter_trim_qc([Path(path) for path in rna_adapter_trim_qc_logs]))
     metrics.update(parse_bowtie2_qc(Path(bowtie2_qc_log)))
     metrics.update(aggregate_star_logs([Path(path) for path in star_logs]))
     metrics["post_alignment_unique_rpm_reads"] = read_integer(Path(post_alignment_barcoded_count))
