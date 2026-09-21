@@ -372,6 +372,7 @@ rule identify_barcodes:
         read2_format=config["read2_format"],
         read1_start_offset=config["read1_start_offset"],
         read2_start_offset=config["read2_start_offset"],
+        use_barcoding_round_flag=lambda wc: "--use_barcoding_round" if config.get("use_barcoding_rounds", False) else "",
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.identify_barcodes.log"),
     resources:
@@ -383,7 +384,7 @@ rule identify_barcodes:
         "benchmarks/{experiment}.{splitid}.identify_barcodes.tsv"
     shell:
         """
-        (bin/identify_barcode \
+        (python scripts/python/identify_barcodes.py \
             --input_read1 {input.r1} \
             --input_read2 {input.r2} \
             --output_read1 {output.r1_barcoded} \
@@ -392,6 +393,7 @@ rule identify_barcodes:
             --read2_format '{params.read2_format}' \
             --read1_start_offset {params.read1_start_offset} \
             --read2_start_offset {params.read2_start_offset} \
+            {params.use_barcoding_round_flag} \
             --config {params.bid_config}) &> {log}
         """
 
