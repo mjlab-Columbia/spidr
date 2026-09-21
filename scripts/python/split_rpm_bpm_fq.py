@@ -10,7 +10,7 @@ from click import command, option, Path
         show_default=True, help="Path to barcoded read 1 gzipped, fastq file")
 @option("--rpm_output", "-r", type=Path(), default=None, show_default=True, help="Output path for RPM reads")
 @option("--bpm_output", "-b", type=Path(), default=None, show_default=True, help="Output path for BPM reads")
-@option("--short_output", "-b", type=Path(), default=None, show_default=True,
+@option("--short_output", "-s", type=Path(), default=None, show_default=True,
         help="Output path for barcodes with incomplete reads")
 def main(input, rpm_output, bpm_output, short_output):
     rpm_count = 0
