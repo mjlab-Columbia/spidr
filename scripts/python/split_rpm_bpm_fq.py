@@ -29,7 +29,9 @@ def main(input, rpm_output, bpm_output, short_output):
             barcodes = pattern.findall(qname)
             if counter % 10000 == 0:
                 print(counter)
-            if 'NOT_FOUND' in barcodes[1:]:
+            # UNRESOLVED_DPM (identify_barcode): read 1 starts with the common oligo but no bead ID was
+            # found -> a bead read with an unreadable bead ID; treat as incomplete rather than RPM.
+            if 'NOT_FOUND' in barcodes[1:] or barcodes[0] == 'UNRESOLVED_DPM':
                 incomplete += 1
                 short_out.write(qname + '\n' + seq + '\n' + thrd + '\n' + qual + '\n')
             elif 'BEAD' in qname:
