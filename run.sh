@@ -32,6 +32,7 @@ if [[ ${SNAKEMAKE_MAJOR} -lt 8 ]]; then
         --conda-frontend conda \
         -j 200 \
         --cluster-config cluster.yaml \
+        -R trim_rpm_reads \
         --printshellcmds \
         --configfile config.yaml \
         --cluster "sbatch -A {cluster.account} -c {cluster.cpus} -t {cluster.time} -N {cluster.nodes} --mem {cluster.mem} --output {cluster.output} --error {cluster.error}" \

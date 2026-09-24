@@ -97,13 +97,13 @@ bash scripts/bash/merge_summary_tables.sh \
 | `fastp_reads_before_filtering` | R1 reads reported by fastp before deduplication (matches `raw_fastq_reads`; fastp's top-level `summary.total_reads` counts R1 and R2 together). |
 | `fastp_reads_after_filtering` | R1 reads retained by fastp after deduplication. With `--dedup`, this reflects duplicate removal rather than quality filtering. |
 | `fastp_duplication_rate` | Duplicate rate estimated by fastp (0–1). |
-| `fastp_q20_rate_after_filtering` | Fraction of bases with Phred quality ≥ 20 after fastp filtering. |
-| `fastp_q30_rate_after_filtering` | Fraction of bases with Phred quality ≥ 30 after fastp filtering. |
-| `fastp_gc_content_after_filtering` | GC content after fastp filtering (0–1). |
 | `filtered_fastq_reads` | Total R1 reads remaining after adapter trimming with Trim Galore. |
 | `pre_alignment_fully_barcoded_reads_r1` | Sum of fully barcoded R1 reads across all chunks before alignment. |
 | `total_bpm_reads` | Total bead-processing-module (BPM) reads across all chunks. |
 | `total_rpm_reads` | Total RNA-processing-module (RPM) reads across all chunks. |
+| `rpm_reads_too_short` | RPM read pairs discarded by `trim_rpm_reads` for being too short, summed across chunks. |
+| `rpm_reads_too_long` | RPM read pairs discarded by `trim_rpm_reads` for being too long, summed across chunks. |
+| `rpm_reads_untrimmed` | RPM read pairs discarded by `trim_rpm_reads` for having no adapter found (untrimmed), summed across chunks. |
 | `bowtie2_total_reads` | Total read pairs aligned to the ncRNA Bowtie2 index across all chunks. |
 | `bowtie2_overall_alignment_rate_pct` | Read-weighted overall Bowtie2 concordant alignment rate (%). |
 | `bowtie2_unique_mapped_reads` | Unique read names with at least one mapped alignment in the Bowtie2 mapped BAMs (summed across chunks). |

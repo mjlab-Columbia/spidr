@@ -52,7 +52,7 @@ if "minimum_cdna_length" not in config.keys():
     config["minimum_cdna_length"] = 10
 
 if "maximum_cdna_length" not in config.keys():
-    config["maximum_cdna_length"] = 70
+    config["maximum_cdna_length"] = 90
 
 # Create cluster subdirectory within logs/ directory manually
 makedirs(path.join(out_dir, "workup", "logs", "cluster"), exist_ok=True)
@@ -748,10 +748,16 @@ rule trim_rpm_reads:
         r1=path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
         r2=path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.fastq.gz"),
         too_short_r1=path.join(
-            out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz"
+            out_dir,
+            "workup",
+            "trim_rpm_reads",
+            "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz",
         ),
         too_short_r2=path.join(
-            out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz"
+            out_dir,
+            "workup",
+            "trim_rpm_reads",
+            "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz",
         ),
         too_long_r1=path.join(
             out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_long.fastq.gz"
@@ -760,10 +766,16 @@ rule trim_rpm_reads:
             out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.too_long.fastq.gz"
         ),
         untrimmed_r1=path.join(
-            out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz"
+            out_dir,
+            "workup",
+            "trim_rpm_reads",
+            "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz",
         ),
         untrimmed_r2=path.join(
-            out_dir, "workup", "trim_rpm_reads", "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz"
+            out_dir,
+            "workup",
+            "trim_rpm_reads",
+            "{experiment}_R2.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz",
         ),
         qc=path.join(out_dir, "workup", "trim_rpm_reads", "{experiment}_R1.part_{splitid}.barcoded_rpm.RDtrim.qc.txt"),
     params:
@@ -1550,7 +1562,9 @@ rule generate_cluster_ecdfs:
         path.join(out_dir, "workup", "merge_clusters", "{experiment}.clusters.gz"),
     output:
         ecdf=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_ecdf.pdf"),
-        counts=path.join(out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_counts.pdf"),
+        counts=path.join(
+            out_dir, "workup", "qc", "generate_cluster_ecdfs", "{experiment}.Max_representation_counts.pdf"
+        ),
     params:
         xlim=30,
     conda:
@@ -1708,7 +1722,10 @@ rule count_barcoded_reads_in_bams:
     of all 
     """
     input:
-        path.join(out_dir, "workup", "splitbams_by_condition", "{experiment}.{condition}.done"),
+        expand(
+            path.join(out_dir, "workup", "splitbams_by_condition", "{{experiment}}.{condition}.done"),
+            condition=config["conditions"],
+        ),
     output:
         path.join(
             out_dir,
@@ -1813,7 +1830,9 @@ rule count_bowtie2_mapped_reads:
 
 def qc_summary_inputs(wildcards):
     return {
-        "raw_reads": path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", f"{wildcards.experiment}.raw_fastq_reads.txt"),
+        "raw_reads": path.join(
+            out_dir, "workup", "qc", "count_raw_fastq_reads", f"{wildcards.experiment}.raw_fastq_reads.txt"
+        ),
         "fastp_json": path.join(out_dir, "workup", "qc", "deduplicate_reads", f"{wildcards.experiment}.fastp.json"),
         "filtered_reads": path.join(
             out_dir, "workup", "qc", "count_filtered_fastq_reads", f"{wildcards.experiment}.filtered_fastq_reads.txt"
@@ -1833,7 +1852,36 @@ def qc_summary_inputs(wildcards):
             ),
             splitid=NUM_CHUNKS,
         ),
-        "bowtie2_qc_log": path.join(out_dir, "workup", "qc", "collate_bowtie2_qc", f"{wildcards.experiment}.bowtie2_qc.log"),
+        "too_short_r1": expand(
+            path.join(
+                out_dir,
+                "workup",
+                "trim_rpm_reads",
+                "{{experiment}}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_short.fastq.gz",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+        "too_long_r1": expand(
+            path.join(
+                out_dir,
+                "workup",
+                "trim_rpm_reads",
+                "{{experiment}}_R1.part_{splitid}.barcoded_rpm.RDtrim.too_long.fastq.gz",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+        "untrimmed_r1": expand(
+            path.join(
+                out_dir,
+                "workup",
+                "trim_rpm_reads",
+                "{{experiment}}_R1.part_{splitid}.barcoded_rpm.RDtrim.untrimmed.fastq.gz",
+            ),
+            splitid=NUM_CHUNKS,
+        ),
+        "bowtie2_qc_log": path.join(
+            out_dir, "workup", "qc", "collate_bowtie2_qc", f"{wildcards.experiment}.bowtie2_qc.log"
+        ),
         "bowtie2_unique_mapped_reads": path.join(
             out_dir,
             "workup",
@@ -1928,5 +1976,8 @@ rule generate_qc_summary:
             $(for f in {input.star_logs}; do echo --star-log "$f"; done) \
             $(for f in {input.barcoded_in_bams}; do echo --barcoded-in-bams "$f"; done) \
             $(for f in {input.thresh_split_logs}; do echo --thresh-split-log "$f"; done) \
-            $(for f in {input.rna_adapter_trim_qc_logs}; do echo --rna-adapter-trim-qc "$f"; done)) &> {log}
+            $(for f in {input.rna_adapter_trim_qc_logs}; do echo --rna-adapter-trim-qc "$f"; done) \
+            $(for f in {input.too_short_r1}; do echo --too-short-r1 "$f"; done) \
+            $(for f in {input.too_long_r1}; do echo --too-long-r1 "$f"; done) \
+            $(for f in {input.untrimmed_r1}; do echo --untrimmed-r1 "$f"; done)) &> {log}
         """

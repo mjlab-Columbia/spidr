@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Aggregate high-level SPIDR QC metrics into a TSV per library (metrics as rows)."""
 
+import gzip
 import json
 import re
 from pathlib import Path
@@ -24,6 +25,9 @@ COUNT_METRICS = {
     "total_rpm_reads",
     "rpm_reads_pre_rna_adapter_trim",
     "rpm_reads_post_rna_adapter_trim",
+    "rpm_reads_too_short",
+    "rpm_reads_too_long",
+    "rpm_reads_untrimmed",
     "bowtie2_total_reads",
     "bowtie2_unique_mapped_reads",
     "star_input_reads",
@@ -45,9 +49,6 @@ PERCENTAGE_METRICS = {
 
 RATE_METRICS = {
     "fastp_duplication_rate",
-    "fastp_q20_rate_after_filtering",
-    "fastp_q30_rate_after_filtering",
-    "fastp_gc_content_after_filtering",
     "bpm_duplication_rate",
 }
 
@@ -111,24 +112,12 @@ def parse_fastp_json(path: Path) -> dict:
     read1_after = data["read1_after_filtering"]
     duplication = data.get("duplication", {})
 
-    def base_rates(read_section: dict) -> dict:
-        total_bases = read_section["total_bases"]
-        return {
-            "q20_rate": read_section["q20_bases"] / total_bases,
-            "q30_rate": read_section["q30_bases"] / total_bases,
-        }
-
-    after_rates = base_rates(read1_after)
-
     return {
         # fastp summary.total_reads counts R1 + R2; use read1_* for R1-only counts
         # that match raw_fastq_reads and downstream R1-based QC metrics.
         "fastp_reads_before_filtering": read1_before["total_reads"],
         "fastp_reads_after_filtering": read1_after["total_reads"],
         "fastp_duplication_rate": duplication.get("rate"),
-        "fastp_q20_rate_after_filtering": after_rates["q20_rate"],
-        "fastp_q30_rate_after_filtering": after_rates["q30_rate"],
-        "fastp_gc_content_after_filtering": data["summary"]["after_filtering"]["gc_content"],
     }
 
 
@@ -164,6 +153,18 @@ def aggregate_rna_adapter_trim_qc(paths: list[Path]) -> dict:
         "rpm_reads_pre_rna_adapter_trim": total_processed,
         "rpm_reads_post_rna_adapter_trim": total_written,
     }
+
+
+def count_fastq_reads(path: Path) -> int:
+    with gzip.open(path, "rt") as handle:
+        line_count = sum(1 for _ in handle)
+    if line_count % 4 != 0:
+        raise ValueError(f"Unexpected line count in {path}: {line_count} is not divisible by 4")
+    return line_count // 4
+
+
+def sum_fastq_reads(paths: list[Path]) -> int:
+    return sum(count_fastq_reads(path) for path in paths)
 
 
 def parse_bowtie2_qc(path: Path) -> dict:
@@ -286,6 +287,27 @@ def parse_thresh_split_log(path: Path) -> tuple[str, int]:
     type=click.Path(exists=True),
     help="Per-chunk cutadapt RNA-adapter-trim QC reports (trim_rpm_reads RDtrim.qc.txt)",
 )
+@click.option(
+    "--too-short-r1",
+    "too_short_r1_paths",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Per-chunk R1 fastq.gz of read pairs discarded as too short (trim_rpm_reads too_short output)",
+)
+@click.option(
+    "--too-long-r1",
+    "too_long_r1_paths",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Per-chunk R1 fastq.gz of read pairs discarded as too long (trim_rpm_reads too_long output)",
+)
+@click.option(
+    "--untrimmed-r1",
+    "untrimmed_r1_paths",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Per-chunk R1 fastq.gz of read pairs discarded as untrimmed (trim_rpm_reads untrimmed output)",
+)
 def main(
     experiment,
     output,
@@ -304,6 +326,9 @@ def main(
     barcoded_in_bams,
     thresh_split_logs,
     rna_adapter_trim_qc_logs,
+    too_short_r1_paths,
+    too_long_r1_paths,
+    untrimmed_r1_paths,
 ):
     metrics = {}
 
@@ -316,6 +341,9 @@ def main(
     metrics["total_bpm_reads"] = read_integer(Path(total_bpm_reads))
     metrics["total_rpm_reads"] = read_integer(Path(total_rpm_reads))
     metrics.update(aggregate_rna_adapter_trim_qc([Path(path) for path in rna_adapter_trim_qc_logs]))
+    metrics["rpm_reads_too_short"] = sum_fastq_reads([Path(path) for path in too_short_r1_paths])
+    metrics["rpm_reads_too_long"] = sum_fastq_reads([Path(path) for path in too_long_r1_paths])
+    metrics["rpm_reads_untrimmed"] = sum_fastq_reads([Path(path) for path in untrimmed_r1_paths])
     metrics.update(parse_bowtie2_qc(Path(bowtie2_qc_log)))
     metrics["bowtie2_unique_mapped_reads"] = read_integer(Path(bowtie2_unique_mapped_reads))
     metrics.update(aggregate_star_logs([Path(path) for path in star_logs]))
