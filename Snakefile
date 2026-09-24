@@ -1717,9 +1717,12 @@ rule thresh_and_split_condition:
 
 rule count_barcoded_reads_in_bams:
     """
-    Count all reads across all bams that are not from ambiguous.bam, none.bam, uncertain.bam, 
-    which contain reads that did not meet cluster cutoffs or the pooled bam which is the aggregate
-    of all 
+    Count reads in this condition's split BAMs, by category:
+      pooled    {experiment}.{condition}.bam (all reads written for the condition)
+      targets   sum over {experiment}.{condition}_<protein>.bam
+      ambiguous / none / filtered / uncertain   the corresponding {experiment}.{condition}_<label>.bam
+    Output: one "category<TAB>reads" line per category (0 when the BAM does not exist).
+    Only this condition's BAMs are counted (previously every condition's BAMs were summed).
     """
     input:
         expand(
@@ -1743,20 +1746,22 @@ rule count_barcoded_reads_in_bams:
     shell:
         """
         (
-            # 1. Use the explicit params.directory path
-            # 2. Add -s 0 to find to ignore 0-byte (corrupted/empty) files if they exist
-            ALL_BAMS=$(find "{params.directory}" -maxdepth 1 -name "*.bam" -size +0c | \
-                       grep -E '{wildcards.experiment}.*\.bam' | \
-                       grep -v -E 'ambiguous|none|uncertain')
-
-            # Check if any BAM files were actually found to avoid errors down the line
-            if [ -z "$ALL_BAMS" ]; then
-                echo "0" > {output}
-            else
-                (for bam in $ALL_BAMS; do 
-                    samtools view -c "$bam"
-                 done | awk '{{sum += $1}} END {{print sum}}') > {output} 2> {log}
-            fi
+            set -euo pipefail
+            prefix="{params.directory}/{wildcards.experiment}.{wildcards.condition}"
+            for bam in "$prefix.bam" "$prefix"_*.bam; do
+                [ -s "$bam" ] || continue
+                label=$(basename "$bam" .bam)
+                label=${{label#{wildcards.experiment}.{wildcards.condition}}}
+                label=${{label#_}}
+                case "$label" in
+                    "") category=pooled ;;
+                    ambiguous|none|filtered|uncertain) category=$label ;;
+                    *) category=targets ;;
+                esac
+                printf "%s\t%s\n" "$category" "$(samtools view -c "$bam")"
+            done | awk -F'\t' '{{s[$1] += $2}}
+                END {{n = split("pooled targets ambiguous none filtered uncertain", c, " ");
+                      for (i = 1; i <= n; i++) printf "%s\t%d\n", c[i], s[c[i]]}}' > {output}
         ) &> {log}
         """
 

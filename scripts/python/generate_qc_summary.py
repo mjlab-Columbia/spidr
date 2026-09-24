@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Aggregate high-level SPIDR QC metrics into a TSV per library (metrics as rows)."""
 
+import ast
 import gzip
 import json
 import re
@@ -12,7 +13,8 @@ import pandas as pd
 
 COUNT_METRIC_PREFIXES = (
     "barcoded_reads_assigned_to_bams_",
-    "thresh_split_total_reads_",
+    "bam_reads_",
+    "thresh_split_",
 )
 
 COUNT_METRICS = {
@@ -222,23 +224,48 @@ def aggregate_star_logs(star_logs: list[Path]) -> dict:
     }
 
 
-def parse_condition_assignment(path: Path) -> tuple[str, int]:
+BAM_CATEGORIES = ("pooled", "targets", "ambiguous", "none", "filtered", "uncertain")
+
+
+def parse_condition_assignment(path: Path) -> tuple[str, dict]:
+    """Per-condition split-BAM read counts written by count_barcoded_reads_in_bams ("category<TAB>reads")."""
     stem = path.name.removesuffix(".barcoded_reads_assigned_to_bams.txt")
     condition = stem.rsplit(".", 1)[1]
-    return condition, read_integer(path)
+    counts = {category: 0 for category in BAM_CATEGORIES}
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        category, value = line.split("\t")
+        counts[category] = int(value)
+    return condition, counts
 
 
-def parse_thresh_split_log(path: Path) -> tuple[str, int]:
+def parse_thresh_split_log(path: Path) -> tuple[str, dict]:
+    """threshold_tag_and_split log: total input reads (shared by all conditions), reads written per label
+    for this condition, duplicates, and reads whose barcode has no cluster in this condition."""
     marker = ".thresh_and_split_condition."
     if marker not in path.name:
         raise ValueError(f"Unexpected thresh-and-split log name: {path.name}")
     condition = path.name.split(marker, 1)[1].removesuffix(".log")
-    with path.open() as handle:
-        first_line = handle.readline().strip()
-    match = re.match(r"Total reads:\s*(\d+)", first_line)
+    text = path.read_text()
+    match = re.match(r"Total reads:\s*(\d+)", text.strip())
     if not match:
         raise ValueError(f"Could not parse total reads from {path}")
-    return condition, int(match.group(1))
+    written = re.findall(r"\{[^{}]*\}", text, flags=re.S)
+    if not written:
+        raise ValueError(f"Could not parse reads written from {path}")
+    per_label = ast.literal_eval(written[-1])
+
+    def counter(label):
+        m = re.search(re.escape(label) + r":\s*(\d+)", text)
+        return int(m.group(1)) if m else 0
+
+    return condition, {
+        "input_reads": int(match.group(1)),
+        "reads_written": sum(int(v) for v in per_label.values()),
+        "duplicates": counter("Duplicate reads"),
+        "no_matching_cluster": counter("Reads from input bam without matching barcode in clusterfile"),
+    }
 
 
 @click.command()
@@ -352,12 +379,21 @@ def main(
     metrics["barcoded_reads_assigned_to_clusters"] = read_integer(Path(barcoded_reads_in_clusters))
 
     for path in barcoded_in_bams:
-        condition, count = parse_condition_assignment(Path(path))
-        metrics[f"barcoded_reads_assigned_to_bams_{condition}"] = count
+        condition, counts = parse_condition_assignment(Path(path))
+        # reads assigned to a protein/target BAM of this condition (excludes pooled/ambiguous/none/filtered/uncertain)
+        metrics[f"barcoded_reads_assigned_to_bams_{condition}"] = counts["targets"]
+        for category in ("pooled", "ambiguous", "none", "filtered", "uncertain"):
+            metrics[f"bam_reads_{category}_{condition}"] = counts[category]
 
+    input_reads = set()
     for path in thresh_split_logs:
-        condition, count = parse_thresh_split_log(Path(path))
-        metrics[f"thresh_split_total_reads_{condition}"] = count
+        condition, stats = parse_thresh_split_log(Path(path))
+        input_reads.add(stats["input_reads"])
+        for key in ("reads_written", "duplicates", "no_matching_cluster"):
+            metrics[f"thresh_split_{key}_{condition}"] = stats[key]
+    if len(input_reads) == 1:
+        # every condition is split from the same merged RPM BAM
+        metrics["thresh_split_input_reads"] = input_reads.pop()
 
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
