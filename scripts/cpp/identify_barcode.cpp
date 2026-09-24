@@ -39,6 +39,18 @@ static constexpr int LAXITY         = 6;
 static constexpr int BARCODE_LENGTH = 17;
 static const std::string NOT_FOUND  = "NOT_FOUND";
 
+// Bead-ID search (fix 4): the bead ID is expected at read1_start_offset, but a
+// 1-3 nt indel in the common oligo shifts it. Search offset, then +/-1..3 nt
+// (exact match, as the DPM tolerance in the config is 0).
+static constexpr int BEAD_SEARCH_LAXITY = 3;
+// A read 1 that starts with the common oligo (2PUNI_PC50: ...CCGATCT|CTATCCAGGC)
+// but has no recognisable bead ID is a bead read, not an RNA read. It is marked
+// UNRESOLVED_DPM so split_rpm_bpm_fq.py routes it to the incomplete output
+// instead of the RPM path.
+static const std::string COMMON_OLIGO_5P = "CTATCCAGGC";
+static constexpr int COMMON_OLIGO_MAX_MM = 1;
+static const std::string UNRESOLVED_DPM = "UNRESOLVED_DPM";
+
 // ---------------------------------------------------------------------------
 // GzipReader – line-oriented reader for .fq.gz files
 // ---------------------------------------------------------------------------
@@ -223,12 +235,27 @@ static std::string find_bead_id(
         const std::vector<int>& bead_lengths,   // sorted unique lengths
         const LookupMap&        bead_hashmap)    // seq → name
 {
-    for (int len : bead_lengths) {
-        if (start_offset + len > (int)read.size()) continue;
-        std::string candidate = read.substr(start_offset, len);
-        auto it = bead_hashmap.find(candidate);
-        if (it != bead_hashmap.end())
-            return it->second;
+    // offsets in order: expected, -1, +1, -2, +2, ... (closest shift wins)
+    for (int d = 0; d <= BEAD_SEARCH_LAXITY; ++d) {
+        for (int sign : {-1, 1}) {
+            if (d == 0 && sign == 1) continue;
+            const int off = start_offset + sign * d;
+            if (off < 0) continue;
+            for (int len : bead_lengths) {
+                if (off + len > (int)read.size()) continue;
+                auto it = bead_hashmap.find(read.substr(off, len));
+                if (it != bead_hashmap.end())
+                    return it->second;
+            }
+        }
+    }
+    // no bead ID: is this a bead read (common oligo at the start of read 1)?
+    if (read.size() >= COMMON_OLIGO_5P.size()) {
+        int mm = 0;
+        for (size_t i = 0; i < COMMON_OLIGO_5P.size() && mm <= COMMON_OLIGO_MAX_MM; ++i)
+            if (read[i] != COMMON_OLIGO_5P[i]) ++mm;
+        if (mm <= COMMON_OLIGO_MAX_MM)
+            return UNRESOLVED_DPM;
     }
     return NOT_FOUND;
 }
