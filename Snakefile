@@ -1758,10 +1758,10 @@ rule count_barcoded_reads_in_bams:
                     ambiguous|none|filtered|uncertain) category=$label ;;
                     *) category=targets ;;
                 esac
-                printf "%s\t%s\n" "$category" "$(samtools view -c "$bam")"
-            done | awk -F'\t' '{{s[$1] += $2}}
+                printf "%s\\t%s\\n" "$category" "$(samtools view -c "$bam")"
+            done | awk -F'\\t' '{{s[$1] += $2}}
                 END {{n = split("pooled targets ambiguous none filtered uncertain", c, " ");
-                      for (i = 1; i <= n; i++) printf "%s\t%d\n", c[i], s[c[i]]}}' > {output}
+                      for (i = 1; i <= n; i++) printf "%s\\t%d\\n", c[i], s[c[i]]}}' > {output}
         ) &> {log}
         """
 
