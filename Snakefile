@@ -1443,8 +1443,8 @@ rule merge_clusters:
         "benchmarks/{experiment}.merge_clusters.tsv"
     shell:
         """
-        (LC_ALL=C pigz -dc {input} \
-            | sort -k 1 -T {params.temp_dir} -m --parallel={threads} \
+        (pigz -dc {input} \
+            | LC_ALL=C sort -k 1,1 -T {params.temp_dir} --parallel={threads} \
             | python scripts/python/merge_clusters.py -i /dev/stdin -o {output}) &> {log}
         """
 
