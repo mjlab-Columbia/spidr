@@ -781,7 +781,9 @@ rule trim_rpm_reads:
     params:
         adapters_r1="-a ATCAGCACTTAGCGTCAG",
         adapters_r2="-G CTGACGCTAAGTGCTGAT",
-        others=f"--minimum-length {config['minimum_cdna_length']} --maximum-length {config['maximum_cdna_length']}",
+        # --pair-filter=both: a pair is discarded only if BOTH reads meet a filter criterion. Keeps long-cDNA pairs
+        # whose R1 has no adapter, but also applies to the length filters (see commit message).
+        others=f"--minimum-length {config['minimum_cdna_length']} --maximum-length {config['maximum_cdna_length']} --pair-filter=both",
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.{splitid}.trim_rpm_reads.log"),
     conda:
