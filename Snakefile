@@ -811,7 +811,7 @@ rule trim_rpm_reads:
         # Untrimmed pairs are no longer diverted: with paired input cutadapt applies --untrimmed-output with
         # --pair-filter=any, which discarded every pair whose R1 does not reach the RNA adapter (cDNA longer
         # than R1) even though R2 carries it. Pairs with no adapter in either read are still removed by
-        # --maximum-length (untrimmed R2 = 209 nt). Empty files keep the declared outputs for downstream QC.
+        # --maximum-length (was: untrimmed R2 = 209 nt; with --maximum-length 100:200 this no longer filters anything for 100+200 cycle data). Empty files keep the declared outputs for downstream QC.
         (printf '' | gzip > {output.untrimmed_r1}; printf '' | gzip > {output.untrimmed_r2}) &>> {log}
 
         (fastqc {output.r1}) &>> {log}
