@@ -22,16 +22,19 @@ class Position:
         self._start_coordinate = start_coordinate
         self._end_coordinate = end_coordinate
 
+    def _key(self):
+        # Strand (and, for RNA reads, the mate) is part of the identity, so each mate of a pair is its own
+        # position. Before, strand and mate were ignored and two mates covering the same interval merged.
+        return (self._type, self._feature, self._chromosome,
+                self._start_coordinate, self._end_coordinate)
+
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return (self._type == other._type and
-                self._chromosome == other._chromosome and
-                self._start_coordinate == other._start_coordinate)
+        return self._key() == other._key()
 
     def __hash__(self):
-        return hash((self._type, self._chromosome,
-                     self._start_coordinate, self._end_coordinate))
+        return hash(self._key())
 
     def to_string(self):
         try:
@@ -226,7 +229,9 @@ def get_clusters(filelist, num_tags):
                     elif 'RPM' in read_type:
                         rpm_counts += 1
                         strand = '+' if not read.is_reverse else '-'
-                        position = Position('RPM', strand, read.reference_name,
+                        # strand + mate (1 or 2) so that each mate of a pair is counted separately
+                        mate = '1' if read.is_read1 else ('2' if read.is_read2 else '')
+                        position = Position('RPM', strand + mate, read.reference_name,
                                             read.reference_start, read.reference_end)
                     elif 'BEAD' in read_type:
                         bpm_counts += 1
