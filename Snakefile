@@ -795,24 +795,38 @@ rule trim_rpm_reads:
         "benchmarks/{experiment}.{splitid}.trim_rpm_reads.tsv"
     shell:
         """
+        # Two passes, because --pair-filter applies to every cutadapt filter at once:
+        # 1. adapter trimming with --pair-filter=both: a pair is kept when either read had the RNA adapter (cDNA longer
+        #    than R1 has it only in R2), and --untrimmed-output diverts pairs where neither read had it.
+        # 2. length filtering with the default --pair-filter=any, so a pair with one empty or short mate is still too short.
+        S1_R1={output.r1}.stage1_R1.fastq.gz
+        S1_R2={output.r2}.stage1_R2.fastq.gz
         (cutadapt \
             {params.adapters_r1} \
             {params.adapters_r2} \
+            --pair-filter=both \
+            --untrimmed-output {output.untrimmed_r1} \
+            --untrimmed-paired-output {output.untrimmed_r2} \
+            -o $S1_R1 \
+            -p $S1_R2 \
+            -j 0 \
+            {input.read1} {input.read2} > {output.qc}.stage1) &> {log}
+
+        (cutadapt \
             {params.others} \
             --too-short-output {output.too_short_r1} \
             --too-short-paired-output {output.too_short_r2} \
             --too-long-output {output.too_long_r1} \
             --too-long-paired-output {output.too_long_r2} \
-            --untrimmed-output {output.untrimmed_r1} \
-            --untrimmed-paired-output {output.untrimmed_r2} \
-            --pair-filter=both \
             -o {output.r1} \
             -p {output.r2} \
             -j 0 \
-            {input.read1} {input.read2} > {output.qc}) &> {log}
+            $S1_R1 $S1_R2 > {output.qc}) &>> {log}
 
-        # --pair-filter=both keeps a pair when either read had the RNA adapter (cDNA longer than R1 has it only in R2).
-        # --untrimmed-output diverts pairs where neither read had the adapter, so they are not aligned as cDNA.
+        # The QC parser keeps the last "Total read pairs processed" and "Pairs written" lines: the second report
+        # supplies pairs written after both passes, and the first supplies the total number of pairs processed.
+        grep '^Total read pairs processed' {output.qc}.stage1 >> {output.qc}
+        rm -f $S1_R1 $S1_R2 {output.qc}.stage1
 
         (fastqc {output.r1}) &>> {log}
         fastqc {output.r2} &>> {log}
