@@ -2,6 +2,7 @@ from json import load
 from os import path, makedirs
 from sys import exit
 import datetime
+import re
 
 
 configfile: "config.yaml"
@@ -27,9 +28,10 @@ required_config_keys = [
     "read2_format",
     "read1_start_offset",
     "read2_start_offset",
+    "maximum_cdna_length",
 ]
 
-optional_config_keys = ["cutadapt_oligos", "minimum_cdna_length", "maximum_cdna_length"]
+optional_config_keys = ["cutadapt_oligos", "minimum_cdna_length"]
 
 # Check that all the required yaml fields are present
 try:
@@ -51,8 +53,20 @@ else:
 if "minimum_cdna_length" not in config.keys():
     config["minimum_cdna_length"] = 10
 
-if "maximum_cdna_length" not in config.keys():
-    config["maximum_cdna_length"] = 90
+# maximum_cdna_length is required: the right limit depends on the read lengths of the run. It is passed to cutadapt
+# --maximum-length, either as one number applied to both reads or as "R1:R2" with a separate limit per read, for example
+# "100:70" for a 100-cycle R1 and a 70 nt cap on R2. Quote the value in config.yaml, because YAML can read an unquoted
+# 100:50 as a base-60 number.
+if not re.fullmatch(r"[1-9][0-9]*(:[1-9][0-9]*)?", str(config["maximum_cdna_length"])) or any(
+    int(limit) > 1000 for limit in str(config["maximum_cdna_length"]).split(":")
+):
+    print(
+        f"Invalid maximum_cdna_length in config.yaml: {config['maximum_cdna_length']!r}. "
+        'Use a positive integer up to 1000 or a quoted "R1:R2" pair such as "100:70". '
+        "A large number usually means an unquoted pair was read as a base-60 number."
+    )
+    exit()
+config["maximum_cdna_length"] = str(config["maximum_cdna_length"])
 
 # Create cluster subdirectory within logs/ directory manually
 makedirs(path.join(out_dir, "workup", "logs", "cluster"), exist_ok=True)

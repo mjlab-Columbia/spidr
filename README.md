@@ -52,6 +52,7 @@ The following steps are for example data available on Columbia's Ginsburg HPC. P
      ```bash
      cp /burg/mjlab/projects/spidr-barcoding-files/config.yaml ./config.yaml
      ```
+     `maximum_cdna_length` is a required key with no default. It sets cutadapt's `--maximum-length` for the RNA-adapter trimming step and must match the read lengths of the run: either one number for both reads or a quoted `"R1:R2"` pair, for example `maximum_cdna_length: "100:70"` for a 100-cycle R1 and a 70 nt cap on R2 (R2 is short after the barcode chain and RNA adapter are removed, so a pair whose R2 is still long still carries the chain). Quote the value, because YAML can read an unquoted `100:50` as a number. `minimum_cdna_length` is optional and defaults to 10.
 
 5. Request resources for an interactive job:
    ```bash
