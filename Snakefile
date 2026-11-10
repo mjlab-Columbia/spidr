@@ -151,9 +151,9 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
         path.join(out_dir, "workup", "qc", "summary", "{experiment}.qc_summary.tsv"),
-        # path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
-        # path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
-        # path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
     ],
     experiment=ALL_EXPERIMENTS,
     condition=config["conditions"],
@@ -1424,33 +1424,71 @@ rule make_clusters:
         """
 
 
-# rule subsample_clusters:
-#     input:
-#         expand(
-#             path.join(out_dir, "workup", "make_clusters", "{{experiment}}.part_{splitid}.clusters.gz"), splitid=NUM_CHUNKS
-#         ),
-#     output:
-#         stats_by_cluster=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
-#         stats_by_reads=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
-#         line_plot=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
-#     params:
-#         output_prefix=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}"),
-#     log:
-#         path.join(out_dir, "workup", "logs", "{experiment}.subsample_clusters.log"),
-#     conda:
-#         "envs/python.yaml"
-#     resources:
-#         tmpdir=config["temp_dir"],
-#         cpus=1,
-#         mem_mb=48000,
-#         time="03:00:00",
-#     benchmark:
-#         "benchmarks/{experiment}.subsample_clusters.tsv"
-#     shell:
-#         """
-#         (python scripts/python/cluster_subsampling.py --input {input} --output {params.output_prefix} --plot_data) &> {log}
-#         """
-#
+# Cluster subsampling, scattered over the cluster. Every sequencing depth K (the first K cluster chunk files, merged by
+# barcode) is its own independent job; the aggregate rule gathers the per-depth results into the tables and line plot.
+SUBSAMPLE_DEPTHS = [str(i) for i in range(1, config["num_chunks"] + 1)]
+
+
+def subsample_depth_inputs(wildcards):
+    return [
+        path.join(out_dir, "workup", "make_clusters", f"{wildcards.experiment}.part_{i:03}.clusters.gz")
+        for i in range(int(wildcards.depth))
+    ]
+
+
+rule subsample_clusters_depth:
+    input:
+        subsample_depth_inputs,
+    output:
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "depths", "{experiment}.depth_{depth}.json"),
+    wildcard_constraints:
+        depth=r"\d+",
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.subsample_clusters_depth_{depth}.log"),
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=lambda wildcards: 4000 + 1000 * int(wildcards.depth),
+        time="01:00:00",
+    benchmark:
+        "benchmarks/{experiment}.subsample_clusters_depth_{depth}.tsv"
+    shell:
+        """
+        (python scripts/python/cluster_subsampling_parallel.py depth \
+            --depth {wildcards.depth} --input {input} --output {output}) &> {log}
+        """
+
+
+rule subsample_clusters:
+    input:
+        lambda wildcards: expand(
+            path.join(out_dir, "workup", "qc", "subsample_clusters", "depths", "{{experiment}}.depth_{depth}.json"),
+            depth=SUBSAMPLE_DEPTHS,
+        ),
+    output:
+        stats_by_cluster=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
+        stats_by_reads=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
+        line_plot=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
+    params:
+        output_prefix=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}"),
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.subsample_clusters.log"),
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=4000,
+        time="00:15:00",
+    benchmark:
+        "benchmarks/{experiment}.subsample_clusters.tsv"
+    shell:
+        """
+        (python scripts/python/cluster_subsampling_parallel.py aggregate \
+            --input {input} --output {params.output_prefix} --plot_data) &> {log}
+        """
 
 
 rule merge_clusters:
