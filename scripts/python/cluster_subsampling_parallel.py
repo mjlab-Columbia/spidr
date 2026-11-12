@@ -12,9 +12,14 @@ others, so here every sequencing depth is its own job:
 
   aggregate  <depth json files>
       Gather the per-depth JSON files, sort them by depth, and write the same two tables as cluster_subsampling.py
-      ({prefix}.cluster_stats.txt and {prefix}.read_stats.txt) plus the optional line plot.
+      ({prefix}.{condition}.cluster_stats.txt and {prefix}.{condition}.read_stats.txt) plus the optional line plot,
+      once per condition.
 
-The numbers produced for depth K are identical to row K-1 of cluster_subsampling.py run on the same chunk files.
+Conditions: clusters are split by the condition in their ROUND1 barcode (ROUND1_<CONDITION>_<well>, e.g.
+ROUND1_BLANK_G11 -> BLANK) and subsampled independently; there is always at least one condition.
+
+The numbers produced for depth K and a condition are identical to row K-1 of cluster_subsampling.py run on that
+condition's clusters from the same chunk files.
 
 Memory note: tags are reduced to per-cluster counts (BPM tags, RPM tags, other tags) while a chunk is read, instead of
 holding a Python list of every tag per barcode. Merging chunks is still a real merge by barcode (a groupby-sum over the
@@ -24,6 +29,7 @@ import argparse
 import gzip
 import json
 import os
+import re
 import sys
 
 import pandas as pd
@@ -36,6 +42,19 @@ def open_auto(path):
         is_gzip = f.read(2) == b'\x1f\x8b'
     return gzip.open(path, 'rt', encoding='utf-8', newline='') if is_gzip else open(
         path, 'rt', encoding='utf-8', newline='')
+
+
+ROUND1_PATTERN = re.compile(r"^ROUND1_(.+)_[^_]+$")
+
+
+def round1_condition(barcode):
+    """Condition of a cluster = the middle part of its ROUND1 barcode (ROUND1_<CONDITION>_<well>, e.g. ROUND1_BLANK_G11
+    -> BLANK). Barcode fields are '.'-separated; the ROUND1 field may sit at any index."""
+    for field in barcode.split("."):
+        m = ROUND1_PATTERN.match(field)
+        if m:
+            return m.group(1)
+    sys.exit(f"No ROUND1 barcode found in cluster barcode: {barcode}")
 
 
 def load_chunk(path):
@@ -101,18 +120,18 @@ def run_depth(args):
         sys.exit(f"--depth {args.depth} does not match the {len(files)} input chunk files given")
     frames = [load_chunk(f) for f in tqdm(files, desc="Loading chunks")]
     merged = merge_chunks(frames)
-    cluster_row, read_row = compute_stats(merged)
-    out = {
-        "depth": len(files),
-        "n_clusters": int(merged.shape[0]),
-        "input_files": files,
-        "cluster_row": cluster_row,
-        "read_row": read_row,
-    }
+    # Subsample independently per condition: each condition's clusters are summarised on their own
+    conditions = merged.index.map(round1_condition)
+    out = {"depth": len(files), "input_files": files, "conditions": {}}
+    for cond in sorted(set(conditions)):
+        sub = merged[conditions == cond]
+        cluster_row, read_row = compute_stats(sub)
+        out["conditions"][cond] = {"n_clusters": int(sub.shape[0]), "cluster_row": cluster_row, "read_row": read_row}
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     with open(args.output, "w") as fh:
         json.dump(out, fh, indent=2)
-    print(f"depth {len(files)}: {out['n_clusters']} merged clusters -> {args.output}")
+    summary = ", ".join(f"{c}={v['n_clusters']}" for c, v in out["conditions"].items())
+    print(f"depth {len(files)}: merged clusters per condition: {summary} -> {args.output}")
 
 
 def run_aggregate(args):
@@ -127,18 +146,34 @@ def run_aggregate(args):
     if depths != list(range(1, len(depths) + 1)):
         sys.exit(f"Depths are not a contiguous series 1..N: {depths}")
 
-    cluster_df = pd.DataFrame([r["cluster_row"] for r in results])
-    read_df = pd.DataFrame([r["read_row"] for r in results])
-    cluster_df.to_csv(args.output + ".cluster_stats.txt", index=False)
-    read_df.to_csv(args.output + ".read_stats.txt", index=False)
-    print(f"Stats tables written to {args.output}.{{cluster,read}}_stats.txt ({len(results)} depths)")
+    all_conditions = sorted({c for r in results for c in r["conditions"]})
+    if args.conditions:
+        missing = set(args.conditions) - set(all_conditions)
+        if missing:
+            sys.exit(f"Expected conditions with no clusters in the depth files: {sorted(missing)}")
+        extra = set(all_conditions) - set(args.conditions)
+        if extra:
+            print(f"Warning: conditions found in data but not expected: {sorted(extra)}", file=sys.stderr)
+        all_conditions = list(args.conditions) + sorted(extra)
 
-    if args.plot_data:
-        plot_read_stats(read_df, args.output + ".subsampling_line_plot.pdf")
-        print(f"Plot written to {args.output}.subsampling_line_plot.pdf")
+    for cond in all_conditions:
+        # a condition with no clusters at a shallow depth is skipped in that depth's JSON; that is an error for a
+        # contiguous series, so require every depth to contain it
+        absent = [r["depth"] for r in results if cond not in r["conditions"]]
+        if absent:
+            sys.exit(f"Condition {cond} has no clusters at depths {absent}")
+        prefix = f"{args.output}.{cond}"
+        cluster_df = pd.DataFrame([r["conditions"][cond]["cluster_row"] for r in results])
+        read_df = pd.DataFrame([r["conditions"][cond]["read_row"] for r in results])
+        cluster_df.to_csv(prefix + ".cluster_stats.txt", index=False)
+        read_df.to_csv(prefix + ".read_stats.txt", index=False)
+        print(f"[{cond}] stats tables written to {prefix}.{{cluster,read}}_stats.txt ({len(results)} depths)")
+        if args.plot_data:
+            plot_read_stats(read_df, prefix + ".subsampling_line_plot.pdf", cond)
+            print(f"[{cond}] plot written to {prefix}.subsampling_line_plot.pdf")
 
 
-def plot_read_stats(read_stats_df, path):
+def plot_read_stats(read_stats_df, path, condition=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -160,6 +195,8 @@ def plot_read_stats(read_stats_df, path):
     for ax in axs:
         ax.legend()
         ax.grid(True, linestyle='--', alpha=0.5)
+    if condition:
+        fig.suptitle(f'Condition: {condition}')
     plt.tight_layout()
     fig.savefig(path, format="pdf", dpi=300)
 
@@ -177,7 +214,10 @@ def main():
 
     a = sub.add_parser("aggregate", help="Gather per-depth JSON files into the stats tables and plot")
     a.add_argument("--input", "-i", nargs="+", required=True, help="Per-depth JSON files from the depth step")
-    a.add_argument("--output", "-o", required=True, help="Prefix for {prefix}.cluster_stats.txt etc.")
+    a.add_argument("--output", "-o", required=True,
+                   help="Prefix; writes {prefix}.{condition}.cluster_stats.txt etc. for every condition")
+    a.add_argument("--conditions", "-c", nargs="+", default=None,
+                   help="Expected conditions (ROUND1 middle tags); error if one has no clusters")
     a.add_argument("--plot_data", "-p", action="store_true", help="Also write {prefix}.subsampling_line_plot.pdf")
     a.set_defaults(func=run_aggregate)
 

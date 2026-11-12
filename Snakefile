@@ -151,9 +151,9 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
         path.join(out_dir, "workup", "qc", "summary", "{experiment}.qc_summary.tsv"),
-        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
-        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
-        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.{condition}.cluster_stats.txt"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.{condition}.read_stats.txt"),
+        path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.{condition}.subsampling_line_plot.pdf"),
     ],
     experiment=ALL_EXPERIMENTS,
     condition=config["conditions"],
@@ -1468,11 +1468,21 @@ rule subsample_clusters:
             depth=SUBSAMPLE_DEPTHS,
         ),
     output:
-        stats_by_cluster=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.cluster_stats.txt"),
-        stats_by_reads=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.read_stats.txt"),
-        line_plot=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.subsampling_line_plot.pdf"),
+        stats_by_cluster=expand(
+            path.join(out_dir, "workup", "qc", "subsample_clusters", "{{experiment}}.{condition}.cluster_stats.txt"),
+            condition=config["conditions"],
+        ),
+        stats_by_reads=expand(
+            path.join(out_dir, "workup", "qc", "subsample_clusters", "{{experiment}}.{condition}.read_stats.txt"),
+            condition=config["conditions"],
+        ),
+        line_plot=expand(
+            path.join(out_dir, "workup", "qc", "subsample_clusters", "{{experiment}}.{condition}.subsampling_line_plot.pdf"),
+            condition=config["conditions"],
+        ),
     params:
         output_prefix=path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}"),
+        conditions=" ".join(config["conditions"]),
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.subsample_clusters.log"),
     conda:
@@ -1487,7 +1497,7 @@ rule subsample_clusters:
     shell:
         """
         (python scripts/python/cluster_subsampling_parallel.py aggregate \
-            --input {input} --output {params.output_prefix} --plot_data) &> {log}
+            --input {input} --output {params.output_prefix} --conditions {params.conditions} --plot_data) &> {log}
         """
 
 
