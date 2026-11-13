@@ -326,3 +326,19 @@ generate_qc_summary:
     nodes: 1
     output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
     error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+count_bpms_in_clusters:
+    account: "mjlab"
+    time: "01:00:00"
+    mem: 4g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.{wildcards.experiment}.out"
+    error: "workup/logs/cluster/{rule}.{wildcards.experiment}.err"
+generate_qc_summary_abbrev:
+    account: "mjlab"
+    time: "00:10:00"
+    mem: 2g
+    cpus: 1
+    nodes: 1
+    output: "workup/logs/cluster/{rule}.out"
+    error: "workup/logs/cluster/{rule}.err"
