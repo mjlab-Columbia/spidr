@@ -42,6 +42,9 @@ COUNT_METRICS = {
     "star_chimeric_reads",
     "post_alignment_unique_rpm_reads",
     "barcoded_reads_assigned_to_clusters",
+    "bpms_in_clusters",
+    "bpms_in_bpm_only_clusters",
+    "bpms_in_matching_clusters",
 }
 
 PERCENTAGE_METRICS = {
@@ -281,6 +284,8 @@ def parse_thresh_split_log(path: Path) -> tuple[str, dict]:
 @click.option("--post-alignment-barcoded-count", required=True, type=click.Path(exists=True))
 @click.option("--bpm-duplication-rate", required=True, type=click.Path(exists=True))
 @click.option("--barcoded-reads-in-clusters", required=True, type=click.Path(exists=True))
+@click.option("--bpms-in-clusters", required=True, type=click.Path(exists=True),
+              help="category<TAB>count file from count_bpms_in_clusters")
 @click.option(
     "--pre-alignment-barcoded-count",
     multiple=True,
@@ -348,6 +353,7 @@ def main(
     post_alignment_barcoded_count,
     bpm_duplication_rate,
     barcoded_reads_in_clusters,
+    bpms_in_clusters,
     pre_alignment_barcoded_count,
     star_logs,
     barcoded_in_bams,
@@ -377,6 +383,9 @@ def main(
     metrics["post_alignment_unique_rpm_reads"] = read_integer(Path(post_alignment_barcoded_count))
     metrics["bpm_duplication_rate"] = read_float(Path(bpm_duplication_rate))
     metrics["barcoded_reads_assigned_to_clusters"] = read_integer(Path(barcoded_reads_in_clusters))
+    for line in Path(bpms_in_clusters).read_text().splitlines():
+        key, value = line.split("\t")
+        metrics[key] = int(value)
 
     for path in barcoded_in_bams:
         condition, counts = parse_condition_assignment(Path(path))

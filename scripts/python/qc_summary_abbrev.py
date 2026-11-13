@@ -68,6 +68,7 @@ A = [
     ('', 'unique cDNA reads after dedup', lambda l: g(l, 'post_alignment_unique_rpm_reads')),
     ('Clusters and condition BAMs', None, None),
     ('', 'reads assigned to clusters', lambda l: g(l, 'barcoded_reads_assigned_to_clusters')),
+    ('', 'BPMs in matching BPM+RPM clusters', lambda l: g(l, 'bpms_in_matching_clusters')),
     ('', 'threshold split: input reads', lambda l: g(l, 'thresh_split_input_reads')),
 ]
 for c in conds:

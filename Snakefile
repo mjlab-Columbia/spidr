@@ -150,6 +150,7 @@ OUTPUTS = expand(
         path.join(out_dir, "workup", "qc", "count_raw_fastq_reads", "{experiment}.raw_fastq_reads.txt"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.html"),
         path.join(out_dir, "workup", "qc", "deduplicate_reads", "{experiment}.fastp.json"),
+        path.join(out_dir, "workup", "qc", "count_bpms_in_clusters", "{experiment}.bpms_in_clusters.txt"),
         path.join(out_dir, "workup", "qc", "summary", "{experiment}.qc_summary.tsv"),
         path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.{condition}.cluster_stats.txt"),
         path.join(out_dir, "workup", "qc", "subsample_clusters", "{experiment}.{condition}.read_stats.txt"),
@@ -164,6 +165,8 @@ OUTPUTS = expand(
 rule all:
     input:
         OUTPUTS,
+        path.join(out_dir, "workup", "qc", "qc_summary_abbrev.tsv"),
+        path.join(out_dir, "workup", "qc", "qc_summary_abbrev.md"),
 
 
 # Send and email if an error occurs during execution
@@ -1612,6 +1615,43 @@ rule count_barcoded_reads_in_clusters:
         """
 
 
+rule count_bpms_in_clusters:
+    """
+    Count BPM reads in clusters: total, in BPM-only clusters (no RPM), and in matching BPM+RPM clusters, i.e. clusters
+    whose RPM reads end up in a target BAM (cluster labelled with min_oligos / proportion / max_size as in
+    thresh_and_split_condition).
+    Output: one "category<TAB>count" line per category.
+    """
+    input:
+        path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.complete.clusters"),
+    output:
+        path.join(out_dir, "workup", "qc", "count_bpms_in_clusters", "{experiment}.bpms_in_clusters.txt"),
+    params:
+        max_size=config["max_size"],
+        proportion=config["proportion"],
+        min_oligos=config["min_oligos"],
+    conda:
+        "envs/python.yaml"
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=4000,
+        time="01:00:00",
+    log:
+        path.join(out_dir, "workup", "logs", "{experiment}.count_bpms_in_clusters.log"),
+    benchmark:
+        "benchmarks/{experiment}.count_bpms_in_clusters.tsv"
+    shell:
+        """
+        (python scripts/python/count_bpms_in_clusters.py \
+            --clusters {input} \
+            --output {output} \
+            --min_oligos {params.min_oligos} \
+            --proportion {params.proportion} \
+            --max_size {params.max_size}) &> {log}
+        """
+
+
 rule generate_cluster_statistics:
     input:
         expand(
@@ -1993,6 +2033,9 @@ def qc_summary_inputs(wildcards):
             "count_barcoded_reads_in_clusters",
             f"{wildcards.experiment}.barcoded_reads_assigned_to_clusters.txt",
         ),
+        "bpms_in_clusters": path.join(
+            out_dir, "workup", "qc", "count_bpms_in_clusters", f"{wildcards.experiment}.bpms_in_clusters.txt"
+        ),
         "pre_alignment_barcoded_count": expand(
             path.join(
                 out_dir,
@@ -2059,6 +2102,7 @@ rule generate_qc_summary:
             --post-alignment-barcoded-count {input.post_alignment_barcoded_count} \
             --bpm-duplication-rate {input.bpm_duplication_rate} \
             --barcoded-reads-in-clusters {input.barcoded_reads_in_clusters} \
+            --bpms-in-clusters {input.bpms_in_clusters} \
             $(for f in {input.pre_alignment_barcoded_count}; do echo --pre-alignment-barcoded-count "$f"; done) \
             $(for f in {input.star_logs}; do echo --star-log "$f"; done) \
             $(for f in {input.barcoded_in_bams}; do echo --barcoded-in-bams "$f"; done) \
@@ -2067,4 +2111,38 @@ rule generate_qc_summary:
             $(for f in {input.too_short_r1}; do echo --too-short-r1 "$f"; done) \
             $(for f in {input.too_long_r1}; do echo --too-long-r1 "$f"; done) \
             $(for f in {input.untrimmed_r1}; do echo --untrimmed-r1 "$f"; done)) &> {log}
+        """
+
+
+rule generate_qc_summary_abbrev:
+    """
+    Abbreviated QC table: one column per library, built from the per-library qc_summary.tsv files.
+    """
+    input:
+        expand(
+            path.join(out_dir, "workup", "qc", "summary", "{experiment}.qc_summary.tsv"),
+            experiment=ALL_EXPERIMENTS,
+        ),
+    output:
+        tsv=path.join(out_dir, "workup", "qc", "qc_summary_abbrev.tsv"),
+        md=path.join(out_dir, "workup", "qc", "qc_summary_abbrev.md"),
+    params:
+        summary_dir=path.join(out_dir, "workup", "qc", "summary"),
+        out_prefix=path.join(out_dir, "workup", "qc", "qc_summary_abbrev"),
+        libs=" ".join(ALL_EXPERIMENTS),
+    log:
+        path.join(out_dir, "workup", "logs", "generate_qc_summary_abbrev.log"),
+    conda:
+        "envs/python.yaml"
+    threads: 1
+    resources:
+        tmpdir=config["temp_dir"],
+        cpus=1,
+        mem_mb=2000,
+        time="00:10:00",
+    benchmark:
+        "benchmarks/generate_qc_summary_abbrev.tsv"
+    shell:
+        """
+        (python scripts/python/qc_summary_abbrev.py -d {params.summary_dir} -o {params.out_prefix} {params.libs}) &> {log}
         """
