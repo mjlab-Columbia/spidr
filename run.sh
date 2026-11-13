@@ -41,7 +41,6 @@ elif [[ ${SNAKEMAKE_MAJOR} -ge 8 ]]; then
     snakemake \
         --profile profiles/linux_hpc \
         --configfile config.yaml \
-        --omit-from generate_cluster_ecdfs \
         ${DRY_RUN} \
         2>&1 | tee spidr.log
 fi
