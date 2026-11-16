@@ -1446,6 +1446,10 @@ rule subsample_clusters_depth:
         path.join(out_dir, "workup", "qc", "subsample_clusters", "depths", "{experiment}.depth_{depth}.json"),
     wildcard_constraints:
         depth=r"\d+",
+    params:
+        min_oligos=config["min_oligos"],
+        proportion=config["proportion"],
+        max_size=config["max_size"],
     log:
         path.join(out_dir, "workup", "logs", "{experiment}.subsample_clusters_depth_{depth}.log"),
     conda:
@@ -1460,7 +1464,8 @@ rule subsample_clusters_depth:
     shell:
         """
         (python scripts/python/cluster_subsampling_parallel.py depth \
-            --depth {wildcards.depth} --input {input} --output {output}) &> {log}
+            --depth {wildcards.depth} --input {input} --output {output} \
+            --min_oligos {params.min_oligos} --proportion {params.proportion} --max_size {params.max_size}) &> {log}
         """
 
 
@@ -1738,10 +1743,11 @@ rule split_on_first_tag:
 # Profile size distribution of clusters
 rule get_size_distribution_rpm:
     input:
-        expand(
+        condition_clusters=expand(
             path.join(out_dir, "workup", "condition-clusters", "{{experiment}}.{condition}.clusters"),
             condition=config["conditions"],
         ),
+        incomplete_clusters=path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.incomplete.clusters"),
     output:
         rpm=path.join(out_dir, "workup", "condition-clusters", "{experiment}.RPM_read_distribution.pdf"),
         rpm2=path.join(out_dir, "workup", "condition-clusters", "{experiment}.RPM_cluster_distribution.pdf"),
@@ -1759,7 +1765,8 @@ rule get_size_distribution_rpm:
     shell:
         """
         (python scripts/python/get_bead_size_distribution.py \
-            --files {input} \
+            --files {input.condition_clusters} \
+            --incomplete_file {input.incomplete_clusters} \
             --output_dir {params.output_dir} \
             --prefix {wildcards.experiment}. \
             --readtype RPM) &>> {log}
@@ -1768,10 +1775,11 @@ rule get_size_distribution_rpm:
 
 rule get_size_distribution_bpm:
     input:
-        expand(
+        condition_clusters=expand(
             path.join(out_dir, "workup", "condition-clusters", "{{experiment}}.{condition}.clusters"),
             condition=config["conditions"],
         ),
+        incomplete_clusters=path.join(out_dir, "workup", "split_incorrect_clusters", "{experiment}.incomplete.clusters"),
     output:
         bpm=path.join(out_dir, "workup", "condition-clusters", "{experiment}.BPM_read_distribution.pdf"),
         bpm2=path.join(out_dir, "workup", "condition-clusters", "{experiment}.BPM_cluster_distribution.pdf"),
@@ -1789,7 +1797,8 @@ rule get_size_distribution_bpm:
     shell:
         """
         (python scripts/python/get_bead_size_distribution.py \
-            --files {input} \
+            --files {input.condition_clusters} \
+            --incomplete_file {input.incomplete_clusters} \
             --output_dir {params.output_dir} \
             --prefix {wildcards.experiment}. \
             --readtype BPM) &>> {log}

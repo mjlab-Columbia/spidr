@@ -21,6 +21,10 @@ ROUND1_BLANK_G11 -> BLANK) and subsampled independently; there is always at leas
 The numbers produced for depth K and a condition are identical to row K-1 of cluster_subsampling.py run on that
 condition's clusters from the same chunk files.
 
+Extra count: BPM_and_RPM clusters that also pass the threshold_tag_and_split filters (--min_oligos, --proportion,
+--max_size) are reported separately as bpm_and_rpm_pass (not included in "summed"). This requires keeping the bead id
+of every BPM read, not just the BPM count, so it is slower and uses more memory.
+
 Memory note: tags are reduced to per-cluster counts (BPM tags, RPM tags, other tags) while a chunk is read, instead of
 holding a Python list of every tag per barcode. Merging chunks is still a real merge by barcode (a groupby-sum over the
 barcodes of all K chunks); only the bookkeeping per cluster is smaller.
@@ -31,6 +35,7 @@ import json
 import os
 import re
 import sys
+from collections import Counter
 
 import pandas as pd
 from tqdm import tqdm
@@ -58,36 +63,89 @@ def round1_condition(barcode):
 
 
 def load_chunk(path):
-    """Return a DataFrame (one row per cluster in this chunk) with columns barcode, n_bpm, n_rpm, n_other.
+    """Return (df, bead_counts) for one chunk.
+
+    df: one row per cluster in this chunk, columns barcode, n_bpm, n_rpm, n_other.
+    bead_counts: dict barcode -> Counter({bead_id: number of BPM reads with that bead id}), only for clusters that
+        have at least one BPM read. Needed for the thresh_and_split-style filter, which depends on WHICH bead ids
+        are present and not only on how many BPM reads there are.
 
     The cluster barcode drops the trailing library field, exactly like cluster_subsampling.merge_extra_fields.
     A tag's category is its first character (B = BPM[...], R = RPM[...]); every tag counts towards the read total.
     """
     barcodes, n_bpm, n_rpm, n_other = [], [], [], []
+    bead_counts = {}
     with open_auto(path) as f:
         for line in f:
             parts = line.strip().split("\t")
-            barcodes.append(".".join(parts[0].split(".")[:-1]))
+            barcode = ".".join(parts[0].split(".")[:-1])
+            barcodes.append(barcode)
             b = r = 0
+            beads = None
             for tag in parts[1:]:
                 c = tag[0]
                 if c == "B":
                     b += 1
+                    # Bead id of a BPM tag, same parse as threshold_tag_and_split.get_single_label:
+                    # 'BPM[]_RBFOX2:14122321-0' -> 'RBFOX2'
+                    if beads is None:
+                        beads = Counter()
+                    beads[tag.split(":")[0].split("_", 1)[1]] += 1
                 elif c == "R":
                     r += 1
+            if beads is not None:
+                bead_counts[barcode] = beads
             n_bpm.append(b)
             n_rpm.append(r)
             n_other.append(len(parts) - 1 - b - r)
-    return pd.DataFrame({"barcode": barcodes, "n_bpm": n_bpm, "n_rpm": n_rpm, "n_other": n_other})
+    df = pd.DataFrame({"barcode": barcodes, "n_bpm": n_bpm, "n_rpm": n_rpm, "n_other": n_other})
+    return df, bead_counts
 
 
-def merge_chunks(frames):
-    """Merge clusters across chunks: identical barcodes become one cluster with all of their tags pooled."""
+def merge_chunks(frames, bead_count_dicts):
+    """Merge clusters across chunks: identical barcodes become one cluster with all of their tags pooled.
+
+    Returns the merged per-cluster count table plus two extra columns describing the bead ids of each cluster:
+    top_bead_count (reads of the most common bead id) and total_bead_count (all BPM reads); both 0 without BPM.
+    """
     allclusters = pd.concat(frames, axis=0, ignore_index=True)
-    return allclusters.groupby("barcode", sort=False)[["n_bpm", "n_rpm", "n_other"]].sum()
+    merged = allclusters.groupby("barcode", sort=False)[["n_bpm", "n_rpm", "n_other"]].sum()
+
+    # Pool the per-bead-id counters of barcodes that occur in several chunks
+    pooled = {}
+    for d in bead_count_dicts:
+        for barcode, beads in d.items():
+            if barcode in pooled:
+                pooled[barcode].update(beads)  # Counter.update adds counts
+            else:
+                pooled[barcode] = beads
+    # Reduce each cluster's counter to the two numbers the filter needs and align to the merged table
+    top = pd.Series({bc: max(c.values()) for bc, c in pooled.items()}, dtype="int64")
+    merged["top_bead_count"] = top.reindex(merged.index, fill_value=0).to_numpy()
+    merged["total_bead_count"] = merged["n_bpm"]  # every BPM read has exactly one bead id
+    return merged
 
 
-def compute_stats(merged):
+def passes_thresholds(merged, min_oligos, proportion, max_size):
+    """Boolean mask of clusters that would be assigned to a single bead by threshold_tag_and_split.get_single_label.
+
+    Same rules, in the same order:
+      1. at least one BPM read (otherwise label 'none')
+      2. cluster size = reads that are not BPM; more than max_size -> 'filtered'
+      3. most common bead id has fewer than min_oligos reads -> 'uncertain'
+      4. most common bead id is a smaller fraction of all BPM reads than proportion -> 'ambiguous'
+    Surviving clusters get a bead label. (This is only the mask; combine it with has-RPM for BPM_and_RPM clusters.)
+    """
+    has_bpm = merged["n_bpm"] > 0
+    cluster_size = merged["n_rpm"] + merged["n_other"]  # reads minus BPM reads
+    not_filtered = cluster_size <= max_size
+    enough_oligos = merged["top_bead_count"] >= min_oligos
+    # clip avoids 0/0 for clusters without BPM (they are excluded by has_bpm anyway)
+    majority = (merged["top_bead_count"] / merged["total_bead_count"].clip(lower=1)) >= proportion
+    return has_bpm & not_filtered & enough_oligos & majority
+
+
+def compute_stats(merged, pass_mask):
     """Cluster- and read-level category proportions for merged clusters (same definitions as cluster_subsampling.py)."""
     has_b = merged["n_bpm"] > 0
     has_r = merged["n_rpm"] > 0
@@ -98,18 +156,23 @@ def compute_stats(merged):
         "rpm_only": ~has_b & has_r,
         "bpm_and_rpm": has_b & has_r,
     }
+    # Separate extra count (NOT part of "summed"): BPM_and_RPM clusters that also pass the thresh_and_split filters
+    pass_mask_bpm_rpm = has_b & has_r & pass_mask
     total_clusters = merged.shape[0]
     total_reads = int(reads.sum())
 
     cluster_row = {k: int(m.sum()) / total_clusters for k, m in masks.items()}
     # explicit left-to-right addition (builtin sum() uses compensated summation on Python >= 3.12 and would differ by 1 ulp)
     cluster_row["summed"] = cluster_row["bpm_only"] + cluster_row["rpm_only"] + cluster_row["bpm_and_rpm"]
+    cluster_row["bpm_and_rpm_pass"] = int(pass_mask_bpm_rpm.sum()) / total_clusters
 
     abs_reads = {k: int(reads[m].sum()) for k, m in masks.items()}
     read_row = {k: abs_reads[k] / total_reads for k in masks}
     read_row["summed"] = (abs_reads["bpm_only"] + abs_reads["rpm_only"] + abs_reads["bpm_and_rpm"]) / total_reads
     for k in masks:
         read_row[f"{k}_abs"] = abs_reads[k]
+    read_row["bpm_and_rpm_pass"] = int(reads[pass_mask_bpm_rpm].sum()) / total_reads
+    read_row["bpm_and_rpm_pass_abs"] = int(reads[pass_mask_bpm_rpm].sum())
     read_row["total_reads"] = total_reads
     return cluster_row, read_row
 
@@ -118,14 +181,15 @@ def run_depth(args):
     files = sorted(args.input)
     if args.depth is not None and args.depth != len(files):
         sys.exit(f"--depth {args.depth} does not match the {len(files)} input chunk files given")
-    frames = [load_chunk(f) for f in tqdm(files, desc="Loading chunks")]
-    merged = merge_chunks(frames)
+    loaded = [load_chunk(f) for f in tqdm(files, desc="Loading chunks")]
+    merged = merge_chunks([df for df, _ in loaded], [beads for _, beads in loaded])
+    merged["passes"] = passes_thresholds(merged, args.min_oligos, args.proportion, args.max_size)
     # Subsample independently per condition: each condition's clusters are summarised on their own
     conditions = merged.index.map(round1_condition)
     out = {"depth": len(files), "input_files": files, "conditions": {}}
     for cond in sorted(set(conditions)):
         sub = merged[conditions == cond]
-        cluster_row, read_row = compute_stats(sub)
+        cluster_row, read_row = compute_stats(sub, sub["passes"])
         out["conditions"][cond] = {"n_clusters": int(sub.shape[0]), "cluster_row": cluster_row, "read_row": read_row}
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     with open(args.output, "w") as fh:
@@ -185,6 +249,11 @@ def plot_read_stats(read_stats_df, path, condition=None):
                               ("bpm_and_rpm", "BPM and RPM", "green")):
         axs[0].plot(read_stats_df.index, read_stats_df[col], label=label, color=color, marker='o')
         axs[1].plot(read_stats_df.index, read_stats_df[col + "_abs"], label=label, color=color, marker='o')
+    # Dashed line: BPM+RPM clusters that also pass the thresh_and_split filters (subset of the green line)
+    axs[0].plot(read_stats_df.index, read_stats_df["bpm_and_rpm_pass"], label="BPM and RPM (pass filters)",
+                color="green", linestyle="--", marker="x")
+    axs[1].plot(read_stats_df.index, read_stats_df["bpm_and_rpm_pass_abs"], label="BPM and RPM (pass filters)",
+                color="green", linestyle="--", marker="x")
     axs[0].set_xlabel('Number of Cumulative Chunks Aggregated')
     axs[0].set_ylabel('Proportion')
     axs[0].set_title('Cluster Category Proportion (By Total Reads)')
@@ -210,6 +279,12 @@ def main():
     d.add_argument("--depth", "-d", type=int, default=None,
                    help="Number of chunks expected (checked against --input; optional sanity check)")
     d.add_argument("--output", "-o", required=True, help="Output JSON file for this depth")
+    d.add_argument("--min_oligos", type=int, required=True,
+                   help="thresh_and_split min_oligos: minimum reads of the top bead id")
+    d.add_argument("--proportion", type=float, required=True,
+                   help="thresh_and_split proportion: minimum fraction of BPM reads from the top bead id")
+    d.add_argument("--max_size", type=int, required=True,
+                   help="thresh_and_split max_size: clusters with MORE non-BPM reads than this are filtered")
     d.set_defaults(func=run_depth)
 
     a = sub.add_parser("aggregate", help="Gather per-depth JSON files into the stats tables and plot")

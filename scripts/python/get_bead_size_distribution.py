@@ -15,6 +15,12 @@ def main():
         df1, df2 = count_statistics(f, args.readtype)
         cluster_counts.append(df1)
         read_counts.append(df2)
+    if args.incomplete_file:
+        df1, df2 = count_statistics(args.incomplete_file, args.readtype)
+        df1.columns = ['incomplete']
+        df2.columns = ['incomplete']
+        cluster_counts.append(df1)
+        read_counts.append(df2)
     cluster_df = pd.concat(cluster_counts, axis=1).transpose()
     read_df = pd.concat(read_counts, axis=1).transpose()
     cluster_fig = plot_profile(cluster_df)
@@ -56,7 +62,7 @@ def count_statistics(filename, readtype):
 def plot_profile(df):
     columns = ['1', '2-5', '6-10', '11-20', '21-50', '51-100', '101-200', '201+']
     df.columns = columns
-    df = df.div(df.sum(axis=1), axis=0)
+    df = df.div(df.sum(axis=1), axis=0).fillna(0)
     plot = df.plot(kind='bar', stacked=True, ylabel='Proportion', cmap=colormaps.get_cmap('Dark2'))
     plot.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     plot.set_ylabel = 'Proportion'
@@ -72,6 +78,10 @@ def parse_arguments():
                         metavar="FILE",
                         required=True,
                         help="Cluster files for a single experiment")
+    parser.add_argument('--incomplete_file',
+                        metavar="FILE",
+                        default=None,
+                        help="Cluster file of incomplete clusters; plotted as an extra bar")
     parser.add_argument('--output_dir',
                         metavar="DIR",
                         required=True,
