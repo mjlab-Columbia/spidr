@@ -1457,8 +1457,8 @@ rule subsample_clusters_depth:
     resources:
         tmpdir=config["temp_dir"],
         cpus=1,
-        mem_mb=lambda wildcards: 4000 + 1000 * int(wildcards.depth),
-        time="01:00:00",
+        mem_mb=lambda wildcards: 4000 + 2500 * int(wildcards.depth),  # per-cluster bead-id counters need extra memory
+        time="03:00:00",
     benchmark:
         "benchmarks/{experiment}.subsample_clusters_depth_{depth}.tsv"
     shell:
